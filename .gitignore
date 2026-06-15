@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Secrets / local config
+.env
+*.env
+
+# Patient data: never commit
+*.db
+storage/raw_data/*
+storage/processed_data/*
+storage/pdf/*
+reports/exports/*
+!storage/raw_data/.gitkeep
+!storage/processed_data/.gitkeep
+!storage/pdf/.gitkeep
+!reports/exports/.gitkeep
+
+# System
+.DS_Store
+.vscode/settings.json

@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+bleak
+sqlalchemy
+pydantic
+python-dotenv
+matplotlib
+pandas
+reportlab

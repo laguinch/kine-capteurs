@@ -1,0 +1,1 @@
+# Modèle result à compléter.
