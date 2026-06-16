@@ -99,17 +99,26 @@ async def find_device_by_address(address: str, timeout: float):
 
 
 async def list_services(client: BleakClient) -> None:
-    await asyncio.sleep(1.0)
-    if hasattr(client, "get_services"):
-        services = await client.get_services()
-    else:
-        services = client.services
+    services = []
+    for attempt in range(1, 11):
+        if hasattr(client, "get_services"):
+            services = await client.get_services()
+        else:
+            services = client.services
 
-    services = list(services)
+        services = list(services)
+        if services:
+            print(f"Services trouves a l'essai {attempt}.")
+            break
+
+        print(f"Essai services {attempt}/10: rien pour l'instant.")
+        await asyncio.sleep(0.2)
+
     if not services:
-        print("Aucun service GATT remonte par Bleak/BlueZ.")
-        print("Essaie de relancer la commande, ou de redemarrer le Bluetooth:")
-        print("  sudo systemctl restart bluetooth")
+        print("Aucun service GATT remonte par Bleak/BlueZ avant la deconnexion.")
+        print("Si bluetoothctl montre ServicesResolved: yes puis une deconnexion rapide,")
+        print("le capteur coupe probablement la connexion tant qu'aucune commande/notification")
+        print("n'est activee immediatement apres connexion.")
         return
 
     for service in services:
