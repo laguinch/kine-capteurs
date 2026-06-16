@@ -7,6 +7,24 @@ from pathlib import Path
 from bleak import BleakClient, BleakScanner
 
 
+KINVENT_NOTIFY_CHAR = "49535343-1e4d-4bd9-ba61-23c647249616"
+KINVENT_ALT_NOTIFY_CHAR = "49535343-4c8a-39b3-2f49-511cff073b7e"
+KINVENT_WRITE_CHAR = "49535343-8841-43f4-a8d4-ecbe34729bb3"
+
+KINVENT_INIT_COMMANDS = [
+    b"\x10",
+    b"\x09",
+    b"\x21",
+    b"\x76",
+    b"\x11",
+    b"\x10",
+    b"\x10",
+    b"\x56",
+    bytes.fromhex("ac 00 54 f8"),
+    b"\x11",
+]
+
+
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -169,14 +187,6 @@ async def connect_and_diagnose(args) -> None:
         async with BleakClient(device, timeout=args.connect_timeout) as client:
             print(f"Connecte: {client.is_connected}")
 
-            if args.services:
-                await list_services(client)
-
-            for char_uuid, payload in args.write:
-                print(f"WRITE {char_uuid}: {payload.hex(' ')}")
-                await client.write_gatt_char(char_uuid, payload, response=args.write_response)
-                await asyncio.sleep(args.write_delay)
-
             csv_file = None
             csv_writer = None
             if args.csv:
@@ -195,6 +205,23 @@ async def connect_and_diagnose(args) -> None:
                         await client.start_notify(char_uuid, callback)
                         notify_started.append(char_uuid)
 
+                if args.services:
+                    await list_services(client)
+
+                for char_uuid, payload in args.write:
+                    print(f"WRITE {char_uuid}: {payload.hex(' ')}")
+                    await client.write_gatt_char(char_uuid, payload, response=args.write_response)
+                    await asyncio.sleep(args.write_delay)
+
+                if args.write and not args.notify:
+                    print(f"Attente apres write pendant {args.duration:.1f} s...")
+                    await asyncio.sleep(args.duration)
+
+                if args.notify and not args.write:
+                    print(f"Ecoute pendant {args.duration:.1f} s...")
+                    await asyncio.sleep(args.duration)
+
+                if args.notify and args.write:
                     print(f"Ecoute pendant {args.duration:.1f} s...")
                     await asyncio.sleep(args.duration)
             finally:
@@ -245,6 +272,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Lister les services et caracteristiques apres connexion.",
     )
     parser.add_argument(
+        "--preset",
+        choices=["kplate", "kpush"],
+        help="Ajouter automatiquement les UUID/commandes connus pour un capteur Kinvent.",
+    )
+    parser.add_argument(
         "--notify",
         action="append",
         default=[],
@@ -288,6 +320,24 @@ def normalize_args(args) -> None:
     for char_uuid, hex_value in args.write:
         normalized_writes.append((char_uuid, parse_hex(hex_value)))
     args.write = normalized_writes
+
+    if args.preset == "kplate":
+        if not args.notify:
+            args.notify = [KINVENT_NOTIFY_CHAR]
+        if not args.write:
+            args.write = [
+                (KINVENT_WRITE_CHAR, command)
+                for command in KINVENT_INIT_COMMANDS
+            ]
+
+    if args.preset == "kpush":
+        if not args.notify:
+            args.notify = [KINVENT_NOTIFY_CHAR, KINVENT_ALT_NOTIFY_CHAR]
+        if not args.write:
+            args.write = [
+                (KINVENT_NOTIFY_CHAR, command)
+                for command in KINVENT_INIT_COMMANDS
+            ]
 
 
 async def main() -> None:
