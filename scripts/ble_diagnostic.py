@@ -85,7 +85,19 @@ async def choose_device(name_filter: str, timeout: float):
 
 
 async def list_services(client: BleakClient) -> None:
-    services = client.services
+    await asyncio.sleep(1.0)
+    if hasattr(client, "get_services"):
+        services = await client.get_services()
+    else:
+        services = client.services
+
+    services = list(services)
+    if not services:
+        print("Aucun service GATT remonte par Bleak/BlueZ.")
+        print("Essaie de relancer la commande, ou de redemarrer le Bluetooth:")
+        print("  sudo systemctl restart bluetooth")
+        return
+
     for service in services:
         print(f"\nService {service.uuid}")
         if service.description:
