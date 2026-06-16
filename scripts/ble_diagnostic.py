@@ -84,6 +84,20 @@ async def choose_device(name_filter: str, timeout: float):
     return matches[0]
 
 
+async def find_device_by_address(address: str, timeout: float):
+    target = address.lower()
+    print(f"Recherche de {address} pendant {timeout:.1f} s avant connexion...")
+    devices = await BleakScanner.discover(timeout=timeout)
+    for device in devices:
+        if device.address.lower() == target:
+            name = device.name or "(sans nom)"
+            print(f"Appareil trouve: {device.address} | {name}")
+            return device
+
+    print("Appareil non retrouve pendant le scan, tentative avec l'adresse directe.")
+    return address
+
+
 async def list_services(client: BleakClient) -> None:
     await asyncio.sleep(1.0)
     if hasattr(client, "get_services"):
@@ -138,44 +152,53 @@ async def connect_and_diagnose(args) -> None:
     if not address:
         raise SystemExit("Indique --address ADRESSE ou --name NOM.")
 
+    if device is None:
+        device = await find_device_by_address(address, args.scan_timeout)
+
     print(f"Connexion a {address}...")
-    async with BleakClient(address) as client:
-        print(f"Connecte: {client.is_connected}")
+    try:
+        async with BleakClient(device, timeout=args.connect_timeout) as client:
+            print(f"Connecte: {client.is_connected}")
 
-        if args.services:
-            await list_services(client)
+            if args.services:
+                await list_services(client)
 
-        for char_uuid, payload in args.write:
-            print(f"WRITE {char_uuid}: {payload.hex(' ')}")
-            await client.write_gatt_char(char_uuid, payload, response=args.write_response)
-            await asyncio.sleep(args.write_delay)
+            for char_uuid, payload in args.write:
+                print(f"WRITE {char_uuid}: {payload.hex(' ')}")
+                await client.write_gatt_char(char_uuid, payload, response=args.write_response)
+                await asyncio.sleep(args.write_delay)
 
-        csv_file = None
-        csv_writer = None
-        if args.csv:
-            csv_path = Path(args.csv)
-            csv_path.parent.mkdir(parents=True, exist_ok=True)
-            csv_file = csv_path.open("w", newline="", encoding="utf-8")
-            csv_writer = csv.writer(csv_file)
-            csv_writer.writerow(["timestamp_utc", "sender", "length", "data_hex"])
+            csv_file = None
+            csv_writer = None
+            if args.csv:
+                csv_path = Path(args.csv)
+                csv_path.parent.mkdir(parents=True, exist_ok=True)
+                csv_file = csv_path.open("w", newline="", encoding="utf-8")
+                csv_writer = csv.writer(csv_file)
+                csv_writer.writerow(["timestamp_utc", "sender", "length", "data_hex"])
 
-        notify_started = []
-        try:
-            if args.notify:
-                callback = make_notify_callback(csv_writer, csv_file)
-                for char_uuid in args.notify:
-                    print(f"NOTIFY start {char_uuid}")
-                    await client.start_notify(char_uuid, callback)
-                    notify_started.append(char_uuid)
+            notify_started = []
+            try:
+                if args.notify:
+                    callback = make_notify_callback(csv_writer, csv_file)
+                    for char_uuid in args.notify:
+                        print(f"NOTIFY start {char_uuid}")
+                        await client.start_notify(char_uuid, callback)
+                        notify_started.append(char_uuid)
 
-                print(f"Ecoute pendant {args.duration:.1f} s...")
-                await asyncio.sleep(args.duration)
-        finally:
-            for char_uuid in notify_started:
-                print(f"NOTIFY stop {char_uuid}")
-                await client.stop_notify(char_uuid)
-            if csv_file is not None:
-                csv_file.close()
+                    print(f"Ecoute pendant {args.duration:.1f} s...")
+                    await asyncio.sleep(args.duration)
+            finally:
+                for char_uuid in notify_started:
+                    print(f"NOTIFY stop {char_uuid}")
+                    await client.stop_notify(char_uuid)
+                if csv_file is not None:
+                    csv_file.close()
+    except TimeoutError:
+        print("Connexion impossible: timeout.")
+        print("Verifie que le capteur est reveille, proche, et non connecte a l'application Kinvent.")
+        print("Tu peux aussi relancer:")
+        print("  sudo systemctl restart bluetooth")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -192,6 +215,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=8.0,
         help="Duree du scan BLE en secondes.",
+    )
+    parser.add_argument(
+        "--connect-timeout",
+        type=float,
+        default=20.0,
+        help="Duree maximale de connexion en secondes.",
     )
     parser.add_argument(
         "--address",
