@@ -81,6 +81,29 @@ def print_gatt(objects, device_path):
     return found
 
 
+def print_gatt_interface(path, interfaces):
+    service = interfaces.get(GATT_SERVICE)
+    if service:
+        print(f"Service {service.get('UUID')} path={path}")
+        print(f"  Primary: {service.get('Primary')}")
+        return True
+
+    characteristic = interfaces.get(GATT_CHARACTERISTIC)
+    if characteristic:
+        print(f"Characteristic {characteristic.get('UUID')} path={path}")
+        print(f"  Service: {characteristic.get('Service')}")
+        print(f"  Flags: {', '.join(characteristic.get('Flags', []))}")
+        return True
+
+    descriptor = interfaces.get(GATT_DESCRIPTOR)
+    if descriptor:
+        print(f"Descriptor {descriptor.get('UUID')} path={path}")
+        print(f"  Characteristic: {descriptor.get('Characteristic')}")
+        return True
+
+    return False
+
+
 async def wait_for_device(bus, adapter, address, timeout):
     print(f"Scan BlueZ pendant {timeout:.1f} s pour {address}...")
     try:
@@ -128,6 +151,19 @@ async def probe(args):
     if not device_path:
         raise SystemExit(f"Appareil introuvable: {args.address}")
 
+    manager = await get_interface(bus, "/", OBJECT_MANAGER)
+    saw_gatt = False
+
+    def on_interfaces_added(path, interfaces):
+        nonlocal saw_gatt
+        interfaces = unwrap(interfaces)
+        if not path.startswith(device_path + "/"):
+            return
+        if print_gatt_interface(path, interfaces):
+            saw_gatt = True
+
+    manager.on_interfaces_added(on_interfaces_added)
+
     device = await get_interface(bus, device_path, DEVICE)
     device_props = await get_interface(bus, device_path, PROPERTIES)
 
@@ -152,7 +188,6 @@ async def probe(args):
 
     print(f"Observation GATT pendant {args.duration:.1f} s...")
     deadline = asyncio.get_running_loop().time() + args.duration
-    saw_gatt = False
     while asyncio.get_running_loop().time() < deadline:
         objects = await get_managed_objects(bus)
         if print_gatt(objects, device_path):
