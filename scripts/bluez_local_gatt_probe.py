@@ -3,6 +3,7 @@ import asyncio
 
 from dbus_fast import BusType, Variant
 from dbus_fast.aio import MessageBus
+from dbus_fast.constants import PropertyAccess
 from dbus_fast.service import ServiceInterface, dbus_property, method
 
 
@@ -61,15 +62,15 @@ class LocalService(ServiceInterface):
         self.uuid = uuid
         self.primary = primary
 
-    @dbus_property()
+    @dbus_property(access=PropertyAccess.READ)
     def UUID(self) -> "s":
         return self.uuid
 
-    @dbus_property()
+    @dbus_property(access=PropertyAccess.READ)
     def Primary(self) -> "b":
         return self.primary
 
-    @dbus_property()
+    @dbus_property(access=PropertyAccess.READ)
     def Characteristics(self) -> "ao":
         return [
             f"{SERVICE_PATH}/char0",
@@ -88,19 +89,19 @@ class LocalCharacteristic(ServiceInterface):
         self.value = bytearray()
         self.notifying = False
 
-    @dbus_property()
+    @dbus_property(access=PropertyAccess.READ)
     def UUID(self) -> "s":
         return self.uuid
 
-    @dbus_property()
+    @dbus_property(access=PropertyAccess.READ)
     def Service(self) -> "o":
         return self.service_path
 
-    @dbus_property()
+    @dbus_property(access=PropertyAccess.READ)
     def Flags(self) -> "as":
         return self.flags
 
-    @dbus_property()
+    @dbus_property(access=PropertyAccess.READ)
     def Notifying(self) -> "b":
         return self.notifying
 
