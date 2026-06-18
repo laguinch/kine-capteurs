@@ -12,6 +12,7 @@ Exécution Linux (root requis) :
 """
 
 import argparse
+import ctypes
 import csv
 import errno
 import socket
@@ -79,6 +80,14 @@ INIT_COMMANDS = [
 ]
 
 
+class SockaddrHci(ctypes.Structure):
+    _fields_ = [
+        ("hci_family", ctypes.c_ushort),
+        ("hci_dev", ctypes.c_ushort),
+        ("hci_channel", ctypes.c_ushort),
+    ]
+
+
 def hci_opcode(ogf, ocf):
     return (ogf << 10) | ocf
 
@@ -141,7 +150,24 @@ class RawKinventClient:
 
         self.sock = socket.socket(AF_BLUETOOTH, socket.SOCK_RAW, BTPROTO_HCI)
         try:
-            self.sock.bind((self.adapter, HCI_CHANNEL_USER))
+            address = SockaddrHci(
+                AF_BLUETOOTH,
+                self.adapter,
+                HCI_CHANNEL_USER,
+            )
+            libc = ctypes.CDLL(None, use_errno=True)
+            result = libc.bind(
+                self.sock.fileno(),
+                ctypes.byref(address),
+                ctypes.sizeof(address),
+            )
+            if result != 0:
+                error_number = ctypes.get_errno()
+                raise OSError(
+                    error_number,
+                    f"bind HCI_USER hci{self.adapter}: "
+                    f"{errno.errorcode.get(error_number, 'erreur inconnue')}",
+                )
         except OSError as exc:
             self.sock.close()
             self.sock = None
