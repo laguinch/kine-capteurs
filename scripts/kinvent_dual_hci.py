@@ -94,6 +94,25 @@ class PlateState:
         self.notifications = 0
         self.samples = deque(maxlen=buffer_size)
         self.reconnections = 0
+        self.last_sensor_time = None
+        self.sensor_time_unwrapped = None
+        self.timeline_sensor_origin = None
+        self.timeline_host_origin = None
+
+    def sample_monotonic(self, sensor_time, received_monotonic):
+        if self.last_sensor_time is None:
+            self.last_sensor_time = sensor_time
+            self.sensor_time_unwrapped = sensor_time
+            self.timeline_sensor_origin = sensor_time
+            self.timeline_host_origin = received_monotonic
+        else:
+            delta = (sensor_time - self.last_sensor_time) & 0xFFFF
+            self.sensor_time_unwrapped += delta
+            self.last_sensor_time = sensor_time
+
+        return self.timeline_host_origin + (
+            self.sensor_time_unwrapped - self.timeline_sensor_origin
+        ) / 1000.0
 
     def decode(self, value):
         raw_sample = parse_frame(value)
@@ -137,9 +156,13 @@ class PlateState:
             if self.latest["force_kg"] >= MIN_VALID_KG
             else None
         )
+        received_monotonic = time.monotonic()
         self.samples.append(
             {
-                "received_monotonic": time.monotonic(),
+                "received_monotonic": received_monotonic,
+                "sample_monotonic": self.sample_monotonic(
+                    self.latest["t"], received_monotonic
+                ),
                 "received_utc": now_iso(),
                 "sample": self.latest,
                 "distribution": self.distribution,
@@ -488,6 +511,10 @@ class DualKinventClient:
                 self.by_handle.pop(handle, None)
                 plate.handle = None
                 plate.samples.clear()
+                plate.last_sensor_time = None
+                plate.sensor_time_unwrapped = None
+                plate.timeline_sensor_origin = None
+                plate.timeline_host_origin = None
                 raise PlateDisconnected(plate, payload[5])
         if (
             payload[0] == EVT_LE_META_EVENT
@@ -593,8 +620,8 @@ class DualKinventClient:
             left_entry = left.samples[0]
             right_entry = right.samples[0]
             delta = (
-                left_entry["received_monotonic"]
-                - right_entry["received_monotonic"]
+                left_entry["sample_monotonic"]
+                - right_entry["sample_monotonic"]
             )
             if abs(delta) <= self.sync_tolerance:
                 left.samples.popleft()

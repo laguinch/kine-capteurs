@@ -74,6 +74,7 @@ class KPlateDualTest(unittest.TestCase):
         left.samples.append(
             {
                 "received_monotonic": base,
+                "sample_monotonic": base,
                 "received_utc": "2026-06-18T00:00:00+00:00",
                 "sample": sample,
                 "distribution": None,
@@ -82,6 +83,7 @@ class KPlateDualTest(unittest.TestCase):
         right.samples.append(
             {
                 "received_monotonic": base + 0.012,
+                "sample_monotonic": base + 0.012,
                 "received_utc": "2026-06-18T00:00:00.012000+00:00",
                 "sample": sample,
                 "distribution": None,
@@ -118,14 +120,41 @@ class KPlateDualTest(unittest.TestCase):
             "sample": {"force_kg": 0.0, "t": 1},
             "distribution": None,
         }
-        left.samples.append({**entry, "received_monotonic": base})
-        right.samples.append({**entry, "received_monotonic": base + 0.1})
+        left.samples.append(
+            {
+                **entry,
+                "received_monotonic": base,
+                "sample_monotonic": base,
+            }
+        )
+        right.samples.append(
+            {
+                **entry,
+                "received_monotonic": base + 0.1,
+                "sample_monotonic": base + 0.1,
+            }
+        )
 
         client.pair_samples()
 
         self.assertEqual(client.dropped_samples["gauche"], 1)
         self.assertFalse(left.samples)
         self.assertTrue(right.samples)
+
+    def test_sensor_clock_reconstructs_regular_timeline_from_bursts(self):
+        plate = self.module.PlateState(
+            "gauche",
+            "E8:EB:1B:6F:A7:5F",
+            tare_duration=0,
+        )
+
+        first = plate.sample_monotonic(1000, 50.000)
+        second = plate.sample_monotonic(1013, 50.045)
+        third = plate.sample_monotonic(1027, 50.046)
+
+        self.assertAlmostEqual(first, 50.000, places=6)
+        self.assertAlmostEqual(second, 50.013, places=6)
+        self.assertAlmostEqual(third, 50.027, places=6)
 
     def test_disconnect_identifies_plate_and_clears_handle(self):
         client = self.module.DualKinventClient(
