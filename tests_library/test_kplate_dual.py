@@ -1,4 +1,5 @@
 import importlib.util
+import time
 import unittest
 from pathlib import Path
 
@@ -56,6 +57,75 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(values["right_kg"], 0.03)
         self.assertIsNone(values["left_pct"])
         self.assertIsNone(values["global_x"])
+
+    def test_pairs_each_sample_once_within_tolerance(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+            sync_tolerance_ms=20,
+        )
+        left, right = client.plates
+        base = time.monotonic()
+        sample = {"force_kg": 50.0, "t": 1}
+        left.samples.append(
+            {
+                "received_monotonic": base,
+                "received_utc": "2026-06-18T00:00:00+00:00",
+                "sample": sample,
+                "distribution": None,
+            }
+        )
+        right.samples.append(
+            {
+                "received_monotonic": base + 0.012,
+                "received_utc": "2026-06-18T00:00:00.012000+00:00",
+                "sample": sample,
+                "distribution": None,
+            }
+        )
+        pairs = []
+        client.write_combined = lambda left_entry, right_entry, delta: pairs.append(
+            delta
+        )
+
+        client.pair_samples()
+        client.pair_samples()
+
+        self.assertEqual(len(pairs), 1)
+        self.assertAlmostEqual(pairs[0], 12.0, places=3)
+        self.assertEqual(client.paired_samples, 1)
+        self.assertFalse(left.samples)
+        self.assertFalse(right.samples)
+
+    def test_discards_sample_outside_tolerance(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+            sync_tolerance_ms=20,
+        )
+        left, right = client.plates
+        base = time.monotonic()
+        entry = {
+            "received_utc": "2026-06-18T00:00:00+00:00",
+            "sample": {"force_kg": 0.0, "t": 1},
+            "distribution": None,
+        }
+        left.samples.append({**entry, "received_monotonic": base})
+        right.samples.append({**entry, "received_monotonic": base + 0.1})
+
+        client.pair_samples()
+
+        self.assertEqual(client.dropped_samples["gauche"], 1)
+        self.assertFalse(left.samples)
+        self.assertTrue(right.samples)
 
 
 if __name__ == "__main__":

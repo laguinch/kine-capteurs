@@ -7,6 +7,7 @@ import socket
 import struct
 import sys
 import time
+from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 from statistics import median
@@ -70,7 +71,7 @@ def now_iso():
 
 
 class PlateState:
-    def __init__(self, side, address, tare_duration):
+    def __init__(self, side, address, tare_duration, buffer_size=64):
         self.side = side
         self.address = address.upper()
         self.address_le = address_to_le_bytes(address)
@@ -82,6 +83,7 @@ class PlateState:
         self.latest = None
         self.distribution = None
         self.notifications = 0
+        self.samples = deque(maxlen=buffer_size)
 
     def decode(self, value):
         raw_sample = parse_frame(value)
@@ -125,6 +127,14 @@ class PlateState:
             if self.latest["force_kg"] >= MIN_VALID_KG
             else None
         )
+        self.samples.append(
+            {
+                "received_monotonic": time.monotonic(),
+                "received_utc": now_iso(),
+                "sample": self.latest,
+                "distribution": self.distribution,
+            }
+        )
         return self.latest
 
 
@@ -137,6 +147,7 @@ class DualKinventClient:
         csv_path,
         tare_duration,
         print_interval,
+        sync_tolerance_ms=20.0,
     ):
         self.adapter = adapter
         self.plates = [
@@ -149,6 +160,9 @@ class DualKinventClient:
         self.pending_att = {}
         self.last_print = 0.0
         self.print_interval = print_interval
+        self.sync_tolerance = sync_tolerance_ms / 1000.0
+        self.paired_samples = 0
+        self.dropped_samples = {"gauche": 0, "droite": 0}
         self.csv_file = None
         self.writer = None
 
@@ -160,7 +174,8 @@ class DualKinventClient:
             self.writer.writerow(
                 [
                     "timestamp_utc",
-                    "source",
+                    "sync_delta_ms",
+                    "sync_quality",
                     "left_sensor_time",
                     "right_sensor_time",
                     "left_kg",
@@ -491,14 +506,22 @@ class DualKinventClient:
             value = att[3:]
             sample = plate.decode(value)
             if sample:
-                self.write_combined(plate.side)
+                self.pair_samples()
 
-    def combined_values(self):
+    def combined_values(self, left_entry=None, right_entry=None):
         left, right = self.plates
-        if left.latest is None or right.latest is None:
+        left_sample = left_entry["sample"] if left_entry else left.latest
+        right_sample = right_entry["sample"] if right_entry else right.latest
+        left_distribution = (
+            left_entry["distribution"] if left_entry else left.distribution
+        )
+        right_distribution = (
+            right_entry["distribution"] if right_entry else right.distribution
+        )
+        if left_sample is None or right_sample is None:
             return None
-        left_kg = max(0.0, left.latest["force_kg"])
-        right_kg = max(0.0, right.latest["force_kg"])
+        left_kg = max(0.0, left_sample["force_kg"])
+        right_kg = max(0.0, right_sample["force_kg"])
         total_kg = left_kg + right_kg
         left_pct = left_kg / total_kg * 100 if total_kg >= MIN_VALID_KG else None
         right_pct = right_kg / total_kg * 100 if total_kg >= MIN_VALID_KG else None
@@ -507,13 +530,15 @@ class DualKinventClient:
         # Repère global normalisé: centres des plaques à -1 (gauche) et +1
         # (droite), COP intra-plaque ramené sur une demi-largeur.
         if total_kg >= MIN_VALID_KG:
-            left_x = -1.0 + (left.distribution["cop_x"] * 0.5 if left.distribution else 0)
+            left_x = -1.0 + (
+                left_distribution["cop_x"] * 0.5 if left_distribution else 0
+            )
             right_x = 1.0 + (
-                right.distribution["cop_x"] * 0.5 if right.distribution else 0
+                right_distribution["cop_x"] * 0.5 if right_distribution else 0
             )
             global_x = (left_x * left_kg + right_x * right_kg) / total_kg
-            left_y = left.distribution["cop_y"] if left.distribution else 0
-            right_y = right.distribution["cop_y"] if right.distribution else 0
+            left_y = left_distribution["cop_y"] if left_distribution else 0
+            right_y = right_distribution["cop_y"] if right_distribution else 0
             global_y = (left_y * left_kg + right_y * right_kg) / total_kg
         else:
             global_x = global_y = None
@@ -529,20 +554,44 @@ class DualKinventClient:
             "global_y": global_y,
         }
 
-    def write_combined(self, source):
-        values = self.combined_values()
+    def pair_samples(self):
+        left, right = self.plates
+        while left.samples and right.samples:
+            left_entry = left.samples[0]
+            right_entry = right.samples[0]
+            delta = (
+                left_entry["received_monotonic"]
+                - right_entry["received_monotonic"]
+            )
+            if abs(delta) <= self.sync_tolerance:
+                left.samples.popleft()
+                right.samples.popleft()
+                self.write_combined(left_entry, right_entry, abs(delta) * 1000)
+                self.paired_samples += 1
+            elif delta < 0:
+                left.samples.popleft()
+                self.dropped_samples["gauche"] += 1
+            else:
+                right.samples.popleft()
+                self.dropped_samples["droite"] += 1
+
+    def write_combined(self, left_entry, right_entry, sync_delta_ms):
+        values = self.combined_values(left_entry, right_entry)
         if values is None:
             return
-        left, right = self.plates
-        left_dist = left.distribution or {}
-        right_dist = right.distribution or {}
+        left_dist = left_entry["distribution"] or {}
+        right_dist = right_entry["distribution"] or {}
+        left_sample = left_entry["sample"]
+        right_sample = right_entry["sample"]
+        sync_quality = "excellent" if sync_delta_ms <= 10 else "acceptable"
         if self.writer:
             self.writer.writerow(
                 [
-                    now_iso(),
-                    source,
-                    left.latest["t"],
-                    right.latest["t"],
+                    max(left_entry["received_utc"], right_entry["received_utc"]),
+                    round(sync_delta_ms, 3),
+                    sync_quality,
+                    left_sample["t"],
+                    right_sample["t"],
                     round(values["left_kg"], 6),
                     round(values["right_kg"], 6),
                     round(values["total_kg"], 6),
@@ -610,6 +659,11 @@ class DualKinventClient:
             print("Acquisition double terminée.")
             for plate in self.plates:
                 print(f"{plate.side}: {plate.notifications} notifications")
+            print(
+                f"Paires synchronisées: {self.paired_samples} | "
+                f"écartées gauche={self.dropped_samples['gauche']}, "
+                f"droite={self.dropped_samples['droite']}"
+            )
         finally:
             self.close()
 
@@ -627,6 +681,12 @@ def build_parser():
     parser.add_argument("--write-delay", type=float, default=0.5)
     parser.add_argument("--tare-duration", type=float, default=2.0)
     parser.add_argument("--print-interval", type=float, default=0.5)
+    parser.add_argument(
+        "--sync-tolerance-ms",
+        type=float,
+        default=20.0,
+        help="Écart maximal entre une mesure gauche et droite.",
+    )
     parser.add_argument("--csv", default="storage/raw_data/kplates_dual.csv")
     return parser
 
@@ -640,6 +700,7 @@ def main():
         args.csv,
         args.tare_duration,
         args.print_interval,
+        args.sync_tolerance_ms,
     )
     client.run(
         args.scan_timeout,
