@@ -323,10 +323,10 @@ def normalize_args(args) -> None:
 
     if args.preset == "kplate":
         if not args.notify:
-            args.notify = [KINVENT_NOTIFY_CHAR]
+            args.notify = [KINVENT_NOTIFY_CHAR, KINVENT_ALT_NOTIFY_CHAR]
         if not args.write:
             args.write = [
-                (KINVENT_WRITE_CHAR, command)
+                (KINVENT_NOTIFY_CHAR, command)
                 for command in KINVENT_INIT_COMMANDS
             ]
 

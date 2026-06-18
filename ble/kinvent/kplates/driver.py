@@ -3,8 +3,8 @@ from bleak import BleakClient
 
 from ble.kinvent.kplates.protocol import parse_frame
 
-NOTIFY_CHAR = "49535343-1e4d-4bd9-ba61-23c647249616"
-WRITE_CHAR = "49535343-8841-43f4-a8d4-ecbe34729bb3"
+UART_CHAR = "49535343-1e4d-4bd9-ba61-23c647249616"
+ALT_NOTIFY_CHAR = "49535343-4c8a-39b3-2f49-511cff073b7e"
 
 INIT_COMMANDS = [
     b"\x10",
@@ -37,11 +37,12 @@ class KPlateDriver:
         await self.client.connect()
         print(f"{self.name} connectée :", self.client.is_connected)
 
-        await self.client.start_notify(NOTIFY_CHAR, self._on_notify)
+        await self.client.start_notify(UART_CHAR, self._on_notify)
+        await self.client.start_notify(ALT_NOTIFY_CHAR, self._on_notify)
 
         for cmd in INIT_COMMANDS:
-            await self.client.write_gatt_char(WRITE_CHAR, cmd, response=False)
-            await asyncio.sleep(0.2)
+            await self.client.write_gatt_char(UART_CHAR, cmd, response=False)
+            await asyncio.sleep(0.5)
 
     async def disconnect(self):
         if self.client and self.client.is_connected:
