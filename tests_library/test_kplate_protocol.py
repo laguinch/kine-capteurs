@@ -28,6 +28,23 @@ class KPlateProtocolTest(unittest.TestCase):
         self.assertEqual(sample["raw_av_d"], 0x891A)
         self.assertAlmostEqual(sample["force_kg"], 2955 / 10360, places=6)
 
+    def test_accepts_per_session_offsets(self):
+        frame = bytes.fromhex(
+            "ff ff fe 3d d0 00 96 ad 00 80 1b 00 8c c7 00 89 1a"
+        )
+        sample = parse_frame(
+            frame,
+            {
+                "av_d": 0x891A,
+                "av_g": 0x96AD,
+                "ar_g": 0x801B,
+                "ar_d": 0x8CC7,
+            },
+        )
+
+        self.assertEqual(sample["total"], 0)
+        self.assertEqual(sample["force_kg"], 0)
+
     def test_distribution_uses_zero_corrected_cells(self):
         values = [35950 + 20000, 33500 + 10000, 34050 + 10000, 36050 + 20000]
         frame = (
@@ -63,6 +80,7 @@ class KPlateProtocolTest(unittest.TestCase):
                 "E8:EB:1B:6F:A7:5F",
                 "public",
                 path,
+                tare_duration=0.0,
             )
             frame = bytes.fromhex(
                 "ff ff fe 3d d0 00 96 ad 00 80 1b 00 8c c7 00 89 1a"

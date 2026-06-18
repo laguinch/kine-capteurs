@@ -6,9 +6,18 @@ COUNTS_PER_KG = 10360
 MIN_VALID_KG = 5.0
 
 
-def parse_frame(data: bytes):
+DEFAULT_OFFSETS = {
+    "av_d": OFFSET_AV_D,
+    "av_g": OFFSET_AV_G,
+    "ar_g": OFFSET_AR_G,
+    "ar_d": OFFSET_AR_D,
+}
+
+
+def parse_frame(data: bytes, offsets=None):
     if len(data) != 17 or data[0:3] != b"\xff\xff\xfe":
         return None
+    offsets = offsets or DEFAULT_OFFSETS
 
     t = int.from_bytes(data[3:5], "big", signed=False)
     v1 = int.from_bytes(data[5:8], "big", signed=True)
@@ -21,10 +30,10 @@ def parse_frame(data: bytes):
     raw_ar_g = v2
     raw_ar_d = v3
 
-    av_d = raw_av_d - OFFSET_AV_D
-    av_g = raw_av_g - OFFSET_AV_G
-    ar_g = raw_ar_g - OFFSET_AR_G
-    ar_d = raw_ar_d - OFFSET_AR_D
+    av_d = raw_av_d - offsets["av_d"]
+    av_g = raw_av_g - offsets["av_g"]
+    ar_g = raw_ar_g - offsets["ar_g"]
+    ar_d = raw_ar_d - offsets["ar_d"]
     total = av_d + av_g + ar_g + ar_d
     force_kg = total / COUNTS_PER_KG
     force_n = force_kg * 9.81

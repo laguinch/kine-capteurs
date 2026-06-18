@@ -19,6 +19,7 @@ import socket
 import struct
 import sys
 import time
+from statistics import median
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -134,7 +135,14 @@ def now_iso():
 
 
 class RawKinventClient:
-    def __init__(self, adapter, address, address_type, csv_path=None):
+    def __init__(
+        self,
+        adapter,
+        address,
+        address_type,
+        csv_path=None,
+        tare_duration=2.0,
+    ):
         self.adapter = adapter
         self.address = address.upper()
         self.address_le = address_to_le_bytes(address)
@@ -145,6 +153,10 @@ class RawKinventClient:
         self.csv_file = None
         self.csv_writer = None
         self.notifications = 0
+        self.tare_duration = tare_duration
+        self.tare_started_at = None
+        self.tare_samples = []
+        self.offsets = None
 
         if csv_path:
             path = Path(csv_path)
@@ -537,14 +549,45 @@ class RawKinventClient:
             value = att[3:]
             self.notifications += 1
             timestamp = now_iso()
-            sample = parse_frame(value)
+            raw_sample = parse_frame(value)
+            if raw_sample and self.offsets is None:
+                if self.tare_started_at is None:
+                    self.tare_started_at = time.monotonic()
+                    print(
+                        f"Tare automatique pendant {self.tare_duration:.1f} s: "
+                        "laisser la plateforme vide."
+                    )
+                self.tare_samples.append(
+                    {
+                        "av_d": raw_sample["raw_av_d"],
+                        "av_g": raw_sample["raw_av_g"],
+                        "ar_g": raw_sample["raw_ar_g"],
+                        "ar_d": raw_sample["raw_ar_d"],
+                    }
+                )
+                if time.monotonic() - self.tare_started_at >= self.tare_duration:
+                    self.offsets = {
+                        key: round(median(sample[key] for sample in self.tare_samples))
+                        for key in ("av_d", "av_g", "ar_g", "ar_d")
+                    }
+                    print(
+                        "Tare terminée: "
+                        + ", ".join(
+                            f"{key.upper()}={value}"
+                            for key, value in self.offsets.items()
+                        )
+                    )
+
+            sample = parse_frame(value, self.offsets) if self.offsets else None
             distribution = (
                 compute_distribution(sample)
                 if sample and sample["force_kg"] >= MIN_VALID_KG
                 else None
             )
 
-            if sample:
+            if raw_sample and not sample:
+                print(f"{timestamp} | tare en cours")
+            elif sample:
                 if sample["force_kg"] >= MIN_VALID_KG and distribution:
                     print(
                         f"{timestamp} | {sample['force_kg']:.2f} kg | "
@@ -669,6 +712,12 @@ def build_parser():
     parser.add_argument("--connect-timeout", type=float, default=15.0)
     parser.add_argument("--duration", type=float, default=30.0)
     parser.add_argument("--write-delay", type=float, default=0.5)
+    parser.add_argument(
+        "--tare-duration",
+        type=float,
+        default=2.0,
+        help="Durée initiale à vide utilisée pour calculer les quatre offsets.",
+    )
     parser.add_argument("--csv")
     return parser
 
@@ -680,6 +729,7 @@ def main():
         args.address,
         args.address_type,
         args.csv,
+        args.tare_duration,
     )
     client.run(
         args.scan_timeout,
