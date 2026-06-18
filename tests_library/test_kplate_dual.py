@@ -127,6 +127,37 @@ class KPlateDualTest(unittest.TestCase):
         self.assertFalse(left.samples)
         self.assertTrue(right.samples)
 
+    def test_disconnect_identifies_plate_and_clears_handle(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        plate = client.plates[0]
+        plate.handle = 0x10
+        client.by_handle[0x10] = plate
+        payload = bytes(
+            [
+                self.module.EVT_DISCONN_COMPLETE,
+                0x04,
+                0x00,
+                0x10,
+                0x00,
+                0x08,
+            ]
+        )
+
+        with self.assertRaises(self.module.PlateDisconnected) as context:
+            client.process((self.module.HCI_EVENT_PKT, payload))
+
+        self.assertIs(context.exception.plate, plate)
+        self.assertEqual(context.exception.reason, 0x08)
+        self.assertIsNone(plate.handle)
+        self.assertNotIn(0x10, client.by_handle)
+
 
 if __name__ == "__main__":
     unittest.main()

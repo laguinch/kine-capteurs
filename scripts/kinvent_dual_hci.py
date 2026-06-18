@@ -70,6 +70,15 @@ def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
 
+class PlateDisconnected(ConnectionError):
+    def __init__(self, plate, reason):
+        self.plate = plate
+        self.reason = reason
+        super().__init__(
+            f"Plateforme {plate.side} déconnectée: raison 0x{reason:02x}"
+        )
+
+
 class PlateState:
     def __init__(self, side, address, tare_duration, buffer_size=64):
         self.side = side
@@ -84,6 +93,7 @@ class PlateState:
         self.distribution = None
         self.notifications = 0
         self.samples = deque(maxlen=buffer_size)
+        self.reconnections = 0
 
     def decode(self, value):
         raw_sample = parse_frame(value)
@@ -475,9 +485,10 @@ class DualKinventClient:
             handle = struct.unpack_from("<H", payload, 3)[0] & 0x0FFF
             plate = self.by_handle.get(handle)
             if plate:
-                raise ConnectionError(
-                    f"Plateforme {plate.side} déconnectée: raison 0x{payload[5]:02x}"
-                )
+                self.by_handle.pop(handle, None)
+                plate.handle = None
+                plate.samples.clear()
+                raise PlateDisconnected(plate, payload[5])
         if (
             payload[0] == EVT_LE_META_EVENT
             and len(payload) >= 13
@@ -662,10 +673,43 @@ class DualKinventClient:
         while time.monotonic() < deadline:
             packet = self.receive()
             if packet:
-                self.process(packet)
+                try:
+                    self.process(packet)
+                except PlateDisconnected as exc:
+                    if not progress:
+                        raise
+                    print(f"{exc}. Reconnexion automatique...")
+                    self.reconnect_plate(exc.plate, deadline)
             if progress and time.monotonic() >= next_progress:
                 print(f"Temps restant: {max(0, deadline-time.monotonic()):.1f} s")
                 next_progress = time.monotonic() + 5
+
+    def reconnect_plate(self, plate, acquisition_deadline, attempts=4):
+        last_error = None
+        for attempt in range(1, attempts + 1):
+            remaining = acquisition_deadline - time.monotonic()
+            if remaining <= 1:
+                return
+            try:
+                print(
+                    f"Reconnexion {plate.side}, essai {attempt}/{attempts}..."
+                )
+                self.scan_for(plate, min(5.0, remaining))
+                self.connect(plate, min(8.0, remaining))
+                self.pump(min(0.8, max(0.0, remaining)))
+                self.start_stream(plate, 0.2)
+                plate.reconnections += 1
+                print(f"Plateforme {plate.side} reconnectée.")
+                return
+            except (PlateDisconnected, TimeoutError, RuntimeError) as exc:
+                last_error = exc
+                if plate.handle is not None:
+                    self.by_handle.pop(plate.handle, None)
+                    plate.handle = None
+                time.sleep(0.5)
+        raise RuntimeError(
+            f"Reconnexion impossible pour la plateforme {plate.side}."
+        ) from last_error
 
     def run(self, scan_timeout, connect_timeout, duration, write_delay):
         self.open()
@@ -680,7 +724,10 @@ class DualKinventClient:
             self.pump(duration, progress=True)
             print("Acquisition double terminée.")
             for plate in self.plates:
-                print(f"{plate.side}: {plate.notifications} notifications")
+                print(
+                    f"{plate.side}: {plate.notifications} notifications, "
+                    f"{plate.reconnections} reconnexion(s)"
+                )
             print(
                 f"Paires synchronisées: {self.paired_samples} | "
                 f"écartées gauche={self.dropped_samples['gauche']}, "
