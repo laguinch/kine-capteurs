@@ -194,6 +194,8 @@ class DualKinventClient:
         self.last_print = 0.0
         self.print_interval = print_interval
         self.sync_tolerance = sync_tolerance_ms / 1000.0
+        self.keepalive_interval = 5.0
+        self.next_keepalive = None
         self.paired_samples = 0
         self.dropped_samples = {"gauche": 0, "droite": 0}
         self.csv_file = None
@@ -697,6 +699,8 @@ class DualKinventClient:
     def pump(self, duration, progress=False):
         deadline = time.monotonic() + duration
         next_progress = time.monotonic()
+        if progress:
+            self.next_keepalive = time.monotonic() + self.keepalive_interval
         while time.monotonic() < deadline:
             packet = self.receive()
             if packet:
@@ -707,6 +711,15 @@ class DualKinventClient:
                         raise
                     print(f"{exc}. Reconnexion automatique...")
                     self.reconnect_plate(exc.plate, deadline)
+            if (
+                progress
+                and self.next_keepalive is not None
+                and time.monotonic() >= self.next_keepalive
+            ):
+                for plate in self.plates:
+                    if plate.handle is not None:
+                        self.send_write_command(plate, b"\xff")
+                self.next_keepalive = time.monotonic() + self.keepalive_interval
             if progress and time.monotonic() >= next_progress:
                 print(f"Temps restant: {max(0, deadline-time.monotonic()):.1f} s")
                 next_progress = time.monotonic() + 5
