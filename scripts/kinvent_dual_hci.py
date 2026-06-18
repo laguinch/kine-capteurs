@@ -1,0 +1,653 @@
+"""Acquisition simultanée de deux K-Force Plates sans GATT BlueZ."""
+
+import argparse
+import csv
+import errno
+import socket
+import struct
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from statistics import median
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from ble.common.devices import KPLATE_LEFT, KPLATE_RIGHT  # noqa: E402
+from ble.kinvent.kplates.protocol import (  # noqa: E402
+    MIN_VALID_KG,
+    compute_distribution,
+    parse_frame,
+)
+from scripts.kinvent_raw_hci import (  # noqa: E402
+    AF_BLUETOOTH,
+    ATT_CID,
+    ATT_OP_ERROR_RESPONSE,
+    ATT_OP_FIND_BY_TYPE_VALUE_REQUEST,
+    ATT_OP_MTU_REQUEST,
+    ATT_OP_MTU_RESPONSE,
+    ATT_OP_NOTIFICATION,
+    ATT_OP_WRITE_COMMAND,
+    ATT_OP_WRITE_REQUEST,
+    ATT_OP_WRITE_RESPONSE,
+    BTPROTO_HCI,
+    EVT_CMD_COMPLETE,
+    EVT_CMD_STATUS,
+    EVT_DISCONN_COMPLETE,
+    EVT_LE_ADVERTISING_REPORT,
+    EVT_LE_CONN_COMPLETE,
+    EVT_LE_ENHANCED_CONN_COMPLETE,
+    EVT_LE_META_EVENT,
+    HCI_ACLDATA_PKT,
+    HCI_CHANNEL_USER,
+    HCI_COMMAND_PKT,
+    HCI_EVENT_PKT,
+    INIT_COMMANDS,
+    OCF_LE_CREATE_CONN,
+    OCF_LE_REMOTE_CONN_PARAM_REQ_REPLY,
+    OCF_LE_SET_EVENT_MASK,
+    OCF_LE_SET_SCAN_ENABLE,
+    OCF_LE_SET_SCAN_PARAMETERS,
+    OCF_RESET,
+    OCF_SET_EVENT_MASK,
+    OGF_HOST_CTL,
+    OGF_LE_CTL,
+    SockaddrHci,
+    UART_CCCD_HANDLE,
+    UART_VALUE_HANDLE,
+    address_to_le_bytes,
+    hci_opcode,
+    le_bytes_to_address,
+    parse_adapter,
+)
+
+
+def now_iso():
+    return datetime.now(timezone.utc).isoformat()
+
+
+class PlateState:
+    def __init__(self, side, address, tare_duration):
+        self.side = side
+        self.address = address.upper()
+        self.address_le = address_to_le_bytes(address)
+        self.handle = None
+        self.tare_duration = tare_duration
+        self.tare_started_at = None
+        self.tare_samples = []
+        self.offsets = None
+        self.latest = None
+        self.distribution = None
+        self.notifications = 0
+
+    def decode(self, value):
+        raw_sample = parse_frame(value)
+        if raw_sample is None:
+            return None
+
+        if self.offsets is None:
+            if self.tare_started_at is None:
+                self.tare_started_at = time.monotonic()
+                print(
+                    f"{self.side}: tare pendant {self.tare_duration:.1f} s, "
+                    "laisser les deux plateformes vides."
+                )
+            self.tare_samples.append(
+                {
+                    "av_d": raw_sample["raw_av_d"],
+                    "av_g": raw_sample["raw_av_g"],
+                    "ar_g": raw_sample["raw_ar_g"],
+                    "ar_d": raw_sample["raw_ar_d"],
+                }
+            )
+            if time.monotonic() - self.tare_started_at >= self.tare_duration:
+                self.offsets = {
+                    key: round(median(sample[key] for sample in self.tare_samples))
+                    for key in ("av_d", "av_g", "ar_g", "ar_d")
+                }
+                print(
+                    f"{self.side}: tare terminée: "
+                    + ", ".join(
+                        f"{key.upper()}={value}"
+                        for key, value in self.offsets.items()
+                    )
+                )
+
+        if self.offsets is None:
+            return None
+
+        self.latest = parse_frame(value, self.offsets)
+        self.distribution = (
+            compute_distribution(self.latest)
+            if self.latest["force_kg"] >= MIN_VALID_KG
+            else None
+        )
+        return self.latest
+
+
+class DualKinventClient:
+    def __init__(
+        self,
+        adapter,
+        left_address,
+        right_address,
+        csv_path,
+        tare_duration,
+        print_interval,
+    ):
+        self.adapter = adapter
+        self.plates = [
+            PlateState("gauche", left_address, tare_duration),
+            PlateState("droite", right_address, tare_duration),
+        ]
+        self.by_handle = {}
+        self.sock = None
+        self.fragments = {}
+        self.pending_att = {}
+        self.last_print = 0.0
+        self.print_interval = print_interval
+        self.csv_file = None
+        self.writer = None
+
+        if csv_path:
+            path = Path(csv_path)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            self.csv_file = path.open("w", newline="", encoding="utf-8")
+            self.writer = csv.writer(self.csv_file)
+            self.writer.writerow(
+                [
+                    "timestamp_utc",
+                    "source",
+                    "left_sensor_time",
+                    "right_sensor_time",
+                    "left_kg",
+                    "right_kg",
+                    "total_kg",
+                    "left_n",
+                    "right_n",
+                    "total_n",
+                    "left_pct",
+                    "right_pct",
+                    "asymmetry_pct",
+                    "left_cop_x",
+                    "left_cop_y",
+                    "right_cop_x",
+                    "right_cop_y",
+                    "global_cop_x",
+                    "global_cop_y",
+                ]
+            )
+
+    def open(self):
+        if sys.platform != "linux":
+            raise SystemExit("Ce script doit être exécuté sous Linux.")
+        self.sock = socket.socket(AF_BLUETOOTH, socket.SOCK_RAW, BTPROTO_HCI)
+        try:
+            import ctypes
+
+            address = SockaddrHci(AF_BLUETOOTH, self.adapter, HCI_CHANNEL_USER)
+            libc = ctypes.CDLL(None, use_errno=True)
+            if libc.bind(
+                self.sock.fileno(), ctypes.byref(address), ctypes.sizeof(address)
+            ):
+                error_number = ctypes.get_errno()
+                raise OSError(error_number, errno.errorcode.get(error_number))
+        except OSError as exc:
+            self.sock.close()
+            raise SystemExit(
+                f"Impossible de réserver hci{self.adapter}: {exc}. "
+                "Arrête bluetooth.service et place le contrôleur DOWN."
+            ) from exc
+        self.sock.settimeout(0.1)
+        print(f"Canal HCI double ouvert sur hci{self.adapter}.")
+
+    def close(self):
+        if self.sock:
+            self.sock.close()
+        if self.csv_file:
+            self.csv_file.close()
+
+    def send_command(self, ogf, ocf, parameters=b""):
+        opcode = hci_opcode(ogf, ocf)
+        self.sock.sendall(
+            struct.pack("<BHB", HCI_COMMAND_PKT, opcode, len(parameters)) + parameters
+        )
+        return opcode
+
+    def wait_for_command(self, opcode, timeout=3.0):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            packet = self.receive()
+            if packet is None:
+                continue
+            packet_type, payload = packet
+            if packet_type == HCI_EVENT_PKT and len(payload) >= 2:
+                params = payload[2:]
+                if payload[0] == EVT_CMD_COMPLETE and len(params) >= 3:
+                    completed = struct.unpack_from("<H", params, 1)[0]
+                    if completed == opcode:
+                        status = params[3] if len(params) > 3 else 0
+                        if status:
+                            raise RuntimeError(
+                                f"Commande HCI 0x{opcode:04x}: 0x{status:02x}"
+                            )
+                        return
+                if payload[0] == EVT_CMD_STATUS and len(params) >= 4:
+                    completed = struct.unpack_from("<H", params, 2)[0]
+                    if completed == opcode:
+                        if params[0]:
+                            raise RuntimeError(
+                                f"Commande HCI 0x{opcode:04x}: 0x{params[0]:02x}"
+                            )
+                        return
+            self.process(packet)
+        raise TimeoutError(f"Pas de réponse HCI 0x{opcode:04x}")
+
+    def reset(self):
+        for ogf, ocf, params in [
+            (OGF_HOST_CTL, OCF_RESET, b""),
+            (
+                OGF_HOST_CTL,
+                OCF_SET_EVENT_MASK,
+                bytes.fromhex("ff ff fb ff 07 f8 bf 3d"),
+            ),
+            (
+                OGF_LE_CTL,
+                OCF_LE_SET_EVENT_MASK,
+                bytes.fromhex("ff 07 00 00 00 00 00 00"),
+            ),
+        ]:
+            opcode = self.send_command(ogf, ocf, params)
+            self.wait_for_command(opcode)
+
+    def receive(self):
+        try:
+            data = self.sock.recv(4096)
+        except socket.timeout:
+            return None
+        return (data[0], data[1:]) if data else None
+
+    def scan_for(self, plate, timeout):
+        print(f"Recherche de la plateforme {plate.side}: {plate.address}")
+        scan_params = struct.pack("<BHHBB", 1, 0x0010, 0x0010, 0, 0)
+        opcode = self.send_command(OGF_LE_CTL, OCF_LE_SET_SCAN_PARAMETERS, scan_params)
+        self.wait_for_command(opcode)
+        opcode = self.send_command(OGF_LE_CTL, OCF_LE_SET_SCAN_ENABLE, b"\x01\x00")
+        self.wait_for_command(opcode)
+        found = False
+        deadline = time.monotonic() + timeout
+        try:
+            while time.monotonic() < deadline and not found:
+                packet = self.receive()
+                if packet is None:
+                    continue
+                packet_type, payload = packet
+                if (
+                    packet_type == HCI_EVENT_PKT
+                    and len(payload) >= 4
+                    and payload[0] == EVT_LE_META_EVENT
+                    and payload[2] == EVT_LE_ADVERTISING_REPORT
+                ):
+                    count = payload[3]
+                    offset = 4
+                    for _ in range(count):
+                        if offset + 10 > len(payload):
+                            break
+                        address = le_bytes_to_address(payload[offset + 2 : offset + 8])
+                        data_length = payload[offset + 8]
+                        if address == plate.address:
+                            found = True
+                            break
+                        offset += 10 + data_length
+                else:
+                    self.process(packet)
+        finally:
+            opcode = self.send_command(OGF_LE_CTL, OCF_LE_SET_SCAN_ENABLE, b"\x00\x00")
+            self.wait_for_command(opcode)
+        if not found:
+            raise TimeoutError(f"Plateforme {plate.side} introuvable")
+
+    def connect(self, plate, timeout):
+        params = struct.pack(
+            "<HHBB6sBHHHHHH",
+            0x0010,
+            0x0010,
+            0,
+            0,
+            plate.address_le,
+            0,
+            0x0018,
+            0x0028,
+            0,
+            0x01F4,
+            0,
+            0,
+        )
+        opcode = self.send_command(OGF_LE_CTL, OCF_LE_CREATE_CONN, params)
+        self.wait_for_command(opcode)
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            packet = self.receive()
+            if packet is None:
+                continue
+            packet_type, payload = packet
+            if (
+                packet_type == HCI_EVENT_PKT
+                and len(payload) >= 15
+                and payload[0] == EVT_LE_META_EVENT
+                and payload[2]
+                in (EVT_LE_CONN_COMPLETE, EVT_LE_ENHANCED_CONN_COMPLETE)
+            ):
+                peer = le_bytes_to_address(payload[8:14])
+                if peer == plate.address:
+                    if payload[3]:
+                        raise RuntimeError(
+                            f"Connexion {plate.side}: statut 0x{payload[3]:02x}"
+                        )
+                    plate.handle = struct.unpack_from("<H", payload, 4)[0] & 0x0FFF
+                    self.by_handle[plate.handle] = plate
+                    print(
+                        f"Plateforme {plate.side} connectée, "
+                        f"handle 0x{plate.handle:04x}."
+                    )
+                    return
+            self.process(packet)
+        raise TimeoutError(f"Connexion {plate.side}: délai dépassé")
+
+    def send_att(self, plate, payload):
+        l2cap = struct.pack("<HH", len(payload), ATT_CID) + payload
+        self.sock.sendall(
+            struct.pack("<BHH", HCI_ACLDATA_PKT, plate.handle, len(l2cap)) + l2cap
+        )
+
+    def send_write_command(self, plate, value):
+        self.send_att(
+            plate,
+            bytes([ATT_OP_WRITE_COMMAND])
+            + struct.pack("<H", UART_VALUE_HANDLE)
+            + value,
+        )
+
+    def wait_write_response(self, plate, timeout=5.0):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            queued = self.pending_att.get(plate.handle, [])
+            if queued:
+                att = queued.pop(0)
+                if att[0] == ATT_OP_WRITE_RESPONSE:
+                    return
+                if att[0] == ATT_OP_ERROR_RESPONSE:
+                    raise RuntimeError(
+                        f"Écriture {plate.side} refusée: {att.hex(' ')}"
+                    )
+            packet = self.receive()
+            if packet:
+                self.process(packet)
+        raise TimeoutError(f"Pas de réponse CCCD pour {plate.side}")
+
+    def start_stream(self, plate, write_delay):
+        self.send_write_command(plate, b"\x10")
+        self.pump(write_delay)
+        self.send_att(
+            plate,
+            bytes([ATT_OP_WRITE_REQUEST])
+            + struct.pack("<H", UART_CCCD_HANDLE)
+            + b"\x01\x00",
+        )
+        self.wait_write_response(plate)
+        for command in INIT_COMMANDS:
+            self.send_write_command(plate, command)
+            self.pump(write_delay)
+        print(f"Flux {plate.side} démarré.")
+
+    def extract_att(self, payload):
+        if len(payload) < 4:
+            return None, None
+        handle_flags, acl_length = struct.unpack_from("<HH", payload, 0)
+        handle = handle_flags & 0x0FFF
+        pb = (handle_flags >> 12) & 3
+        fragment = payload[4 : 4 + acl_length]
+        if pb in (0, 2):
+            if len(fragment) < 4:
+                return None, None
+            length, cid = struct.unpack_from("<HH", fragment, 0)
+            self.fragments[handle] = [length, cid, bytearray(fragment[4:])]
+        elif pb == 1 and handle in self.fragments:
+            self.fragments[handle][2].extend(fragment)
+        else:
+            return None, None
+        length, cid, data = self.fragments[handle]
+        if len(data) < length:
+            return None, None
+        del self.fragments[handle]
+        return (handle, bytes(data[:length])) if cid == ATT_CID else (None, None)
+
+    def process(self, packet):
+        packet_type, payload = packet
+        if packet_type == HCI_ACLDATA_PKT:
+            handle, att = self.extract_att(payload)
+            if handle is not None and att:
+                self.handle_att(handle, att)
+            return
+        if packet_type != HCI_EVENT_PKT or len(payload) < 2:
+            return
+        if payload[0] == EVT_DISCONN_COMPLETE and len(payload) >= 6:
+            handle = struct.unpack_from("<H", payload, 3)[0] & 0x0FFF
+            plate = self.by_handle.get(handle)
+            if plate:
+                raise ConnectionError(
+                    f"Plateforme {plate.side} déconnectée: raison 0x{payload[5]:02x}"
+                )
+        if (
+            payload[0] == EVT_LE_META_EVENT
+            and len(payload) >= 13
+            and payload[2] == 0x06
+        ):
+            handle = struct.unpack_from("<H", payload, 3)[0] & 0x0FFF
+            if handle in self.by_handle:
+                values = struct.unpack_from("<HHHH", payload, 5)
+                response = struct.pack(
+                    "<HHHHHHH", handle, *values, 0x0000, 0x0000
+                )
+                self.send_command(
+                    OGF_LE_CTL, OCF_LE_REMOTE_CONN_PARAM_REQ_REPLY, response
+                )
+
+    def handle_att(self, handle, att):
+        plate = self.by_handle.get(handle)
+        if plate is None:
+            return
+        opcode = att[0]
+        if opcode == ATT_OP_MTU_REQUEST and len(att) >= 3:
+            requested = struct.unpack_from("<H", att, 1)[0]
+            self.send_att(
+                plate,
+                bytes([ATT_OP_MTU_RESPONSE])
+                + struct.pack("<H", min(requested, 158)),
+            )
+            return
+        if opcode == ATT_OP_FIND_BY_TYPE_VALUE_REQUEST and len(att) >= 5:
+            start = struct.unpack_from("<H", att, 1)[0]
+            self.send_att(
+                plate,
+                bytes(
+                    [
+                        ATT_OP_ERROR_RESPONSE,
+                        ATT_OP_FIND_BY_TYPE_VALUE_REQUEST,
+                    ]
+                )
+                + struct.pack("<H", start)
+                + b"\x0a",
+            )
+            return
+        if opcode in (ATT_OP_WRITE_RESPONSE, ATT_OP_ERROR_RESPONSE):
+            self.pending_att.setdefault(handle, []).append(att)
+            return
+        if opcode == ATT_OP_NOTIFICATION and len(att) >= 3:
+            plate.notifications += 1
+            value = att[3:]
+            sample = plate.decode(value)
+            if sample:
+                self.write_combined(plate.side)
+
+    def combined_values(self):
+        left, right = self.plates
+        if left.latest is None or right.latest is None:
+            return None
+        left_kg = max(0.0, left.latest["force_kg"])
+        right_kg = max(0.0, right.latest["force_kg"])
+        total_kg = left_kg + right_kg
+        left_pct = left_kg / total_kg * 100 if total_kg >= MIN_VALID_KG else None
+        right_pct = right_kg / total_kg * 100 if total_kg >= MIN_VALID_KG else None
+        asymmetry = right_pct - left_pct if left_pct is not None else None
+
+        # Repère global normalisé: centres des plaques à -1 (gauche) et +1
+        # (droite), COP intra-plaque ramené sur une demi-largeur.
+        if total_kg >= MIN_VALID_KG:
+            left_x = -1.0 + (left.distribution["cop_x"] * 0.5 if left.distribution else 0)
+            right_x = 1.0 + (
+                right.distribution["cop_x"] * 0.5 if right.distribution else 0
+            )
+            global_x = (left_x * left_kg + right_x * right_kg) / total_kg
+            left_y = left.distribution["cop_y"] if left.distribution else 0
+            right_y = right.distribution["cop_y"] if right.distribution else 0
+            global_y = (left_y * left_kg + right_y * right_kg) / total_kg
+        else:
+            global_x = global_y = None
+
+        return {
+            "left_kg": left_kg,
+            "right_kg": right_kg,
+            "total_kg": total_kg,
+            "left_pct": left_pct,
+            "right_pct": right_pct,
+            "asymmetry": asymmetry,
+            "global_x": global_x,
+            "global_y": global_y,
+        }
+
+    def write_combined(self, source):
+        values = self.combined_values()
+        if values is None:
+            return
+        left, right = self.plates
+        left_dist = left.distribution or {}
+        right_dist = right.distribution or {}
+        if self.writer:
+            self.writer.writerow(
+                [
+                    now_iso(),
+                    source,
+                    left.latest["t"],
+                    right.latest["t"],
+                    round(values["left_kg"], 6),
+                    round(values["right_kg"], 6),
+                    round(values["total_kg"], 6),
+                    round(values["left_kg"] * 9.81, 6),
+                    round(values["right_kg"] * 9.81, 6),
+                    round(values["total_kg"] * 9.81, 6),
+                    round(values["left_pct"], 6)
+                    if values["left_pct"] is not None
+                    else "",
+                    round(values["right_pct"], 6)
+                    if values["right_pct"] is not None
+                    else "",
+                    round(values["asymmetry"], 6)
+                    if values["asymmetry"] is not None
+                    else "",
+                    left_dist.get("cop_x", ""),
+                    left_dist.get("cop_y", ""),
+                    right_dist.get("cop_x", ""),
+                    right_dist.get("cop_y", ""),
+                    round(values["global_x"], 6)
+                    if values["global_x"] is not None
+                    else "",
+                    round(values["global_y"], 6)
+                    if values["global_y"] is not None
+                    else "",
+                ]
+            )
+            self.csv_file.flush()
+        if time.monotonic() - self.last_print >= self.print_interval:
+            if values["total_kg"] >= MIN_VALID_KG:
+                print(
+                    f"G={values['left_kg']:.1f} kg "
+                    f"({values['left_pct']:.1f}%) | "
+                    f"D={values['right_kg']:.1f} kg "
+                    f"({values['right_pct']:.1f}%) | "
+                    f"TOTAL={values['total_kg']:.1f} kg | "
+                    f"ASYM={values['asymmetry']:+.1f}%"
+                )
+            else:
+                print("Deux plateformes: hors appui")
+            self.last_print = time.monotonic()
+
+    def pump(self, duration, progress=False):
+        deadline = time.monotonic() + duration
+        next_progress = time.monotonic()
+        while time.monotonic() < deadline:
+            packet = self.receive()
+            if packet:
+                self.process(packet)
+            if progress and time.monotonic() >= next_progress:
+                print(f"Temps restant: {max(0, deadline-time.monotonic()):.1f} s")
+                next_progress = time.monotonic() + 5
+
+    def run(self, scan_timeout, connect_timeout, duration, write_delay):
+        self.open()
+        try:
+            self.reset()
+            for plate in self.plates:
+                self.scan_for(plate, scan_timeout)
+                self.connect(plate, connect_timeout)
+                self.pump(0.8)
+                self.start_stream(plate, write_delay)
+            print(f"Acquisition double pendant {duration:.1f} s...")
+            self.pump(duration, progress=True)
+            print("Acquisition double terminée.")
+            for plate in self.plates:
+                print(f"{plate.side}: {plate.notifications} notifications")
+        finally:
+            self.close()
+
+
+def build_parser():
+    parser = argparse.ArgumentParser(
+        description="Acquisition simultanée de deux K-Force Plates via HCI direct."
+    )
+    parser.add_argument("--adapter", type=parse_adapter, default=1)
+    parser.add_argument("--left-address", default=KPLATE_LEFT)
+    parser.add_argument("--right-address", default=KPLATE_RIGHT)
+    parser.add_argument("--scan-timeout", type=float, default=15.0)
+    parser.add_argument("--connect-timeout", type=float, default=15.0)
+    parser.add_argument("--duration", type=float, default=30.0)
+    parser.add_argument("--write-delay", type=float, default=0.5)
+    parser.add_argument("--tare-duration", type=float, default=2.0)
+    parser.add_argument("--print-interval", type=float, default=0.5)
+    parser.add_argument("--csv", default="storage/raw_data/kplates_dual.csv")
+    return parser
+
+
+def main():
+    args = build_parser().parse_args()
+    client = DualKinventClient(
+        args.adapter,
+        args.left_address,
+        args.right_address,
+        args.csv,
+        args.tare_duration,
+        args.print_interval,
+    )
+    client.run(
+        args.scan_timeout,
+        args.connect_timeout,
+        args.duration,
+        args.write_delay,
+    )
+
+
+if __name__ == "__main__":
+    main()
