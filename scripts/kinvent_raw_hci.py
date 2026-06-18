@@ -23,6 +23,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from ble.kinvent.kplates.protocol import (  # noqa: E402
+    MIN_VALID_KG,
+    compute_distribution,
+    parse_frame,
+)
+
+
 AF_BLUETOOTH = getattr(socket, "AF_BLUETOOTH", 31)
 BTPROTO_HCI = getattr(socket, "BTPROTO_HCI", 1)
 HCI_CHANNEL_USER = 1
@@ -141,7 +152,30 @@ class RawKinventClient:
             self.csv_file = path.open("w", newline="", encoding="utf-8")
             self.csv_writer = csv.writer(self.csv_file)
             self.csv_writer.writerow(
-                ["timestamp_utc", "value_handle", "length", "data_hex"]
+                [
+                    "timestamp_utc",
+                    "value_handle",
+                    "length",
+                    "data_hex",
+                    "sensor_time",
+                    "raw_av_d",
+                    "raw_av_g",
+                    "raw_ar_g",
+                    "raw_ar_d",
+                    "force_av_d_counts",
+                    "force_av_g_counts",
+                    "force_ar_g_counts",
+                    "force_ar_d_counts",
+                    "force_total_counts",
+                    "force_kg",
+                    "force_n",
+                    "av_d_pct",
+                    "av_g_pct",
+                    "ar_g_pct",
+                    "ar_d_pct",
+                    "cop_x",
+                    "cop_y",
+                ]
             )
 
     def open(self):
@@ -502,14 +536,78 @@ class RawKinventClient:
             value_handle = struct.unpack_from("<H", att, 1)[0]
             value = att[3:]
             self.notifications += 1
-            print(
-                f"{now_iso()} | handle=0x{value_handle:04x} | "
-                f"len={len(value)} | {value.hex(' ')}"
+            timestamp = now_iso()
+            sample = parse_frame(value)
+            distribution = (
+                compute_distribution(sample)
+                if sample and sample["force_kg"] >= MIN_VALID_KG
+                else None
             )
-            if self.csv_writer is not None:
-                self.csv_writer.writerow(
-                    [now_iso(), f"0x{value_handle:04x}", len(value), value.hex(" ")]
+
+            if sample:
+                if sample["force_kg"] >= MIN_VALID_KG and distribution:
+                    print(
+                        f"{timestamp} | {sample['force_kg']:.2f} kg | "
+                        f"AV_D={distribution['av_d_pct']:.1f}% "
+                        f"AV_G={distribution['av_g_pct']:.1f}% "
+                        f"AR_G={distribution['ar_g_pct']:.1f}% "
+                        f"AR_D={distribution['ar_d_pct']:.1f}% | "
+                        f"COP=({distribution['cop_x']:.3f}, "
+                        f"{distribution['cop_y']:.3f})"
+                    )
+                else:
+                    print(f"{timestamp} | {sample['force_kg']:.2f} kg | hors appui")
+            else:
+                print(
+                    f"{timestamp} | handle=0x{value_handle:04x} | "
+                    f"len={len(value)} | {value.hex(' ')}"
                 )
+
+            if self.csv_writer is not None:
+                row = [
+                    timestamp,
+                    f"0x{value_handle:04x}",
+                    len(value),
+                    value.hex(" "),
+                ]
+                if sample:
+                    row.extend(
+                        [
+                            sample["t"],
+                            sample["raw_av_d"],
+                            sample["raw_av_g"],
+                            sample["raw_ar_g"],
+                            sample["raw_ar_d"],
+                            sample["av_d"],
+                            sample["av_g"],
+                            sample["ar_g"],
+                            sample["ar_d"],
+                            sample["total"],
+                            round(sample["force_kg"], 6),
+                            round(sample["force_n"], 6),
+                            round(distribution["av_d_pct"], 6)
+                            if distribution
+                            else "",
+                            round(distribution["av_g_pct"], 6)
+                            if distribution
+                            else "",
+                            round(distribution["ar_g_pct"], 6)
+                            if distribution
+                            else "",
+                            round(distribution["ar_d_pct"], 6)
+                            if distribution
+                            else "",
+                            round(distribution["cop_x"], 6)
+                            if distribution
+                            else "",
+                            round(distribution["cop_y"], 6)
+                            if distribution
+                            else "",
+                        ]
+                    )
+                else:
+                    row.extend([""] * 18)
+                self.csv_writer.writerow(row)
                 self.csv_file.flush()
             return
 
