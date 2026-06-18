@@ -349,7 +349,10 @@ class RawKinventClient:
         if self.connection_handle is None:
             raise RuntimeError("Aucune connexion HCI active")
         l2cap = struct.pack("<HH", len(payload), ATT_CID) + payload
-        handle_flags = self.connection_handle | 0x2000
+        # La capture Android utilise PB=0 pour les premiers fragments ACL TX.
+        # Certains contrôleurs acceptent PB=2 pour les réponses simples mais ne
+        # transmettent pas correctement les requêtes ATT suivantes.
+        handle_flags = self.connection_handle
         packet = (
             struct.pack("<BHH", HCI_ACLDATA_PKT, handle_flags, len(l2cap)) + l2cap
         )
@@ -363,7 +366,8 @@ class RawKinventClient:
         )
         print(f"SEND {value.hex(' ')}")
 
-    def send_write_request(self, handle, value, timeout=3.0):
+    def send_write_request(self, handle, value, timeout=5.0):
+        print(f"ATT WRITE request handle=0x{handle:04x}: {value.hex(' ')}")
         self.send_att(
             bytes([ATT_OP_WRITE_REQUEST]) + struct.pack("<H", handle) + value
         )
@@ -376,6 +380,7 @@ class RawKinventClient:
             if not att:
                 continue
             if att[0] == ATT_OP_WRITE_RESPONSE:
+                print(f"ATT WRITE response handle=0x{handle:04x}")
                 return
             if att[0] == ATT_OP_ERROR_RESPONSE:
                 raise RuntimeError(f"Écriture ATT refusée: {att.hex(' ')}")
@@ -506,6 +511,9 @@ class RawKinventClient:
                     [now_iso(), f"0x{value_handle:04x}", len(value), value.hex(" ")]
                 )
                 self.csv_file.flush()
+            return
+
+        print(f"ATT reçu opcode=0x{opcode:02x}: {att.hex(' ')}")
 
     def service_initial_handshake(self, duration=0.8):
         deadline = time.monotonic() + duration
