@@ -142,6 +142,7 @@ class RawKinventClient:
         address_type,
         csv_path=None,
         tare_duration=2.0,
+        print_interval=0.5,
     ):
         self.adapter = adapter
         self.address = address.upper()
@@ -157,6 +158,8 @@ class RawKinventClient:
         self.tare_started_at = None
         self.tare_samples = []
         self.offsets = None
+        self.print_interval = print_interval
+        self.last_measurement_print = 0.0
 
         if csv_path:
             path = Path(csv_path)
@@ -584,10 +587,15 @@ class RawKinventClient:
                 if sample and sample["force_kg"] >= MIN_VALID_KG
                 else None
             )
+            should_print_measurement = (
+                time.monotonic() - self.last_measurement_print
+                >= self.print_interval
+            )
 
-            if raw_sample and not sample:
+            if raw_sample and not sample and should_print_measurement:
                 print(f"{timestamp} | tare en cours")
-            elif sample:
+                self.last_measurement_print = time.monotonic()
+            elif sample and should_print_measurement:
                 if sample["force_kg"] >= MIN_VALID_KG and distribution:
                     print(
                         f"{timestamp} | {sample['force_kg']:.2f} kg | "
@@ -600,11 +608,13 @@ class RawKinventClient:
                     )
                 else:
                     print(f"{timestamp} | {sample['force_kg']:.2f} kg | hors appui")
+                self.last_measurement_print = time.monotonic()
             else:
-                print(
-                    f"{timestamp} | handle=0x{value_handle:04x} | "
-                    f"len={len(value)} | {value.hex(' ')}"
-                )
+                if not raw_sample:
+                    print(
+                        f"{timestamp} | handle=0x{value_handle:04x} | "
+                        f"len={len(value)} | {value.hex(' ')}"
+                    )
 
             if self.csv_writer is not None:
                 row = [
@@ -675,12 +685,17 @@ class RawKinventClient:
             self.send_write_command(command)
             self.pump(write_delay)
 
-    def pump(self, duration):
+    def pump(self, duration, show_progress=False):
         deadline = time.monotonic() + duration
+        next_progress = time.monotonic()
         while time.monotonic() < deadline:
             packet = self.receive_packet()
             if packet is not None:
                 self.process_packet(packet)
+            if show_progress and time.monotonic() >= next_progress:
+                remaining = max(0, deadline - time.monotonic())
+                print(f"Temps restant: {remaining:4.1f} s")
+                next_progress = time.monotonic() + 5.0
 
     def run(self, scan_timeout, connect_timeout, duration, write_delay):
         self.open()
@@ -691,7 +706,8 @@ class RawKinventClient:
             self.service_initial_handshake()
             self.start_stream(write_delay)
             print(f"Acquisition pendant {duration:.1f} s...")
-            self.pump(duration)
+            self.pump(duration, show_progress=True)
+            print("Acquisition terminée.")
             print(f"Notifications reçues: {self.notifications}")
         finally:
             self.close()
@@ -718,6 +734,12 @@ def build_parser():
         default=2.0,
         help="Durée initiale à vide utilisée pour calculer les quatre offsets.",
     )
+    parser.add_argument(
+        "--print-interval",
+        type=float,
+        default=0.5,
+        help="Intervalle entre deux mesures affichées; toutes restent dans le CSV.",
+    )
     parser.add_argument("--csv")
     return parser
 
@@ -730,6 +752,7 @@ def main():
         args.address_type,
         args.csv,
         args.tare_duration,
+        args.print_interval,
     )
     client.run(
         args.scan_timeout,
