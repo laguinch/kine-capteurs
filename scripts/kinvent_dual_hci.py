@@ -262,8 +262,15 @@ class DualKinventClient:
         raise TimeoutError(f"Pas de réponse HCI 0x{opcode:04x}")
 
     def reset(self):
+        print("Réinitialisation du contrôleur...")
+        opcode = self.send_command(OGF_HOST_CTL, OCF_RESET)
+        self.wait_for_command(opcode, timeout=5.0)
+
+        # Les contrôleurs Realtek peuvent ignorer la première commande envoyée
+        # immédiatement après HCI Reset, le temps que le firmware se stabilise.
+        time.sleep(0.3)
+
         for ogf, ocf, params in [
-            (OGF_HOST_CTL, OCF_RESET, b""),
             (
                 OGF_HOST_CTL,
                 OCF_SET_EVENT_MASK,
@@ -275,6 +282,21 @@ class DualKinventClient:
                 bytes.fromhex("ff 07 00 00 00 00 00 00"),
             ),
         ]:
+            last_error = None
+            for attempt in range(1, 4):
+                opcode = self.send_command(ogf, ocf, params)
+                try:
+                    self.wait_for_command(opcode, timeout=5.0)
+                    break
+                except TimeoutError as exc:
+                    last_error = exc
+                    print(
+                        f"Commande HCI 0x{opcode:04x}: "
+                        f"pas de réponse, essai {attempt}/3."
+                    )
+                    time.sleep(0.3)
+            else:
+                raise last_error
             opcode = self.send_command(ogf, ocf, params)
             self.wait_for_command(opcode)
 
