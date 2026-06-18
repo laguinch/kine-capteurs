@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Kine Capteurs</title>
+    <link rel="stylesheet" href="/static/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">K-Force Plates</p>
+          <h1>Analyse bipodale</h1>
+          <p class="subtitle">Force, asymétrie et centre de pression en temps réel</p>
+        </div>
+        <div class="connection">
+          <span id="statusDot" class="status-dot"></span>
+          <span id="statusText">Prêt</span>
+        </div>
+      </header>
+
+      <section class="control-panel">
+        <label>
+          Durée
+          <select id="duration">
+            <option value="30">30 secondes</option>
+            <option value="60">60 secondes</option>
+            <option value="120">2 minutes</option>
+          </select>
+        </label>
+        <label>
+          Nom du test
+          <input id="filename" placeholder="Créé automatiquement">
+        </label>
+        <button id="startButton" class="primary">Démarrer</button>
+        <button id="stopButton" class="secondary" disabled>Arrêter</button>
+        <a id="downloadButton" class="download disabled" href="/api/kplates/dual/download">Télécharger</a>
+        <div class="timer">
+          <span>Temps</span>
+          <strong id="timer">00:00</strong>
+        </div>
+      </section>
+
+      <div id="message" class="message hidden"></div>
+
+      <section class="metrics-grid">
+        <article class="metric-card left-card">
+          <span>Plateforme gauche</span>
+          <strong><b id="leftKg">0,0</b> kg</strong>
+          <small id="leftPct">0,0 %</small>
+        </article>
+        <article class="metric-card total-card">
+          <span>Force totale</span>
+          <strong><b id="totalKg">0,0</b> kg</strong>
+          <small id="totalN">0 N</small>
+        </article>
+        <article class="metric-card right-card">
+          <span>Plateforme droite</span>
+          <strong><b id="rightKg">0,0</b> kg</strong>
+          <small id="rightPct">0,0 %</small>
+        </article>
+      </section>
+
+      <section class="visual-grid">
+        <article class="panel balance-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Répartition</p>
+              <h2>Asymétrie gauche / droite</h2>
+            </div>
+            <strong id="asymmetryBadge" class="badge">0,0 %</strong>
+          </div>
+          <div class="balance-labels">
+            <span>Gauche</span>
+            <span>Droite</span>
+          </div>
+          <div class="balance-track">
+            <div id="balanceLeft" class="balance-left"></div>
+            <div class="balance-center"></div>
+          </div>
+          <div class="history-wrap">
+            <canvas id="historyChart" width="900" height="250"></canvas>
+          </div>
+        </article>
+
+        <article class="panel cop-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Stabilité</p>
+              <h2>Centre de pression global</h2>
+            </div>
+            <span id="syncBadge" class="badge neutral">En attente</span>
+          </div>
+          <div class="cop-stage">
+            <div class="axis horizontal"></div>
+            <div class="axis vertical"></div>
+            <span class="cop-label front">Avant</span>
+            <span class="cop-label back">Arrière</span>
+            <span class="cop-label left">G</span>
+            <span class="cop-label right">D</span>
+            <div id="copDot" class="cop-dot"></div>
+          </div>
+          <p class="cop-values">
+            X <strong id="copX">0,000</strong>
+            <span></span>
+            Y <strong id="copY">0,000</strong>
+          </p>
+        </article>
+      </section>
+
+      <section class="panel footer-panel">
+        <div>
+          <p class="eyebrow">Acquisition</p>
+          <h2 id="fileLabel">Aucun fichier en cours</h2>
+        </div>
+        <div class="quality">
+          <span>Synchronisation</span>
+          <strong id="syncDelta">—</strong>
+        </div>
+      </section>
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

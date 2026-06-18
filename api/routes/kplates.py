@@ -1,4 +1,7 @@
+from pathlib import Path
+
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from ble.kinvent.kplates.acquisition_service import dual_plate_service
@@ -37,3 +40,21 @@ def stop_dual_acquisition():
 @router.get("/dual/status")
 def dual_acquisition_status():
     return dual_plate_service.status()
+
+
+@router.get("/dual/latest")
+def dual_acquisition_latest():
+    return dual_plate_service.latest()
+
+
+@router.get("/dual/download")
+def download_dual_acquisition():
+    status = dual_plate_service.status()
+    csv_path = status.get("csv_path")
+    if not csv_path or not Path(csv_path).exists():
+        raise HTTPException(status_code=404, detail="Aucun fichier disponible.")
+    return FileResponse(
+        csv_path,
+        media_type="text/csv",
+        filename=Path(csv_path).name,
+    )
