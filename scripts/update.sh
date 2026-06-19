@@ -11,13 +11,17 @@ UNIT_FILE="/etc/systemd/system/$SERVICE_NAME.service"
 BLUETOOTH_UNIT_FILE="/etc/systemd/system/$BLUETOOTH_SERVICE_NAME.service"
 TEMP_UNIT="$(mktemp)"
 TEMP_BLUETOOTH_UNIT="$(mktemp)"
+UPDATE_MARKER="$PROJECT_DIR/storage/raw_data/update_in_progress"
 
 cleanup() {
   rm -f "$TEMP_UNIT" "$TEMP_BLUETOOTH_UNIT"
+  rm -f "$UPDATE_MARKER"
 }
 trap cleanup EXIT
 
 cd "$PROJECT_DIR"
+mkdir -p storage/raw_data
+touch "$UPDATE_MARKER"
 
 echo "Mise à jour du code..."
 git pull --ff-only
@@ -72,6 +76,8 @@ WorkingDirectory=$PROJECT_DIR
 ExecStart=$PYTHON_BIN -u $PROJECT_DIR/scripts/kinvent_dual_hci.py --adapter hci1 --tare-duration 2 --calibration-file $PROJECT_DIR/storage/raw_data/kplates_calibration.json --sync-tolerance-ms 20 --control-file $PROJECT_DIR/storage/raw_data/kplates_worker_control.json --state-file $PROJECT_DIR/storage/raw_data/kplates_worker_state.json
 Restart=always
 RestartSec=10
+KillMode=control-group
+TimeoutStopSec=5
 StandardOutput=append:$PROJECT_DIR/storage/raw_data/kplates_worker.log
 StandardError=append:$PROJECT_DIR/storage/raw_data/kplates_worker.log
 
@@ -104,8 +110,15 @@ fi
 
 echo "Démarrage des services Kine Capteurs..."
 echo "Arrêt des anciens processus Bluetooth persistants..."
-sudo systemctl stop "$BLUETOOTH_SERVICE_NAME" 2>/dev/null || true
-sudo pkill -f "$PROJECT_DIR/scripts/kinvent_dual_hci.py" || true
+sudo pkill -TERM -f "$PROJECT_DIR/scripts/[r]un_kpush_session.sh" || true
+sudo pkill -TERM -f "$PROJECT_DIR/scripts/[k]invent_kpush_hci.py" || true
+sleep 1
+sudo pkill -KILL -f "$PROJECT_DIR/scripts/[r]un_kpush_session.sh" || true
+sudo pkill -KILL -f "$PROJECT_DIR/scripts/[k]invent_kpush_hci.py" || true
+sudo systemctl kill --kill-who=all --signal=SIGKILL \
+  "$BLUETOOTH_SERVICE_NAME" 2>/dev/null || true
+sudo timeout 10s systemctl stop "$BLUETOOTH_SERVICE_NAME" 2>/dev/null || true
+sudo pkill -KILL -f "$PROJECT_DIR/scripts/[k]invent_dual_hci.py" || true
 rm -f \
   storage/raw_data/kplates_worker_state.json \
   storage/raw_data/kplates_worker_control.json

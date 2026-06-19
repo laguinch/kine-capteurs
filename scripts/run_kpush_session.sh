@@ -6,6 +6,7 @@ DURATION="${1:-30}"
 CSV_NAME="${2:-kpush_test.csv}"
 TARE_DURATION="${3:-2}"
 BLUETOOTH_SERVICE_NAME="${KINE_BLUETOOTH_SERVICE_NAME:-kine-capteurs-bluetooth}"
+UPDATE_MARKER="$PROJECT_DIR/storage/raw_data/update_in_progress"
 
 if [[ ! "$DURATION" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
   echo "Durée K-Push invalide." >&2
@@ -21,6 +22,9 @@ if [[ "$CSV_NAME" != "$(basename "$CSV_NAME")" || "$CSV_NAME" != *.csv ]]; then
 fi
 
 restore_plates() {
+  if [[ -e "$UPDATE_MARKER" ]]; then
+    return
+  fi
   systemctl restart "$BLUETOOTH_SERVICE_NAME" || true
 }
 trap restore_plates EXIT INT TERM
