@@ -1131,6 +1131,7 @@ class DualKinventClient:
         control_path = Path(control_file)
         generation = None
         active_generation = None
+        next_idle_keepalive = 0.0
 
         def read_command():
             try:
@@ -1188,6 +1189,7 @@ class DualKinventClient:
                                 ),
                             )
                         else:
+                            next_idle_keepalive = time.monotonic() + 5.0
                             self.write_worker_state(
                                 state_file,
                                 phase="idle",
@@ -1245,7 +1247,6 @@ class DualKinventClient:
                             "Une plateforme est déconnectée. Utilisez le "
                             "bouton « Connecter les capteurs »."
                         )
-                    self.ensure_streams_ready()
                     self.paired_samples = 0
                     self.dropped_samples = {"gauche": 0, "droite": 0}
                     for plate in self.plates:
@@ -1304,9 +1305,18 @@ class DualKinventClient:
                             paired_samples=self.paired_samples,
                             stopped=not completed,
                         )
+                    next_idle_keepalive = time.monotonic() + 5.0
                     active_generation = None
                 try:
                     self.pump(1.0, progress=True, show_progress=False)
+                    if (
+                        self.sock is not None
+                        and time.monotonic() >= next_idle_keepalive
+                    ):
+                        for plate in self.plates:
+                            if plate.handle is not None:
+                                self.send_write_command(plate, b"\xff")
+                        next_idle_keepalive = time.monotonic() + 5.0
                 except (PlateDisconnected, TimeoutError, RuntimeError) as exc:
                     print(f"Session inactive interrompue: {exc}")
                     self.disconnect_all()

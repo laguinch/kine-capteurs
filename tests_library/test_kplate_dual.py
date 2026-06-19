@@ -443,6 +443,30 @@ class KPlateDualTest(unittest.TestCase):
             ],
         )
 
+    def test_idle_keepalive_uses_lightweight_command(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        sent = []
+        for index, plate in enumerate(client.plates, start=0x10):
+            plate.handle = index
+        client.send_write_command = (
+            lambda plate, value: sent.append((plate.side, value))
+        )
+
+        for plate in client.plates:
+            client.send_write_command(plate, b"\xff")
+
+        self.assertEqual(
+            sent,
+            [("gauche", b"\xff"), ("droite", b"\xff")],
+        )
+
     def test_disconnects_both_plates_before_closing(self):
         client = self.module.DualKinventClient(
             1,
