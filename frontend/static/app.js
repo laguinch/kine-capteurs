@@ -23,8 +23,17 @@ function setMessage(text, error = false) {
 
 function updateStatus(data) {
   const running = Boolean(data.running);
-  $("statusDot").className = `status-dot ${running ? "running" : data.last_error ? "error" : ""}`;
-  $("statusText").textContent = running ? "Acquisition en cours" : data.last_error ? "Erreur" : "Prêt";
+  const connecting = ["connecting", "recovering"].includes(data.worker_phase);
+  $("statusDot").className = `status-dot ${running || data.worker_ready ? "running" : data.last_error ? "error" : ""}`;
+  $("statusText").textContent = running
+    ? "Acquisition en cours"
+    : connecting
+      ? "Connexion des capteurs"
+      : data.last_error
+        ? "Erreur"
+        : data.worker_ready
+          ? "Plateformes connectées"
+          : "Service Bluetooth arrêté";
   $("startButton").disabled = running;
   $("stopButton").disabled = !running;
   $("fileLabel").textContent = data.csv_path ? data.csv_path.split("/").pop() : "Aucun fichier en cours";
@@ -186,7 +195,7 @@ async function start() {
     setMessage(
       state.awaitingTare
         ? "Laissez les deux plateformes vides pendant la tare."
-        : "Tare existante chargée. Connexion aux plateformes…"
+        : "Plateformes connectées. Démarrage de l’enregistrement…"
     );
   } catch (error) {
     state.awaitingTare = false;

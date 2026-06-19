@@ -65,6 +65,19 @@ chaque plateforme, l'asymétrie et le centre de pression global.
 - `POST /api/kplates/dual/stop`
 - `GET /api/kplates/dual/download`
 
+## Connexion Bluetooth permanente
+
+Le serveur installe deux services distincts :
+
+- `kine-capteurs.service` pour l'interface et l'API ;
+- `kine-capteurs-bluetooth.service` pour la connexion permanente aux capteurs.
+
+Le service Bluetooth se connecte aux deux plateformes au démarrage du serveur
+et conserve les flux actifs entre les tests. Démarrer ou arrêter un test ne
+coupe donc plus les plateformes : seule la création du fichier CSV est pilotée
+par l'interface. La liaison est fermée uniquement à l'arrêt du service
+Bluetooth ou du serveur.
+
 Le processus HCI nécessite les droits d'accès au contrôleur Bluetooth brut.
 La variable `KINE_HCI_COMMAND_PREFIX` permet de définir un préfixe de lancement
 fourni par le service système, par exemple `sudo -n` après configuration dédiée.

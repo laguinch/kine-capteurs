@@ -830,12 +830,20 @@ class DualKinventClient:
                 print("Deux plateformes: hors appui")
             self.last_print = time.monotonic()
 
-    def pump(self, duration, progress=False, show_progress=True):
+    def pump(
+        self,
+        duration,
+        progress=False,
+        show_progress=True,
+        stop_requested=None,
+    ):
         deadline = time.monotonic() + duration
         next_progress = time.monotonic()
         if progress:
             self.next_keepalive = None
         while time.monotonic() < deadline:
+            if stop_requested is not None and stop_requested():
+                return False
             packet = self.receive()
             if packet:
                 try:
@@ -862,6 +870,7 @@ class DualKinventClient:
             if progress and show_progress and time.monotonic() >= next_progress:
                 print(f"Temps restant: {max(0, deadline-time.monotonic()):.1f} s")
                 next_progress = time.monotonic() + 5
+        return True
 
     def reconnect_plate(self, plate, acquisition_deadline, attempts=4):
         last_error = None
@@ -1084,20 +1093,54 @@ class DualKinventClient:
     ):
         control_path = Path(control_file)
         generation = None
+        active_generation = None
+
+        def read_command():
+            try:
+                return json.loads(control_path.read_text(encoding="utf-8"))
+            except (OSError, ValueError, json.JSONDecodeError):
+                return {}
+
+        generation = read_command().get("generation")
         self.open()
         try:
             self.write_worker_state(state_file, phase="connecting")
             self.initialize_session(scan_timeout, connect_timeout, write_delay)
             self.write_worker_state(state_file, phase="idle")
             while True:
-                try:
-                    command = json.loads(control_path.read_text(encoding="utf-8"))
-                except (OSError, ValueError, json.JSONDecodeError):
-                    command = {}
+                command = read_command()
                 requested = command.get("generation")
-                if requested and requested != generation:
+                if (
+                    command.get("action") == "start"
+                    and requested
+                    and requested != generation
+                ):
                     generation = requested
+                    active_generation = generation
                     duration = float(command["duration"])
+                    if command.get("recalibrate"):
+                        print("Nouvelle tare demandée.")
+                        self.calibration_saved = False
+                        if self.calibration_path:
+                            try:
+                                self.calibration_path.unlink()
+                            except FileNotFoundError:
+                                pass
+                        for plate in self.plates:
+                            plate.offsets = None
+                            plate.tare_started_at = None
+                            plate.tare_samples = []
+                        tare_deadline = time.monotonic() + 15.0
+                        while (
+                            time.monotonic() < tare_deadline
+                            and any(plate.offsets is None for plate in self.plates)
+                        ):
+                            self.pump(0.25)
+                        self.save_calibration()
+                        if any(plate.offsets is None for plate in self.plates):
+                            raise RuntimeError(
+                                "La nouvelle tare n'a pas pu être terminée."
+                            )
                     try:
                         disconnected = [
                             plate for plate in self.plates if plate.handle is None
@@ -1142,8 +1185,17 @@ class DualKinventClient:
                         phase="active",
                         generation=generation,
                         csv_path=command["csv_path"],
+                        started_at=now_iso(),
                     )
-                    self.pump(duration, progress=True)
+                    completed = self.pump(
+                        duration,
+                        progress=True,
+                        stop_requested=lambda: (
+                            read_command().get("action") == "stop"
+                            and read_command().get("generation")
+                            == active_generation
+                        ),
+                    )
                     self.close_csv()
                     if self.paired_samples == 0:
                         self.write_worker_state(
@@ -1164,7 +1216,9 @@ class DualKinventClient:
                             generation=generation,
                             csv_path=command["csv_path"],
                             paired_samples=self.paired_samples,
+                            stopped=not completed,
                         )
+                    active_generation = None
                 try:
                     self.pump(1.0, progress=True, show_progress=False)
                 except (PlateDisconnected, TimeoutError, RuntimeError) as exc:
@@ -1217,11 +1271,12 @@ def build_parser():
 
 def main():
     args = build_parser().parse_args()
+    csv_path = None if args.control_file and args.state_file else args.csv
     client = DualKinventClient(
         args.adapter,
         args.left_address,
         args.right_address,
-        args.csv,
+        csv_path,
         args.tare_duration,
         args.print_interval,
         args.sync_tolerance_ms,

@@ -3,14 +3,17 @@ set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SERVICE_NAME="${KINE_SERVICE_NAME:-kine-capteurs}"
+BLUETOOTH_SERVICE_NAME="${KINE_BLUETOOTH_SERVICE_NAME:-kine-capteurs-bluetooth}"
 SERVICE_USER="${KINE_SERVICE_USER:-${SUDO_USER:-$USER}}"
 PYTHON_BIN="$PROJECT_DIR/.venv/bin/python"
 UVICORN_BIN="$PROJECT_DIR/.venv/bin/uvicorn"
 UNIT_FILE="/etc/systemd/system/$SERVICE_NAME.service"
+BLUETOOTH_UNIT_FILE="/etc/systemd/system/$BLUETOOTH_SERVICE_NAME.service"
 TEMP_UNIT="$(mktemp)"
+TEMP_BLUETOOTH_UNIT="$(mktemp)"
 
 cleanup() {
-  rm -f "$TEMP_UNIT"
+  rm -f "$TEMP_UNIT" "$TEMP_BLUETOOTH_UNIT"
 }
 trap cleanup EXIT
 
@@ -36,13 +39,11 @@ fi
 echo "Vérification du projet..."
 "$PYTHON_BIN" -m unittest discover -s tests_library -p 'test*.py'
 
-echo "Installation de l'autorisation Bluetooth..."
-sudo KINE_SERVICE_USER="$SERVICE_USER" bash scripts/install_hci_sudoers.sh
-
 cat >"$TEMP_UNIT" <<EOF
 [Unit]
 Description=Kine Capteurs
-After=network.target
+After=network.target $BLUETOOTH_SERVICE_NAME.service
+Wants=$BLUETOOTH_SERVICE_NAME.service
 
 [Service]
 Type=simple
@@ -57,7 +58,29 @@ RestartSec=3
 WantedBy=multi-user.target
 EOF
 
+cat >"$TEMP_BLUETOOTH_UNIT" <<EOF
+[Unit]
+Description=Kine Capteurs - connexion Bluetooth permanente
+After=network.target
+Before=$SERVICE_NAME.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=$PROJECT_DIR
+ExecStart=$PYTHON_BIN -u $PROJECT_DIR/scripts/kinvent_dual_hci.py --adapter hci1 --tare-duration 2 --calibration-file $PROJECT_DIR/storage/raw_data/kplates_calibration.json --sync-tolerance-ms 20 --control-file $PROJECT_DIR/storage/raw_data/kplates_worker_control.json --state-file $PROJECT_DIR/storage/raw_data/kplates_worker_state.json
+Restart=always
+RestartSec=10
+StandardOutput=append:$PROJECT_DIR/storage/raw_data/kplates_worker.log
+StandardError=append:$PROJECT_DIR/storage/raw_data/kplates_worker.log
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 sudo install -o root -g root -m 0644 "$TEMP_UNIT" "$UNIT_FILE"
+sudo install -o root -g root -m 0644 \
+  "$TEMP_BLUETOOTH_UNIT" "$BLUETOOTH_UNIT_FILE"
 sudo systemctl daemon-reload
 
 echo "Libération du contrôleur Bluetooth..."
@@ -77,16 +100,20 @@ if command -v hciconfig >/dev/null 2>&1; then
   fi
 fi
 
-echo "Démarrage de $SERVICE_NAME..."
+echo "Démarrage des services Kine Capteurs..."
 echo "Arrêt des anciens processus Bluetooth persistants..."
+sudo systemctl stop "$BLUETOOTH_SERVICE_NAME" 2>/dev/null || true
 sudo pkill -f "$PROJECT_DIR/scripts/kinvent_dual_hci.py" || true
 rm -f \
   storage/raw_data/kplates_worker_state.json \
   storage/raw_data/kplates_worker_control.json
-sudo systemctl enable --now "$SERVICE_NAME"
+sudo systemctl enable "$BLUETOOTH_SERVICE_NAME"
+sudo systemctl enable "$SERVICE_NAME"
+sudo systemctl restart "$BLUETOOTH_SERVICE_NAME"
 sudo systemctl restart "$SERVICE_NAME"
 
 echo
 echo "Kine Capteurs est à jour."
 echo "Interface: http://$(hostname -I | awk '{print $1}'):8000/"
 echo "État: sudo systemctl status $SERVICE_NAME"
+echo "Bluetooth: sudo systemctl status $BLUETOOTH_SERVICE_NAME"

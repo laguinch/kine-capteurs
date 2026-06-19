@@ -1,7 +1,6 @@
 import importlib.util
+import json
 import os
-import signal
-import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -70,78 +69,51 @@ class KPlateApiTest(unittest.TestCase):
     def test_start_adds_csv_extension(self):
         service = DualPlateAcquisitionService()
         with tempfile.TemporaryDirectory() as directory:
-            process = mock.Mock(pid=123)
-            process.poll.return_value = None
-            with (
-                mock.patch.object(acquisition_module, "BASE_DIR", Path(directory)),
-                mock.patch.object(
-                    acquisition_module.subprocess,
-                    "Popen",
-                    return_value=process,
-                ),
-            ):
+            root = Path(directory)
+            service._control_path = root / "control.json"
+            service._worker_state_path = root / "state.json"
+            service._worker_state_path.write_text(
+                f'{{"phase":"idle","pid":{os.getpid()}}}',
+                encoding="utf-8",
+            )
+            with mock.patch.object(acquisition_module, "BASE_DIR", root):
                 status = service.start(filename="session")
 
         self.assertTrue(status["csv_path"].endswith("/session.csv"))
 
-    def test_failed_process_reports_last_log_line(self):
+    def test_worker_error_is_reported(self):
         service = DualPlateAcquisitionService()
         with tempfile.TemporaryDirectory() as directory:
-            csv_path = Path(directory) / "dual.csv"
-            csv_path.with_suffix(".log").write_text(
-                "Initialisation\nsudo: a password is required\n",
+            service._worker_state_path = Path(directory) / "state.json"
+            service._worker_state_path.write_text(
+                (
+                    '{"phase":"error","pid":'
+                    f'{os.getpid()},"error":"Connexion Bluetooth impossible"}}'
+                ),
                 encoding="utf-8",
             )
-            service._csv_path = csv_path
-            service._process = subprocess.Popen(
-                [
-                    os.environ.get("PYTHON", "python3"),
-                    "-c",
-                    "raise SystemExit(1)",
-                ]
-            )
-            service._process.wait()
 
             status = service.status()
 
-        self.assertIn("code 1", status["last_error"])
-        self.assertIn("sudo: a password is required", status["last_error"])
+        self.assertEqual(status["last_error"], "Connexion Bluetooth impossible")
 
     def test_second_test_reuses_persistent_bluetooth_process(self):
         service = DualPlateAcquisitionService()
-        process = mock.Mock(pid=123)
-        process.poll.return_value = None
-        service._process = process
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             service._control_path = root / "control.json"
             service._worker_state_path = root / "state.json"
             service._worker_state_path.write_text(
-                '{"phase":"idle"}',
+                f'{{"phase":"idle","pid":{os.getpid()}}}',
                 encoding="utf-8",
             )
-            with (
-                mock.patch.object(acquisition_module, "BASE_DIR", root),
-                mock.patch.object(acquisition_module.subprocess, "Popen") as popen,
-            ):
+            with mock.patch.object(acquisition_module, "BASE_DIR", root):
                 status = service.start(filename="second-test.csv")
 
-            control = service._read_worker_state()
+            control = json.loads(service._control_path.read_text(encoding="utf-8"))
 
-        popen.assert_not_called()
         self.assertTrue(status["running"])
-        self.assertEqual(control["phase"], "idle")
-
-    def test_sigterm_is_not_reported_as_bluetooth_failure(self):
-        service = DualPlateAcquisitionService()
-        process = mock.Mock(returncode=-signal.SIGTERM)
-        process.poll.return_value = -signal.SIGTERM
-        service._process = process
-
-        status = service.status()
-
-        self.assertEqual(status["return_code"], -signal.SIGTERM)
-        self.assertIsNone(status["last_error"])
+        self.assertEqual(control["action"], "start")
 
     def test_detects_external_persistent_worker(self):
         service = DualPlateAcquisitionService()
@@ -152,6 +124,28 @@ class KPlateApiTest(unittest.TestCase):
             side_effect=PermissionError,
         ):
             self.assertTrue(service._worker_alive(123))
+
+    def test_stop_only_commands_recording_to_stop(self):
+        service = DualPlateAcquisitionService()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            service._control_path = root / "control.json"
+            service._worker_state_path = root / "state.json"
+            service._worker_state_path.write_text(
+                (
+                    f'{{"phase":"active","pid":{os.getpid()},'
+                    '"generation":"test-generation"}'
+                ),
+                encoding="utf-8",
+            )
+
+            service.stop()
+            command = json.loads(
+                service._control_path.read_text(encoding="utf-8")
+            )
+
+        self.assertEqual(command["action"], "stop")
+        self.assertEqual(command["generation"], "test-generation")
 
 
 if __name__ == "__main__":
