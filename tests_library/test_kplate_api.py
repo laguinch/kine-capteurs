@@ -1,5 +1,6 @@
 import importlib.util
 import os
+import signal
 import subprocess
 import tempfile
 import unittest
@@ -130,6 +131,17 @@ class KPlateApiTest(unittest.TestCase):
         popen.assert_not_called()
         self.assertTrue(status["running"])
         self.assertEqual(control["phase"], "idle")
+
+    def test_sigterm_is_not_reported_as_bluetooth_failure(self):
+        service = DualPlateAcquisitionService()
+        process = mock.Mock(returncode=-signal.SIGTERM)
+        process.poll.return_value = -signal.SIGTERM
+        service._process = process
+
+        status = service.status()
+
+        self.assertEqual(status["return_code"], -signal.SIGTERM)
+        self.assertIsNone(status["last_error"])
 
 
 if __name__ == "__main__":

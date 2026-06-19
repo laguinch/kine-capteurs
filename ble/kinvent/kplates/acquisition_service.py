@@ -62,6 +62,9 @@ class DualPlateAcquisitionService:
             return
         self._return_code = return_code
         self._finished_at = self._finished_at or now_iso()
+        if return_code in (-signal.SIGTERM, -signal.SIGKILL):
+            self._last_error = None
+            return
         if return_code != 0 and self._last_error is None:
             log_lines = self._read_log_tail()
             detail = next(
@@ -138,6 +141,10 @@ class DualPlateAcquisitionService:
                 log_path = (
                     BASE_DIR / "storage" / "raw_data" / "kplates_worker.log"
                 )
+                try:
+                    self._worker_state_path.unlink()
+                except FileNotFoundError:
+                    pass
                 log_file = log_path.open("a", encoding="utf-8")
                 try:
                     self._process = subprocess.Popen(
