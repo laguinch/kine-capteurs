@@ -87,6 +87,37 @@ class DualPlateAcquisitionService:
                 )
             return self.status()
 
+    def connect(self):
+        with self._lock:
+            worker = self._read_worker_state()
+            if not self._worker_alive(worker.get("pid")):
+                raise RuntimeError(
+                    "Le service Bluetooth permanent n'est pas démarré."
+                )
+            if worker.get("phase") == "active":
+                raise RuntimeError(
+                    "Arrêtez le test avant de modifier la connexion."
+                )
+            generation = uuid.uuid4().hex
+            self._write_json(
+                self._control_path,
+                {"action": "connect", "generation": generation},
+            )
+            return self.status()
+
+    def disconnect(self):
+        with self._lock:
+            worker = self._read_worker_state()
+            if worker.get("phase") == "active":
+                raise RuntimeError(
+                    "Arrêtez le test avant de déconnecter les capteurs."
+                )
+            self._write_json(
+                self._control_path,
+                {"action": "disconnect"},
+            )
+            return self.status()
+
     def status(self):
         with self._lock:
             worker = self._read_worker_state()
@@ -130,6 +161,8 @@ class DualPlateAcquisitionService:
                 "running": running,
                 "worker_phase": phase,
                 "worker_ready": worker_alive and phase == "idle",
+                "bluetooth_connected": worker_alive
+                and phase in {"idle", "active"},
                 "pid": worker.get("pid") if worker_alive else None,
                 "started_at": self._started_at,
                 "finished_at": self._finished_at,

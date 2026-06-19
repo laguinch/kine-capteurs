@@ -39,6 +39,22 @@ def stop_dual_acquisition():
     return dual_plate_service.stop()
 
 
+@router.post("/dual/connect")
+def connect_dual_plates():
+    try:
+        return dual_plate_service.connect()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post("/dual/disconnect")
+def disconnect_dual_plates():
+    try:
+        return dual_plate_service.disconnect()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
 @router.get("/dual/status")
 def dual_acquisition_status():
     return dual_plate_service.status()

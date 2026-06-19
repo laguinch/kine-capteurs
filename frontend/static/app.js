@@ -36,6 +36,8 @@ function updateStatus(data) {
           : "Service Bluetooth arrêté";
   $("startButton").disabled = running;
   $("stopButton").disabled = !running;
+  $("connectButton").disabled = running || connecting || data.bluetooth_connected;
+  $("disconnectButton").disabled = running || !data.bluetooth_connected;
   $("fileLabel").textContent = data.csv_path ? data.csv_path.split("/").pop() : "Aucun fichier en cours";
   $("downloadButton").classList.toggle("disabled", !data.csv_path);
 
@@ -216,8 +218,28 @@ async function stop() {
   }
 }
 
+async function setBluetoothConnection(action) {
+  setMessage(
+    action === "connect"
+      ? "Connexion aux plateformes…"
+      : "Déconnexion des plateformes…"
+  );
+  try {
+    const response = await fetch(`/api/kplates/dual/${action}`, {
+      method: "POST",
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Commande impossible");
+    updateStatus(data);
+  } catch (error) {
+    setMessage(error.message, true);
+  }
+}
+
 $("startButton").addEventListener("click", start);
 $("stopButton").addEventListener("click", stop);
+$("connectButton").addEventListener("click", () => setBluetoothConnection("connect"));
+$("disconnectButton").addEventListener("click", () => setBluetoothConnection("disconnect"));
 window.addEventListener("resize", drawHistory);
 poll();
 state.polling = setInterval(poll, 250);

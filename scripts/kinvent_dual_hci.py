@@ -1109,9 +1109,38 @@ class DualKinventClient:
             self.write_worker_state(state_file, phase="idle")
             while True:
                 command = read_command()
+                action = command.get("action")
+                if action == "disconnect":
+                    self.disconnect_all()
+                    self.clear_connection_state()
+                    self.write_worker_state(
+                        state_file,
+                        phase="disconnected",
+                    )
+                    while True:
+                        command = read_command()
+                        if command.get("action") == "connect":
+                            self.write_worker_state(
+                                state_file,
+                                phase="connecting",
+                            )
+                            self.initialize_session(
+                                scan_timeout,
+                                connect_timeout,
+                                write_delay,
+                            )
+                            generation = command.get("generation")
+                            self.write_worker_state(
+                                state_file,
+                                phase="idle",
+                                generation=generation,
+                            )
+                            break
+                        time.sleep(0.25)
+                    continue
                 requested = command.get("generation")
                 if (
-                    command.get("action") == "start"
+                    action == "start"
                     and requested
                     and requested != generation
                 ):

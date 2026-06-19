@@ -22,6 +22,8 @@ class KPlateApiTest(unittest.TestCase):
 
         self.assertIn("/api/kplates/dual/start", paths)
         self.assertIn("/api/kplates/dual/stop", paths)
+        self.assertIn("/api/kplates/dual/connect", paths)
+        self.assertIn("/api/kplates/dual/disconnect", paths)
         self.assertIn("/api/kplates/dual/status", paths)
         self.assertIn("/api/kplates/dual/latest", paths)
         self.assertIn("/api/kplates/dual/download", paths)
@@ -146,6 +148,43 @@ class KPlateApiTest(unittest.TestCase):
 
         self.assertEqual(command["action"], "stop")
         self.assertEqual(command["generation"], "test-generation")
+
+    def test_disconnect_only_commands_radio_links_to_close(self):
+        service = DualPlateAcquisitionService()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            service._control_path = root / "control.json"
+            service._worker_state_path = root / "state.json"
+            service._worker_state_path.write_text(
+                f'{{"phase":"idle","pid":{os.getpid()}}}',
+                encoding="utf-8",
+            )
+
+            service.disconnect()
+            command = json.loads(
+                service._control_path.read_text(encoding="utf-8")
+            )
+
+        self.assertEqual(command["action"], "disconnect")
+
+    def test_connect_commands_disconnected_worker_to_reconnect(self):
+        service = DualPlateAcquisitionService()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            service._control_path = root / "control.json"
+            service._worker_state_path = root / "state.json"
+            service._worker_state_path.write_text(
+                f'{{"phase":"disconnected","pid":{os.getpid()}}}',
+                encoding="utf-8",
+            )
+
+            service.connect()
+            command = json.loads(
+                service._control_path.read_text(encoding="utf-8")
+            )
+
+        self.assertEqual(command["action"], "connect")
+        self.assertTrue(command["generation"])
 
 
 if __name__ == "__main__":
