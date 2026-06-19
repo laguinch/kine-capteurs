@@ -1096,6 +1096,22 @@ class DualKinventClient:
             self.send_write_command(plate, b"\x11")
         self.pump(0.15)
 
+    def park_measurement_streams(self):
+        """Met les mesures au repos en conservant les deux liaisons BLE."""
+        connected = [
+            plate for plate in self.connection_order()
+            if plate.handle is not None
+        ]
+        if not connected:
+            return
+        # À la fin d'une mesure, l'application Kinvent envoie trois commandes
+        # 0x10 à chaque plateforme, puis conserve seulement le keepalive 0xff.
+        for _ in range(3):
+            for plate in connected:
+                self.send_write_command(plate, b"\x10")
+            self.pump(0.05)
+        print("Flux de mesure au repos; connexions Bluetooth conservées.")
+
     def validate_live_streams(self, timeout=2.0, attempts=3):
         """Exige une nouvelle trame de mesure valide de chaque plateforme."""
         if any(plate.handle is None for plate in self.plates):
@@ -1328,6 +1344,7 @@ class DualKinventClient:
                                 write_delay,
                                 attempts=1,
                             )
+                            self.park_measurement_streams()
                         except (
                             OSError,
                             PlateDisconnected,
@@ -1393,6 +1410,7 @@ class DualKinventClient:
                             write_delay,
                             attempts=1,
                         )
+                        self.park_measurement_streams()
                     except (
                         OSError,
                         PlateDisconnected,
@@ -1526,6 +1544,7 @@ class DualKinventClient:
                             ),
                         )
                     else:
+                        self.park_measurement_streams()
                         self.write_worker_state(
                             state_file,
                             phase="idle",
@@ -1538,7 +1557,6 @@ class DualKinventClient:
                     active_generation = None
                 try:
                     self.pump(1.0, progress=True, show_progress=False)
-                    self.ensure_recent_notifications()
                     if (
                         self.sock is not None
                         and time.monotonic() >= next_idle_keepalive
