@@ -33,6 +33,7 @@ class DualPlateAcquisitionService:
         self._csv_path = None
         self._last_error = None
         self._return_code = None
+        self._tare_required = None
 
     def _refresh(self):
         if self._process is None:
@@ -60,6 +61,7 @@ class DualPlateAcquisitionService:
         tare_duration=2.0,
         sync_tolerance_ms=20.0,
         filename=None,
+        recalibrate=False,
     ):
         with self._lock:
             self._refresh()
@@ -75,6 +77,10 @@ class DualPlateAcquisitionService:
                 filename += ".csv"
 
             csv_path = BASE_DIR / "storage" / "raw_data" / filename
+            calibration_path = (
+                BASE_DIR / "storage" / "raw_data" / "kplates_calibration.json"
+            )
+            self._tare_required = recalibrate or not calibration_path.exists()
             csv_path.parent.mkdir(parents=True, exist_ok=True)
             script = BASE_DIR / "scripts" / "kinvent_dual_hci.py"
             prefix = shlex.split(os.getenv("KINE_HCI_COMMAND_PREFIX", ""))
@@ -88,11 +94,15 @@ class DualPlateAcquisitionService:
                 str(duration),
                 "--tare-duration",
                 str(tare_duration),
+                "--calibration-file",
+                str(calibration_path),
                 "--sync-tolerance-ms",
                 str(sync_tolerance_ms),
                 "--csv",
                 str(csv_path),
             ]
+            if recalibrate:
+                command.append("--recalibrate")
 
             log_path = csv_path.with_suffix(".log")
             log_file = log_path.open("w", encoding="utf-8")
@@ -159,6 +169,13 @@ class DualPlateAcquisitionService:
                 else None,
                 "last_error": self._last_error,
                 "elapsed_seconds": elapsed_seconds,
+                "tare_required": self._tare_required,
+                "calibration_available": (
+                    BASE_DIR
+                    / "storage"
+                    / "raw_data"
+                    / "kplates_calibration.json"
+                ).exists(),
             }
 
     def latest(self):

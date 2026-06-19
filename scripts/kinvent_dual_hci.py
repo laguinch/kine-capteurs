@@ -3,6 +3,7 @@
 import argparse
 import csv
 import errno
+import json
 import socket
 import struct
 import sys
@@ -229,12 +230,16 @@ class DualKinventClient:
         tare_duration,
         print_interval,
         sync_tolerance_ms=20.0,
+        calibration_path=None,
+        recalibrate=False,
     ):
         self.adapter = adapter
         self.plates = [
             PlateState("gauche", left_address, tare_duration),
             PlateState("droite", right_address, tare_duration),
         ]
+        self.calibration_path = Path(calibration_path) if calibration_path else None
+        self.calibration_saved = False
         self.by_handle = {}
         self.sock = None
         self.fragments = {}
@@ -248,6 +253,9 @@ class DualKinventClient:
         self.dropped_samples = {"gauche": 0, "droite": 0}
         self.csv_file = None
         self.writer = None
+
+        if not recalibrate:
+            self.load_calibration()
 
         if csv_path:
             path = Path(csv_path)
@@ -278,6 +286,52 @@ class DualKinventClient:
                     "global_cop_y",
                 ]
             )
+
+    def load_calibration(self):
+        if self.calibration_path is None or not self.calibration_path.exists():
+            return False
+        try:
+            data = json.loads(self.calibration_path.read_text(encoding="utf-8"))
+            for plate in self.plates:
+                saved = data.get(plate.side, {})
+                offsets = saved.get("offsets", {})
+                if saved.get("address") != plate.address or set(offsets) != {
+                    "av_d",
+                    "av_g",
+                    "ar_g",
+                    "ar_d",
+                }:
+                    return False
+            for plate in self.plates:
+                plate.offsets = {
+                    key: int(value)
+                    for key, value in data[plate.side]["offsets"].items()
+                }
+            self.calibration_saved = True
+            print(f"Tare existante chargée depuis {self.calibration_path}.")
+            return True
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            print("Tare enregistrée invalide; une nouvelle tare sera effectuée.")
+            return False
+
+    def save_calibration(self):
+        if self.calibration_saved or self.calibration_path is None:
+            return
+        if any(plate.offsets is None for plate in self.plates):
+            return
+        data = {
+            plate.side: {"address": plate.address, "offsets": plate.offsets}
+            for plate in self.plates
+        }
+        self.calibration_path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = self.calibration_path.with_suffix(".tmp")
+        temporary.write_text(
+            json.dumps(data, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        temporary.replace(self.calibration_path)
+        self.calibration_saved = True
+        print(f"Tare enregistrée dans {self.calibration_path}.")
 
     def open(self):
         if sys.platform != "linux":
@@ -667,6 +721,7 @@ class DualKinventClient:
 
     def pair_samples(self):
         left, right = self.plates
+        self.save_calibration()
         while left.samples and right.samples:
             left_entry = left.samples[0]
             right_entry = right.samples[0]
@@ -838,6 +893,8 @@ def build_parser():
     parser.add_argument("--duration", type=float, default=30.0)
     parser.add_argument("--write-delay", type=float, default=0.5)
     parser.add_argument("--tare-duration", type=float, default=2.0)
+    parser.add_argument("--calibration-file")
+    parser.add_argument("--recalibrate", action="store_true")
     parser.add_argument("--print-interval", type=float, default=0.5)
     parser.add_argument(
         "--sync-tolerance-ms",
@@ -859,6 +916,8 @@ def main():
         args.tare_duration,
         args.print_interval,
         args.sync_tolerance_ms,
+        args.calibration_file,
+        args.recalibrate,
     )
     client.run(
         args.scan_timeout,

@@ -139,6 +139,7 @@ async function start() {
     tare_duration: 2,
     sync_tolerance_ms: 20,
     filename: filename || null,
+    recalibrate: $("recalibrate").checked,
   };
   try {
     const response = await fetch("/api/kplates/dual/start", {
@@ -148,8 +149,13 @@ async function start() {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || "Démarrage impossible");
+    state.awaitingTare = Boolean(data.tare_required);
     updateStatus(data);
-    setMessage("Laissez les deux plateformes vides pendant la tare.");
+    setMessage(
+      state.awaitingTare
+        ? "Laissez les deux plateformes vides pendant la tare."
+        : "Tare existante chargée. Vous pouvez monter sur les plateformes."
+    );
   } catch (error) {
     state.awaitingTare = false;
     setMessage(error.message, true);

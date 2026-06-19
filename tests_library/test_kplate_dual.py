@@ -229,6 +229,46 @@ class KPlateDualTest(unittest.TestCase):
 
         self.assertEqual(selected, 0)
 
+    def test_saves_and_reuses_tare(self):
+        with tempfile.TemporaryDirectory() as directory:
+            calibration = Path(directory) / "tare.json"
+            client = self.module.DualKinventClient(
+                1,
+                "E8:EB:1B:6F:A7:5F",
+                "E8:EB:1B:79:B1:AB",
+                None,
+                2,
+                1,
+                calibration_path=calibration,
+            )
+            client.plates[0].offsets = {
+                "av_d": 1,
+                "av_g": 2,
+                "ar_g": 3,
+                "ar_d": 4,
+            }
+            client.plates[1].offsets = {
+                "av_d": 5,
+                "av_g": 6,
+                "ar_g": 7,
+                "ar_d": 8,
+            }
+            client.save_calibration()
+
+            reused = self.module.DualKinventClient(
+                1,
+                "E8:EB:1B:6F:A7:5F",
+                "E8:EB:1B:79:B1:AB",
+                None,
+                2,
+                1,
+                calibration_path=calibration,
+            )
+
+        self.assertTrue(reused.calibration_saved)
+        self.assertEqual(reused.plates[0].offsets["av_d"], 1)
+        self.assertEqual(reused.plates[1].offsets["ar_d"], 8)
+
 
 if __name__ == "__main__":
     unittest.main()

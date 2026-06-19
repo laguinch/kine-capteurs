@@ -16,6 +16,7 @@ class DualAcquisitionRequest(BaseModel):
     tare_duration: float = Field(default=2.0, ge=0.5, le=10.0)
     sync_tolerance_ms: float = Field(default=20.0, ge=5.0, le=100.0)
     filename: str | None = None
+    recalibrate: bool = False
 
 
 @router.post("/dual/start")
@@ -27,6 +28,7 @@ def start_dual_acquisition(request: DualAcquisitionRequest):
             tare_duration=request.tare_duration,
             sync_tolerance_ms=request.sync_tolerance_ms,
             filename=request.filename,
+            recalibrate=request.recalibrate,
         )
     except (RuntimeError, ValueError) as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
