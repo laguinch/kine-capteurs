@@ -158,6 +158,16 @@ class PlateState:
             self.timeline_host_origin = received_monotonic
         else:
             delta = (sensor_time - self.last_sensor_time) & 0xFFFF
+            if delta > 1000:
+                # Certaines commandes de redémarrage du flux remettent
+                # l'horloge 16 bits du capteur à zéro. Ce n'est pas un tour
+                # complet de compteur: on recale alors la chronologie sur la
+                # réception courante.
+                self.last_sensor_time = sensor_time
+                self.sensor_time_unwrapped = sensor_time
+                self.timeline_sensor_origin = sensor_time
+                self.timeline_host_origin = received_monotonic
+                return received_monotonic
             self.sensor_time_unwrapped += delta
             self.last_sensor_time = sensor_time
 
@@ -903,10 +913,9 @@ class DualKinventClient:
         ) from last_error
 
     def ensure_streams_ready(self, attempts=3):
+        missing = list(self.plates)
         for attempt in range(1, attempts + 1):
             before = {plate.side: plate.notifications for plate in self.plates}
-            for plate in self.plates:
-                self.start_stream(plate, 0.1)
             self.pump(1.5)
             missing = [
                 plate
@@ -921,6 +930,9 @@ class DualKinventClient:
                 + ", ".join(plate.side for plate in missing)
                 + f" (vérification {attempt}/{attempts})."
             )
+            for plate in missing:
+                self.start_stream(plate, 0.1)
+                plate.stream_restarts += 1
         raise RuntimeError(
             "Les deux plateformes sont connectées, mais un flux de mesure "
             "ne démarre pas."

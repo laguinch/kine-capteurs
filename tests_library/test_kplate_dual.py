@@ -158,6 +158,20 @@ class KPlateDualTest(unittest.TestCase):
         self.assertAlmostEqual(second, 50.013, places=6)
         self.assertAlmostEqual(third, 50.027, places=6)
 
+    def test_sensor_clock_recovers_when_stream_clock_resets(self):
+        plate = self.module.PlateState(
+            "gauche",
+            "E8:EB:1B:6F:A7:5F",
+            tare_duration=0,
+        )
+
+        plate.sample_monotonic(9000, 50.000)
+        reset = plate.sample_monotonic(100, 51.000)
+        following = plate.sample_monotonic(113, 51.020)
+
+        self.assertAlmostEqual(reset, 51.000, places=6)
+        self.assertAlmostEqual(following, 51.013, places=6)
+
     def test_keepalive_is_scheduled_every_five_seconds(self):
         client = self.module.DualKinventClient(
             1,
@@ -317,7 +331,35 @@ class KPlateDualTest(unittest.TestCase):
         client.pump = pump
         client.ensure_streams_ready()
 
-        self.assertEqual(started, ["gauche", "droite"])
+        self.assertEqual(started, [])
+
+    def test_rearms_only_silent_stream(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        started = []
+        pump_count = 0
+
+        def start_stream(plate, delay):
+            started.append(plate.side)
+
+        def pump(duration):
+            nonlocal pump_count
+            pump_count += 1
+            client.plates[1].notifications += 1
+            if pump_count > 1:
+                client.plates[0].notifications += 1
+
+        client.start_stream = start_stream
+        client.pump = pump
+        client.ensure_streams_ready()
+
+        self.assertEqual(started, ["gauche"])
 
 
 if __name__ == "__main__":
