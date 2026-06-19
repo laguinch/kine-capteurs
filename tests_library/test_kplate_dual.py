@@ -375,9 +375,10 @@ class KPlateDualTest(unittest.TestCase):
         connections = []
         readiness_checks = 0
         client.reset = lambda: resets.append(True)
-        client.connect_and_start_plate = (
-            lambda plate, scan, connect, delay: connections.append(plate.side)
+        client.connect_plate_only = (
+            lambda plate, scan, connect: connections.append(plate.side)
         )
+        client.start_streams = lambda plates, delay: None
 
         def ensure_ready():
             nonlocal readiness_checks
@@ -405,9 +406,14 @@ class KPlateDualTest(unittest.TestCase):
         )
         events = []
         client.reset = lambda: events.append("reset")
-        client.connect_and_start_plate = (
-            lambda plate, scan, connect, delay: events.append(
-                f"ready-{plate.side}"
+        client.connect_plate_only = (
+            lambda plate, scan, connect: events.append(
+                f"connected-{plate.side}"
+            )
+        )
+        client.start_streams = (
+            lambda plates, delay: events.append(
+                "streams-" + "-".join(plate.side for plate in plates)
             )
         )
         client.ensure_streams_ready = lambda: events.append("ready")
@@ -418,11 +424,91 @@ class KPlateDualTest(unittest.TestCase):
             events,
             [
                 "reset",
-                "ready-gauche",
-                "ready-droite",
+                "connected-gauche",
+                "connected-droite",
+                "streams-gauche-droite",
                 "ready",
             ],
         )
+
+    def test_uses_plate_specific_stream_initialization_for_both_plates(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        writes = []
+        cccd = []
+        updates = []
+        for index, plate in enumerate(client.plates, start=0x10):
+            plate.handle = index
+        client.send_write_command = (
+            lambda plate, value: writes.append((plate.side, value))
+        )
+        client.send_att = (
+            lambda plate, value: cccd.append((plate.side, value))
+        )
+        client.wait_write_response = lambda plate: None
+        client.update_connection_interval = (
+            lambda plate: updates.append(plate.side)
+        )
+        client.pump = lambda duration: None
+
+        client.start_streams(client.plates)
+
+        left_values = [
+            value for side, value in writes if side == "gauche"
+        ]
+        self.assertEqual(
+            left_values,
+            [
+                b"\x10",
+                b"\x10",
+                b"\x09",
+                b"\x76",
+                b"\x11",
+                b"\x10",
+                b"\x10",
+                bytes.fromhex("60 00 19 00 4b 0d 0a"),
+                b"\x66",
+                b"\x56",
+                bytes.fromhex("ac 00 54 f8"),
+                bytes.fromhex("ac 01 04 a9"),
+                b"\x11",
+            ],
+        )
+        self.assertEqual(updates, ["gauche", "droite"])
+        self.assertEqual(len(cccd), 2)
+
+    def test_connection_update_matches_official_final_radio_window(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        plate = client.plates[0]
+        plate.handle = 0x10
+        sent = []
+        client.send_command = (
+            lambda ogf, ocf, params: sent.append((ogf, ocf, params)) or 1
+        )
+        client.wait_for_command = lambda opcode: None
+        client.receive = lambda: (
+            self.module.HCI_EVENT_PKT,
+            bytes.fromhex("3e 0a 03 00 10 00 18 00 00 00 00 02"),
+        )
+
+        client.update_connection_interval(plate)
+
+        self.assertEqual(sent[0][1], self.module.OCF_LE_CONN_UPDATE)
+        values = struct.unpack("<HHHHHHH", sent[0][2])
+        self.assertEqual(values, (0x10, 0x0009, 0x0018, 0, 0x0200, 0, 0))
 
     def test_idle_keepalive_uses_lightweight_command(self):
         client = self.module.DualKinventClient(

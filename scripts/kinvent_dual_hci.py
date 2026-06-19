@@ -49,7 +49,6 @@ from scripts.kinvent_raw_hci import (  # noqa: E402
     HCI_CHANNEL_USER,
     HCI_COMMAND_PKT,
     HCI_EVENT_PKT,
-    INIT_COMMANDS,
     OCF_LE_CREATE_CONN,
     OCF_LE_REMOTE_CONN_PARAM_REQ_REPLY,
     OCF_LE_SET_EVENT_MASK,
@@ -70,6 +69,24 @@ from scripts.kinvent_raw_hci import (  # noqa: E402
 
 OGF_LINK_CTL = 0x01
 OCF_DISCONNECT = 0x0006
+OCF_LE_CONN_UPDATE = 0x0013
+
+# Séquence observée dans les captures HCI de l'application Kinvent avec deux
+# K-Force Plates. Elle est distincte de l'initialisation du K-Push définie
+# dans kinvent_raw_hci.py.
+KPLATE_INIT_STEPS = [
+    (b"\x09", 0.05),
+    (b"\x76", 0.25),
+    (b"\x11", 0.10),
+    (b"\x10", 0.05),
+    (b"\x10", 0.30),
+    (bytes.fromhex("60 00 19 00 4b 0d 0a"), 0.01),
+    (b"\x66", 1.50),
+    (b"\x56", 0.05),
+    (bytes.fromhex("ac 00 54 f8"), 0.05),
+    (bytes.fromhex("ac 01 04 a9"), 0.05),
+    (b"\x11", 0.10),
+]
 CSV_FIELDS = [
     "timestamp_utc",
     "sync_delta_ms",
@@ -601,20 +618,95 @@ class DualKinventClient:
                 self.process(packet)
         raise TimeoutError(f"Pas de réponse CCCD pour {plate.side}")
 
-    def start_stream(self, plate, write_delay):
-        self.send_write_command(plate, b"\x10")
-        self.pump(write_delay)
-        self.send_att(
-            plate,
-            bytes([ATT_OP_WRITE_REQUEST])
-            + struct.pack("<H", UART_CCCD_HANDLE)
-            + b"\x01\x00",
+    def update_connection_interval(
+        self,
+        plate,
+        interval_min=0x0009,
+        interval_max=0x0018,
+        supervision_timeout=0x0200,
+        timeout=3.0,
+    ):
+        """Applique le réglage final observé dans l'application Kinvent."""
+        parameters = struct.pack(
+            "<HHHHHHH",
+            plate.handle,
+            interval_min,
+            interval_max,
+            0,
+            supervision_timeout,
+            0,
+            0,
         )
-        self.wait_write_response(plate)
-        for command in INIT_COMMANDS:
-            self.send_write_command(plate, command)
-            self.pump(write_delay)
-        print(f"Flux {plate.side} démarré.")
+        opcode = self.send_command(OGF_LE_CTL, OCF_LE_CONN_UPDATE, parameters)
+        self.wait_for_command(opcode)
+
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            packet = self.receive()
+            if packet is None:
+                continue
+            packet_type, payload = packet
+            if (
+                packet_type == HCI_EVENT_PKT
+                and len(payload) >= 12
+                and payload[0] == EVT_LE_META_EVENT
+                and payload[2] == 0x03
+                and (struct.unpack_from("<H", payload, 4)[0] & 0x0FFF)
+                == plate.handle
+            ):
+                if payload[3]:
+                    raise RuntimeError(
+                        f"Réglage radio {plate.side}: statut "
+                        f"0x{payload[3]:02x}"
+                    )
+                interval = struct.unpack_from("<H", payload, 6)[0]
+                print(
+                    f"Intervalle radio {plate.side}: "
+                    f"{interval * 1.25:.1f} ms."
+                )
+                return
+            self.process(packet)
+        raise TimeoutError(f"Réglage radio sans réponse pour {plate.side}")
+
+    def start_streams(self, plates, write_delay=0.1):
+        """Initialise un ou plusieurs flux selon la séquence Kinvent."""
+        connected = [plate for plate in plates if plate.handle is not None]
+        if not connected:
+            raise RuntimeError("Aucune plateforme connectée à initialiser.")
+
+        for plate in connected:
+            self.send_write_command(plate, b"\x10")
+        self.pump(max(0.02, min(write_delay, 0.10)))
+
+        for plate in connected:
+            self.pending_att.pop(plate.handle, None)
+            self.send_att(
+                plate,
+                bytes([ATT_OP_WRITE_REQUEST])
+                + struct.pack("<H", UART_CCCD_HANDLE)
+                + b"\x01\x00",
+            )
+        for plate in connected:
+            self.wait_write_response(plate)
+
+        # L'application officielle réarme une première fois le protocole,
+        # stabilise chaque liaison à 30 ms, puis poursuit l'initialisation.
+        for plate in connected:
+            self.send_write_command(plate, b"\x10")
+        self.pump(0.25)
+        for plate in connected:
+            self.update_connection_interval(plate)
+
+        for command, delay in KPLATE_INIT_STEPS:
+            for plate in connected:
+                self.send_write_command(plate, command)
+            self.pump(delay)
+
+        for plate in connected:
+            print(f"Flux {plate.side} démarré.")
+
+    def start_stream(self, plate, write_delay):
+        self.start_streams([plate], write_delay)
 
     def extract_att(self, payload):
         if len(payload) < 4:
@@ -1049,12 +1141,12 @@ class DualKinventClient:
                 self.reset()
                 self.clear_connection_state()
                 for plate in self.plates:
-                    self.connect_and_start_plate(
+                    self.connect_plate_only(
                         plate,
                         scan_timeout,
                         connect_timeout,
-                        write_delay,
                     )
+                self.start_streams(self.plates, write_delay)
                 self.ensure_streams_ready()
                 return
             except (PlateDisconnected, TimeoutError, RuntimeError) as exc:
@@ -1184,7 +1276,7 @@ class DualKinventClient:
                                 ),
                             )
                         else:
-                            next_idle_keepalive = time.monotonic() + 5.0
+                            next_idle_keepalive = time.monotonic() + 10.0
                             self.write_worker_state(
                                 state_file,
                                 phase="idle",
@@ -1221,8 +1313,8 @@ class DualKinventClient:
                             self.scan_for(plate, scan_timeout)
                             self.connect(plate, connect_timeout)
                             self.pump(0.5)
-                            self.start_stream(plate, write_delay)
-                            self.pump(1.0)
+                        self.start_streams(missing, write_delay)
+                        self.pump(1.0)
 
                         before = {
                             plate.side: plate.notifications
@@ -1277,7 +1369,7 @@ class DualKinventClient:
                             ),
                         )
                     else:
-                        next_idle_keepalive = time.monotonic() + 5.0
+                        next_idle_keepalive = time.monotonic() + 10.0
                         self.write_worker_state(
                             state_file,
                             phase="idle",
@@ -1401,7 +1493,7 @@ class DualKinventClient:
                             paired_samples=self.paired_samples,
                             stopped=not completed,
                         )
-                    next_idle_keepalive = time.monotonic() + 5.0
+                    next_idle_keepalive = time.monotonic() + 10.0
                     active_generation = None
                 try:
                     self.pump(1.0, progress=True, show_progress=False)
@@ -1412,7 +1504,7 @@ class DualKinventClient:
                         for plate in self.plates:
                             if plate.handle is not None:
                                 self.send_write_command(plate, b"\xff")
-                        next_idle_keepalive = time.monotonic() + 5.0
+                        next_idle_keepalive = time.monotonic() + 10.0
                 except (PlateDisconnected, TimeoutError, RuntimeError) as exc:
                     print(f"Session inactive interrompue: {exc}")
                     self.reconnect_not_before = time.monotonic() + 10.0
