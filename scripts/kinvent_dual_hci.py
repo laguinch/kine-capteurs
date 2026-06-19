@@ -141,6 +141,8 @@ class PlateState:
         self.latest = None
         self.distribution = None
         self.notifications = 0
+        self.last_notification_at = None
+        self.stream_restarts = 0
         self.samples = deque(maxlen=buffer_size)
         self.reconnections = 0
         self.last_sensor_time = None
@@ -668,6 +670,7 @@ class DualKinventClient:
             return
         if opcode == ATT_OP_NOTIFICATION and len(att) >= 3:
             plate.notifications += 1
+            plate.last_notification_at = time.monotonic()
             value = att[3:]
             sample = plate.decode(value)
             if sample:
@@ -805,6 +808,7 @@ class DualKinventClient:
         next_progress = time.monotonic()
         if progress:
             self.next_keepalive = time.monotonic() + self.keepalive_interval
+        next_stream_check = time.monotonic() + 2.0
         while time.monotonic() < deadline:
             packet = self.receive()
             if packet:
@@ -824,6 +828,23 @@ class DualKinventClient:
                     if plate.handle is not None:
                         self.send_write_command(plate, b"\xff")
                 self.next_keepalive = time.monotonic() + self.keepalive_interval
+            if progress and time.monotonic() >= next_stream_check:
+                now = time.monotonic()
+                for plate in self.plates:
+                    if (
+                        plate.handle is not None
+                        and (
+                            plate.last_notification_at is None
+                            or now - plate.last_notification_at > 2.5
+                        )
+                    ):
+                        print(
+                            f"Flux {plate.side} silencieux; "
+                            "réactivation automatique..."
+                        )
+                        self.start_stream(plate, 0.1)
+                        plate.stream_restarts += 1
+                next_stream_check = time.monotonic() + 2.0
             if progress and time.monotonic() >= next_progress:
                 print(f"Temps restant: {max(0, deadline-time.monotonic()):.1f} s")
                 next_progress = time.monotonic() + 5
@@ -881,6 +902,30 @@ class DualKinventClient:
             f"Connexion initiale impossible pour la plateforme {plate.side}."
         ) from last_error
 
+    def ensure_streams_ready(self, attempts=3):
+        for attempt in range(1, attempts + 1):
+            before = {plate.side: plate.notifications for plate in self.plates}
+            for plate in self.plates:
+                self.start_stream(plate, 0.1)
+            self.pump(1.5)
+            missing = [
+                plate
+                for plate in self.plates
+                if plate.notifications <= before[plate.side]
+            ]
+            if not missing:
+                print("Les deux flux de mesure sont actifs.")
+                return
+            print(
+                "Flux sans mesure: "
+                + ", ".join(plate.side for plate in missing)
+                + f" (vérification {attempt}/{attempts})."
+            )
+        raise RuntimeError(
+            "Les deux plateformes sont connectées, mais un flux de mesure "
+            "ne démarre pas."
+        )
+
     def run(self, scan_timeout, connect_timeout, duration, write_delay):
         self.open()
         try:
@@ -892,13 +937,19 @@ class DualKinventClient:
                     connect_timeout,
                     write_delay,
                 )
+            self.ensure_streams_ready()
             print(f"Acquisition double pendant {duration:.1f} s...")
             self.pump(duration, progress=True)
             print("Acquisition double terminée.")
             for plate in self.plates:
                 print(
                     f"{plate.side}: {plate.notifications} notifications, "
-                    f"{plate.reconnections} reconnexion(s)"
+                    f"{plate.reconnections} reconnexion(s), "
+                    f"{plate.stream_restarts} relance(s) de flux"
+                )
+            if self.paired_samples == 0:
+                raise RuntimeError(
+                    "Aucune mesure synchronisée reçue des deux plateformes."
                 )
             print(
                 f"Paires synchronisées: {self.paired_samples} | "

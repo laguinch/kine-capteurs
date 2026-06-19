@@ -295,6 +295,30 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(attempts.count("scan"), 2)
         self.assertEqual(attempts.count("stream"), 1)
 
+    def test_rearms_both_streams_after_connections(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        started = []
+
+        def start_stream(plate, delay):
+            started.append(plate.side)
+
+        def pump(duration):
+            for plate in client.plates:
+                plate.notifications += 1
+
+        client.start_stream = start_stream
+        client.pump = pump
+        client.ensure_streams_ready()
+
+        self.assertEqual(started, ["gauche", "droite"])
+
 
 if __name__ == "__main__":
     unittest.main()
