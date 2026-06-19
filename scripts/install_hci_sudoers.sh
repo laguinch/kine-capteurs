@@ -26,3 +26,4 @@ rm -f "$TEMP_FILE"
 
 echo "Autorisation HCI installée pour $SERVICE_USER."
 echo "Fichier: $SUDOERS_FILE"
+grep -F "$KPUSH_RUNNER" "$SUDOERS_FILE" >/dev/null

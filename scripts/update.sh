@@ -83,7 +83,7 @@ sudo install -o root -g root -m 0644 "$TEMP_UNIT" "$UNIT_FILE"
 sudo install -o root -g root -m 0644 \
   "$TEMP_BLUETOOTH_UNIT" "$BLUETOOTH_UNIT_FILE"
 sudo systemctl daemon-reload
-sudo bash scripts/install_hci_sudoers.sh
+sudo KINE_SERVICE_USER="$SERVICE_USER" bash scripts/install_hci_sudoers.sh
 
 echo "Libération du contrôleur Bluetooth..."
 sudo systemctl stop bluetooth.service || true
