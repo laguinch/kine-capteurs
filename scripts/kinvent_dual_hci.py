@@ -285,10 +285,10 @@ class DualKinventClient:
         self.last_print = 0.0
         self.print_interval = print_interval
         self.sync_tolerance = sync_tolerance_ms / 1000.0
-        # Les K-Force Plates peuvent couper une liaison silencieuse entre deux
-        # tests. Un keepalive fréquent évite leur retour en publicité (LED
-        # verte) pendant que le worker persistant attend la prochaine session.
-        self.keepalive_interval = 1.0
+        # Les commandes de maintien trop fréquentes perturbent le débit des
+        # mesures. Les notifications entretiennent déjà la liaison; ce rappel
+        # reste seulement un filet de sécurité peu intrusif.
+        self.keepalive_interval = 10.0
         self.next_keepalive = None
         self.paired_samples = 0
         self.dropped_samples = {"gauche": 0, "droite": 0}
@@ -1115,19 +1115,40 @@ class DualKinventClient:
                 if requested and requested != generation:
                     generation = requested
                     duration = float(command["duration"])
-                    disconnected = [
-                        plate for plate in self.plates if plate.handle is None
-                    ]
-                    for plate in disconnected:
+                    try:
+                        disconnected = [
+                            plate for plate in self.plates if plate.handle is None
+                        ]
+                        for plate in disconnected:
+                            print(
+                                f"Plateforme {plate.side} déconnectée avant le "
+                                "test; reconnexion..."
+                            )
+                            self.reconnect_plate(
+                                plate,
+                                time.monotonic() + 30.0,
+                            )
+                        self.ensure_streams_ready()
+                    except (
+                        PlateDisconnected,
+                        TimeoutError,
+                        RuntimeError,
+                    ) as exc:
                         print(
-                            f"Plateforme {plate.side} déconnectée avant le test; "
-                            "reconnexion..."
+                            "Connexion interrompue au lancement du test: "
+                            f"{exc}. Réinitialisation complète..."
                         )
-                        self.reconnect_plate(
-                            plate,
-                            time.monotonic() + 30.0,
+                        self.write_worker_state(
+                            state_file,
+                            phase="recovering",
+                            generation=generation,
+                            error=str(exc),
                         )
-                    self.ensure_streams_ready()
+                        self.initialize_session(
+                            scan_timeout,
+                            connect_timeout,
+                            write_delay,
+                        )
                     self.paired_samples = 0
                     self.dropped_samples = {"gauche": 0, "droite": 0}
                     for plate in self.plates:
