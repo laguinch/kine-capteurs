@@ -78,6 +78,11 @@ if command -v hciconfig >/dev/null 2>&1; then
 fi
 
 echo "Démarrage de $SERVICE_NAME..."
+echo "Arrêt des anciens processus Bluetooth persistants..."
+sudo pkill -f "$PROJECT_DIR/scripts/kinvent_dual_hci.py" || true
+rm -f \
+  storage/raw_data/kplates_worker_state.json \
+  storage/raw_data/kplates_worker_control.json
 sudo systemctl enable --now "$SERVICE_NAME"
 sudo systemctl restart "$SERVICE_NAME"
 

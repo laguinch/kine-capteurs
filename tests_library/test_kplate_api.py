@@ -143,6 +143,16 @@ class KPlateApiTest(unittest.TestCase):
         self.assertEqual(status["return_code"], -signal.SIGTERM)
         self.assertIsNone(status["last_error"])
 
+    def test_detects_external_persistent_worker(self):
+        service = DualPlateAcquisitionService()
+
+        with mock.patch.object(
+            acquisition_module.os,
+            "kill",
+            side_effect=PermissionError,
+        ):
+            self.assertTrue(service._worker_alive(123))
+
 
 if __name__ == "__main__":
     unittest.main()

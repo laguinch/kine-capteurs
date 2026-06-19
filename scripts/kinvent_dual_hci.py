@@ -4,6 +4,7 @@ import argparse
 import csv
 import errno
 import json
+import os
 import socket
 import struct
 import sys
@@ -1079,7 +1080,10 @@ class DualKinventClient:
         target.parent.mkdir(parents=True, exist_ok=True)
         temporary = target.with_suffix(".tmp")
         temporary.write_text(
-            json.dumps({"updated_at": now_iso(), **state}, ensure_ascii=False),
+            json.dumps(
+                {"updated_at": now_iso(), "pid": os.getpid(), **state},
+                ensure_ascii=False,
+            ),
             encoding="utf-8",
         )
         temporary.replace(target)

@@ -45,10 +45,12 @@ class DualPlateAcquisitionService:
         )
 
     def _refresh(self):
+        worker = self._read_worker_state()
         if self._process is None:
+            if worker.get("phase") == "error":
+                self._last_error = worker.get("error") or "Erreur Bluetooth."
             return
         return_code = self._process.poll()
-        worker = self._read_worker_state()
         if return_code is None:
             if (
                 worker.get("generation") == self._generation
@@ -87,8 +89,12 @@ class DualPlateAcquisitionService:
     ):
         with self._lock:
             self._refresh()
-            if self._process is not None and self._process.poll() is None:
-                worker = self._read_worker_state()
+            worker = self._read_worker_state()
+            worker_alive = self._worker_alive(worker.get("pid"))
+            if (
+                self._process is not None
+                and self._process.poll() is None
+            ) or worker_alive:
                 if worker.get("phase") in {"active", "connecting"}:
                     raise RuntimeError("Une acquisition est déjà en cours.")
 
@@ -118,7 +124,9 @@ class DualPlateAcquisitionService:
                 },
             )
 
-            if self._process is None or self._process.poll() is not None:
+            if not worker_alive and (
+                self._process is None or self._process.poll() is not None
+            ):
                 command = prefix + [
                     sys.executable,
                     "-u",
@@ -188,8 +196,10 @@ class DualPlateAcquisitionService:
             self._refresh()
             running = self._process is not None and self._process.poll() is None
             worker = self._read_worker_state()
+            worker_alive = self._worker_alive(worker.get("pid"))
+            process_alive = running or worker_alive
             session_running = (
-                running
+                process_alive
                 and (
                     worker.get("generation") != self._generation
                     or worker.get("phase") in {"connecting", "active"}
@@ -207,7 +217,11 @@ class DualPlateAcquisitionService:
                 elapsed_seconds = max(0.0, (finished - started).total_seconds())
             return {
                 "running": session_running,
-                "pid": self._process.pid if running else None,
+                "pid": (
+                    self._process.pid
+                    if running
+                    else worker.get("pid") if worker_alive else None
+                ),
                 "started_at": self._started_at,
                 "finished_at": self._finished_at,
                 "return_code": self._return_code,
@@ -287,6 +301,18 @@ class DualPlateAcquisitionService:
             return json.loads(self._worker_state_path.read_text(encoding="utf-8"))
         except (OSError, ValueError, json.JSONDecodeError):
             return {}
+
+    @staticmethod
+    def _worker_alive(pid):
+        if not isinstance(pid, int) or pid <= 0:
+            return False
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            return True
+        return True
 
     @staticmethod
     def _write_json(path, data):
