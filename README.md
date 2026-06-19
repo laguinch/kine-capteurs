@@ -72,12 +72,12 @@ Le serveur installe deux services distincts :
 - `kine-capteurs.service` pour l'interface et l'API ;
 - `kine-capteurs-bluetooth.service` pour la connexion permanente aux capteurs.
 
-Le service Bluetooth se connecte aux deux plateformes au démarrage du serveur
-et conserve les flux actifs entre les tests. Démarrer ou arrêter un test ne
-coupe donc plus les plateformes : seule la création du fichier CSV est pilotée
-par l'interface. Les boutons « Connecter les capteurs » et « Déconnecter les
-capteurs » permettent de couper les liaisons hors séance pour préserver les
-batteries, sans arrêter le service système.
+Le service Bluetooth démarre avec le serveur en mode déconnecté. Le bouton
+« Connecter les capteurs » ouvre les liaisons au début d'une séance et les
+conserve entre les tests. Démarrer ou arrêter un test ne coupe donc plus les
+plateformes : seule la création du fichier CSV est pilotée par l'interface.
+Le bouton « Déconnecter les capteurs » ferme les liaisons en fin de séance pour
+préserver les batteries, sans arrêter le service système.
 
 Le processus HCI nécessite les droits d'accès au contrôleur Bluetooth brut.
 La variable `KINE_HCI_COMMAND_PREFIX` permet de définir un préfixe de lancement

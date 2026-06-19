@@ -1102,43 +1102,51 @@ class DualKinventClient:
                 return {}
 
         generation = read_command().get("generation")
-        self.open()
         try:
-            self.write_worker_state(state_file, phase="connecting")
-            self.initialize_session(scan_timeout, connect_timeout, write_delay)
-            self.write_worker_state(state_file, phase="idle")
+            self.write_worker_state(state_file, phase="disconnected")
             while True:
                 command = read_command()
                 action = command.get("action")
+                requested = command.get("generation")
+
+                if self.sock is None:
+                    if (
+                        action == "connect"
+                        and requested
+                        and requested != generation
+                    ):
+                        generation = requested
+                        self.write_worker_state(
+                            state_file,
+                            phase="connecting",
+                            generation=generation,
+                        )
+                        self.open()
+                        self.initialize_session(
+                            scan_timeout,
+                            connect_timeout,
+                            write_delay,
+                        )
+                        self.write_worker_state(
+                            state_file,
+                            phase="idle",
+                            generation=generation,
+                        )
+                    else:
+                        time.sleep(0.25)
+                    continue
+
                 if action == "disconnect":
                     self.disconnect_all()
                     self.clear_connection_state()
+                    self.close()
+                    generation = requested or generation
                     self.write_worker_state(
                         state_file,
                         phase="disconnected",
+                        generation=generation,
                     )
-                    while True:
-                        command = read_command()
-                        if command.get("action") == "connect":
-                            self.write_worker_state(
-                                state_file,
-                                phase="connecting",
-                            )
-                            self.initialize_session(
-                                scan_timeout,
-                                connect_timeout,
-                                write_delay,
-                            )
-                            generation = command.get("generation")
-                            self.write_worker_state(
-                                state_file,
-                                phase="idle",
-                                generation=generation,
-                            )
-                            break
-                        time.sleep(0.25)
                     continue
-                requested = command.get("generation")
                 if (
                     action == "start"
                     and requested

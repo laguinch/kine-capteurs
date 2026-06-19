@@ -37,7 +37,7 @@ function updateStatus(data) {
   $("startButton").disabled = running;
   $("stopButton").disabled = !running;
   $("connectButton").disabled = running || connecting || data.bluetooth_connected;
-  $("disconnectButton").disabled = running || !data.bluetooth_connected;
+  $("disconnectButton").disabled = running || connecting || !data.bluetooth_connected;
   $("fileLabel").textContent = data.csv_path ? data.csv_path.split("/").pop() : "Aucun fichier en cours";
   $("downloadButton").classList.toggle("disabled", !data.csv_path);
 
