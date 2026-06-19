@@ -30,6 +30,8 @@ class KPlateApiTest(unittest.TestCase):
         self.assertIn("/api/kplates/dual/download", paths)
         self.assertIn("/api/kpush/start", paths)
         self.assertIn("/api/kpush/stop", paths)
+        self.assertIn("/api/kpush/connect", paths)
+        self.assertIn("/api/kpush/disconnect", paths)
         self.assertIn("/api/kpush/latest", paths)
         self.assertIn("/api/kpush/download", paths)
 

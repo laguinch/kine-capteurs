@@ -16,6 +16,23 @@ class KPushRequest(BaseModel):
     filename: str | None = None
 
 
+class KPushConnectRequest(BaseModel):
+    tare_duration: float = Field(default=2.0, ge=0.5, le=10.0)
+
+
+@router.post("/connect")
+def connect_kpush(request: KPushConnectRequest):
+    return kpush_service.connect(tare_duration=request.tare_duration)
+
+
+@router.post("/disconnect")
+def disconnect_kpush():
+    try:
+        return kpush_service.disconnect()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
 @router.post("/start")
 def start_kpush(request: KPushRequest):
     try:
