@@ -61,7 +61,8 @@ sudo install -o root -g root -m 0644 "$TEMP_UNIT" "$UNIT_FILE"
 sudo systemctl daemon-reload
 
 echo "Libération du contrôleur Bluetooth..."
-sudo systemctl mask --now bluetooth.service
+sudo systemctl stop bluetooth.service || true
+sudo systemctl mask bluetooth.service || true
 if command -v hciconfig >/dev/null 2>&1; then
   controller_found=false
   for controller_path in /sys/class/bluetooth/hci*; do
