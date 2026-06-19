@@ -99,3 +99,29 @@ données présentes dans `storage/` et le fichier `.env` sont ignorés par Git e
 ne sont ni remplacés ni envoyés sur GitHub.
 
 L'interface est ensuite disponible sur `http://ADRESSE_DU_SERVEUR:8000/`.
+
+## Premier test K-Push
+
+Le K-Push détecté dans la capture officielle est `KFORCEMuscle03578`
+(`60:8A:10:30:9B:FA`). Pour le premier essai, le pilote reste volontairement
+séparé du service permanent des plateformes.
+
+Le contrôleur HCI ne peut être utilisé que par un pilote à la fois :
+
+```bash
+cd /opt/kine-capteurs-staging
+sudo systemctl stop kine-capteurs-bluetooth
+sudo hciconfig hci0 down
+sudo .venv/bin/python scripts/kinvent_kpush_hci.py \
+  --adapter hci0 \
+  --duration 30 \
+  --tare-duration 2 \
+  --csv storage/raw_data/kpush_test.csv
+```
+
+Pendant les deux premières secondes, ne pas exercer de pression sur le
+K-Push. Pour remettre ensuite les plateformes en service :
+
+```bash
+sudo systemctl restart kine-capteurs-bluetooth
+```
