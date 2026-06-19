@@ -708,6 +708,14 @@ class DualKinventClient:
     def start_stream(self, plate, write_delay):
         self.start_streams([plate], write_delay)
 
+    def connection_order(self, plates=None):
+        """La plateforme droite est négociée en premier, comme dans Kinvent."""
+        candidates = list(plates if plates is not None else self.plates)
+        return sorted(
+            candidates,
+            key=lambda plate: 0 if plate.side == "droite" else 1,
+        )
+
     def extract_att(self, payload):
         if len(payload) < 4:
             return None, None
@@ -1140,13 +1148,14 @@ class DualKinventClient:
                     )
                 self.reset()
                 self.clear_connection_state()
-                for plate in self.plates:
+                connection_order = self.connection_order()
+                for plate in connection_order:
                     self.connect_plate_only(
                         plate,
                         scan_timeout,
                         connect_timeout,
                     )
-                self.start_streams(self.plates, write_delay)
+                self.start_streams(connection_order, write_delay)
                 self.ensure_streams_ready()
                 return
             except (PlateDisconnected, TimeoutError, RuntimeError) as exc:
@@ -1309,11 +1318,12 @@ class DualKinventClient:
                     )
                     try:
                         self.wait_for_reconnect_cooldown()
-                        for plate in missing:
+                        connection_order = self.connection_order(missing)
+                        for plate in connection_order:
                             self.scan_for(plate, scan_timeout)
                             self.connect(plate, connect_timeout)
                             self.pump(0.5)
-                        self.start_streams(missing, write_delay)
+                        self.start_streams(connection_order, write_delay)
                         self.pump(1.0)
 
                         before = {

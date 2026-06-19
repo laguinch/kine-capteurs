@@ -392,7 +392,7 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(len(resets), 2)
         self.assertEqual(
             connections,
-            ["gauche", "droite", "gauche", "droite"],
+            ["droite", "gauche", "droite", "gauche"],
         )
 
     def test_initializes_each_plate_completely_in_sequence(self):
@@ -424,11 +424,26 @@ class KPlateDualTest(unittest.TestCase):
             events,
             [
                 "reset",
-                "connected-gauche",
                 "connected-droite",
-                "streams-gauche-droite",
+                "connected-gauche",
+                "streams-droite-gauche",
                 "ready",
             ],
+        )
+
+    def test_connects_right_plate_first_like_official_application(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+
+        self.assertEqual(
+            [plate.side for plate in client.connection_order()],
+            ["droite", "gauche"],
         )
 
     def test_uses_plate_specific_stream_initialization_for_both_plates(self):
