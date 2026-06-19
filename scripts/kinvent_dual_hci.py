@@ -841,7 +841,11 @@ class DualKinventClient:
                     if not progress:
                         raise
                     print(f"{exc}. Reconnexion automatique...")
-                    self.reconnect_plate(exc.plate, deadline)
+                    reconnect_deadline = max(
+                        deadline,
+                        time.monotonic() + 30.0,
+                    )
+                    self.reconnect_plate(exc.plate, reconnect_deadline)
             if (
                 progress
                 and self.next_keepalive is not None
@@ -877,7 +881,7 @@ class DualKinventClient:
         for attempt in range(1, attempts + 1):
             remaining = acquisition_deadline - time.monotonic()
             if remaining <= 1:
-                return
+                break
             try:
                 print(
                     f"Reconnexion {plate.side}, essai {attempt}/{attempts}..."
@@ -1104,6 +1108,19 @@ class DualKinventClient:
                 if requested and requested != generation:
                     generation = requested
                     duration = float(command["duration"])
+                    disconnected = [
+                        plate for plate in self.plates if plate.handle is None
+                    ]
+                    for plate in disconnected:
+                        print(
+                            f"Plateforme {plate.side} déconnectée avant le test; "
+                            "reconnexion..."
+                        )
+                        self.reconnect_plate(
+                            plate,
+                            time.monotonic() + 30.0,
+                        )
+                    self.ensure_streams_ready()
                     self.paired_samples = 0
                     self.dropped_samples = {"gauche": 0, "droite": 0}
                     for plate in self.plates:
@@ -1117,13 +1134,26 @@ class DualKinventClient:
                     )
                     self.pump(duration, progress=True)
                     self.close_csv()
-                    self.write_worker_state(
-                        state_file,
-                        phase="idle",
-                        generation=generation,
-                        csv_path=command["csv_path"],
-                        paired_samples=self.paired_samples,
-                    )
+                    if self.paired_samples == 0:
+                        self.write_worker_state(
+                            state_file,
+                            phase="error",
+                            generation=generation,
+                            csv_path=command["csv_path"],
+                            paired_samples=0,
+                            error=(
+                                "Aucune mesure synchronisée reçue des deux "
+                                "plateformes."
+                            ),
+                        )
+                    else:
+                        self.write_worker_state(
+                            state_file,
+                            phase="idle",
+                            generation=generation,
+                            csv_path=command["csv_path"],
+                            paired_samples=self.paired_samples,
+                        )
                 self.pump(1.0, progress=True, show_progress=False)
         except Exception as exc:
             self.write_worker_state(

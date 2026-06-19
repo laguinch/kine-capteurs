@@ -421,6 +421,36 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(sent[0][0], self.module.OGF_LINK_CTL)
         self.assertEqual(sent[0][1], self.module.OCF_DISCONNECT)
 
+    def test_pump_gives_disconnect_its_own_reconnection_window(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        plate = client.plates[0]
+        reconnect_deadlines = []
+        packets = [(self.module.HCI_EVENT_PKT, b"")]
+
+        def receive():
+            return packets.pop() if packets else None
+
+        def process(packet):
+            raise self.module.PlateDisconnected(plate, 0x08)
+
+        client.receive = receive
+        client.process = process
+        client.reconnect_plate = (
+            lambda current, deadline: reconnect_deadlines.append(deadline)
+        )
+        started = time.monotonic()
+        client.pump(0.01, progress=True)
+
+        self.assertEqual(len(reconnect_deadlines), 1)
+        self.assertGreaterEqual(reconnect_deadlines[0], started + 29.0)
+
 
 if __name__ == "__main__":
     unittest.main()
