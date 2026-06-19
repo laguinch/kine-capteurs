@@ -231,6 +231,28 @@ class KPlateApiTest(unittest.TestCase):
         self.assertFalse(status["running"])
         self.assertTrue(status["bluetooth_connected"])
 
+    def test_degraded_state_preserves_connected_side(self):
+        service = DualPlateAcquisitionService()
+        with tempfile.TemporaryDirectory() as directory:
+            service._worker_state_path = Path(directory) / "state.json"
+            service._worker_state_path.write_text(
+                (
+                    f'{{"phase":"degraded","pid":{os.getpid()},'
+                    '"connected_sides":["droite"],'
+                    '"error":"Plateforme gauche déconnectée"}'
+                ),
+                encoding="utf-8",
+            )
+
+            status = service.status()
+
+        self.assertFalse(status["running"])
+        self.assertEqual(status["connected_sides"], ["droite"])
+        self.assertEqual(
+            status["last_error"],
+            "Plateforme gauche déconnectée",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

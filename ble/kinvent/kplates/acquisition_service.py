@@ -181,7 +181,8 @@ class DualPlateAcquisitionService:
 
             last_error = (
                 worker.get("error")
-                if phase in {"error", "disconnected"} and worker.get("error")
+                if phase in {"error", "disconnected", "degraded"}
+                and worker.get("error")
                 else None
             )
             return {
@@ -190,6 +191,7 @@ class DualPlateAcquisitionService:
                 "worker_ready": worker_alive and phase == "idle",
                 "bluetooth_connected": worker_alive
                 and phase in {"idle", "active"},
+                "connected_sides": worker.get("connected_sides", []),
                 "pid": worker.get("pid") if worker_alive else None,
                 "started_at": self._started_at,
                 "finished_at": self._finished_at,

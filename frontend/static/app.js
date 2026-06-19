@@ -24,11 +24,14 @@ function setMessage(text, error = false) {
 function updateStatus(data) {
   const running = Boolean(data.running);
   const connecting = ["connecting", "recovering"].includes(data.worker_phase);
+  const degraded = data.worker_phase === "degraded";
   $("statusDot").className = `status-dot ${running || data.worker_ready ? "running" : data.last_error ? "error" : ""}`;
   $("statusText").textContent = running
     ? "Acquisition en cours"
     : connecting
       ? "Connexion des capteurs"
+      : degraded
+        ? "Connexion partielle"
       : data.last_error
         ? "Erreur"
         : data.worker_ready
@@ -37,7 +40,7 @@ function updateStatus(data) {
   $("startButton").disabled = running;
   $("stopButton").disabled = !running;
   $("connectButton").disabled = running || connecting || data.bluetooth_connected;
-  $("disconnectButton").disabled = running || connecting || !data.bluetooth_connected;
+  $("disconnectButton").disabled = running || connecting || (!data.bluetooth_connected && !degraded);
   $("fileLabel").textContent = data.csv_path ? data.csv_path.split("/").pop() : "Aucun fichier en cours";
   $("downloadButton").classList.toggle("disabled", !data.csv_path);
 

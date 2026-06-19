@@ -1199,6 +1199,68 @@ class DualKinventClient:
                         time.sleep(0.25)
                     continue
 
+                if (
+                    action == "connect"
+                    and requested
+                    and requested != generation
+                ):
+                    generation = requested
+                    missing = [
+                        plate for plate in self.plates if plate.handle is None
+                    ]
+                    if not missing:
+                        self.write_worker_state(
+                            state_file,
+                            phase="idle",
+                            generation=generation,
+                        )
+                        continue
+                    self.write_worker_state(
+                        state_file,
+                        phase="connecting",
+                        generation=generation,
+                    )
+                    try:
+                        self.wait_for_reconnect_cooldown()
+                        for plate in missing:
+                            self.scan_for(plate, scan_timeout)
+                            self.connect(plate, connect_timeout)
+                            self.pump(0.5)
+                            self.start_stream(plate, write_delay)
+                            self.pump(1.0)
+                    except (
+                        PlateDisconnected,
+                        TimeoutError,
+                        RuntimeError,
+                    ) as exc:
+                        for plate in missing:
+                            if plate.handle is not None:
+                                self.by_handle.pop(plate.handle, None)
+                                plate.handle = None
+                        self.reconnect_not_before = time.monotonic() + 10.0
+                        self.write_worker_state(
+                            state_file,
+                            phase="degraded",
+                            generation=generation,
+                            connected_sides=[
+                                plate.side
+                                for plate in self.plates
+                                if plate.handle is not None
+                            ],
+                            error=(
+                                "Reconnexion partielle impossible. Attendez "
+                                f"quelques secondes puis réessayez : {exc}"
+                            ),
+                        )
+                    else:
+                        next_idle_keepalive = time.monotonic() + 5.0
+                        self.write_worker_state(
+                            state_file,
+                            phase="idle",
+                            generation=generation,
+                        )
+                    continue
+
                 if action == "disconnect":
                     self.disconnect_all()
                     self.clear_connection_state()
@@ -1271,14 +1333,17 @@ class DualKinventClient:
                         )
                     except RuntimeError as exc:
                         self.close_csv()
-                        self.disconnect_all()
-                        self.clear_connection_state()
-                        self.close()
+                        self.reconnect_not_before = time.monotonic() + 10.0
                         self.write_worker_state(
                             state_file,
-                            phase="disconnected",
+                            phase="degraded",
                             generation=generation,
                             csv_path=command["csv_path"],
+                            connected_sides=[
+                                plate.side
+                                for plate in self.plates
+                                if plate.handle is not None
+                            ],
                             error=str(exc),
                         )
                         active_generation = None
@@ -1319,13 +1384,16 @@ class DualKinventClient:
                         next_idle_keepalive = time.monotonic() + 5.0
                 except (PlateDisconnected, TimeoutError, RuntimeError) as exc:
                     print(f"Session inactive interrompue: {exc}")
-                    self.disconnect_all()
-                    self.clear_connection_state()
-                    self.close()
+                    self.reconnect_not_before = time.monotonic() + 10.0
                     self.write_worker_state(
                         state_file,
-                        phase="disconnected",
+                        phase="degraded",
                         generation=generation,
+                        connected_sides=[
+                            plate.side
+                            for plate in self.plates
+                            if plate.handle is not None
+                        ],
                         error=str(exc),
                     )
         except Exception as exc:
