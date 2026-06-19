@@ -62,6 +62,8 @@ class KPushHciClient(RawKinventClient):
         self.tare_offset = None
         self.latest = None
         self.maximum_force_n = 0.0
+        self.keepalive_interval = 10.0
+        self.next_keepalive_at = None
         self.csv_path = Path(csv_path) if csv_path else None
         if self.csv_path:
             self.csv_path.parent.mkdir(parents=True, exist_ok=True)
@@ -146,6 +148,27 @@ class KPushHciClient(RawKinventClient):
                 f"MAX={self.maximum_force_n:.1f} N"
             )
             self.last_measurement_print = time.monotonic()
+
+    def pump(self, duration, show_progress=False):
+        """Entretient la liaison comme l'application Kinvent officielle."""
+        deadline = time.monotonic() + duration
+        next_progress = time.monotonic()
+        if self.next_keepalive_at is None:
+            self.next_keepalive_at = time.monotonic() + self.keepalive_interval
+
+        while time.monotonic() < deadline:
+            packet = self.receive_packet()
+            if packet is not None:
+                self.process_packet(packet)
+            if time.monotonic() >= self.next_keepalive_at:
+                self.send_write_command(b"\xff")
+                self.next_keepalive_at = (
+                    time.monotonic() + self.keepalive_interval
+                )
+            if show_progress and time.monotonic() >= next_progress:
+                remaining = max(0, deadline - time.monotonic())
+                print(f"Temps restant: {remaining:4.1f} s")
+                next_progress = time.monotonic() + 5.0
 
 
 def build_parser():

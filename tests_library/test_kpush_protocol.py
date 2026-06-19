@@ -1,6 +1,8 @@
 import unittest
+from unittest import mock
 
 from ble.kinvent.kpush.protocol import calibrate_sample, parse_raw_frame
+from scripts.kinvent_kpush_hci import KPushHciClient
 
 
 class KPushProtocolTest(unittest.TestCase):
@@ -34,6 +36,26 @@ class KPushProtocolTest(unittest.TestCase):
         self.assertEqual(sample["force_counts"], 10_000)
         self.assertEqual(sample["force_kg"], 1.0)
         self.assertAlmostEqual(sample["force_n"], 9.81)
+
+    def test_sends_official_keepalive_during_long_session(self):
+        client = KPushHciClient(
+            adapter=0,
+            address="60:8A:10:30:9B:FA",
+            csv_path=None,
+        )
+        sent = []
+        client.receive_packet = lambda: None
+        client.send_write_command = lambda value: sent.append(value)
+        client.keepalive_interval = 0.001
+        client.next_keepalive_at = 0
+
+        with mock.patch.object(
+            client,
+            "process_packet",
+        ):
+            client.pump(0.005)
+
+        self.assertIn(b"\xff", sent)
 
 
 if __name__ == "__main__":
