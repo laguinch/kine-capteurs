@@ -1062,12 +1062,12 @@ class DualKinventClient:
     def ensure_streams_ready(self, attempts=3):
         missing = list(self.plates)
         for attempt in range(1, attempts + 1):
-            before = {plate.side: plate.notifications for plate in self.plates}
+            before = {plate.side: plate.measurements for plate in self.plates}
             self.pump(1.5)
             missing = [
                 plate
                 for plate in self.plates
-                if plate.notifications <= before[plate.side]
+                if plate.measurements <= before[plate.side]
             ]
             if not missing:
                 print("Les deux flux de mesure sont actifs.")
@@ -1085,23 +1085,43 @@ class DualKinventClient:
             "ne démarre pas."
         )
 
-    def validate_live_streams(self, timeout=2.0):
+    def wake_measurement_streams(self):
+        """Relance la diffusion sans reconstruire les connexions BLE."""
+        if any(plate.handle is None for plate in self.plates):
+            raise RuntimeError("Une plateforme est déconnectée.")
+        # La commande 0x11 précède immédiatement les trames de force dans les
+        # captures officielles. Elle suffit lorsque les services et CCCD sont
+        # déjà configurés.
+        for plate in self.connection_order():
+            self.send_write_command(plate, b"\x11")
+        self.pump(0.15)
+
+    def validate_live_streams(self, timeout=2.0, attempts=3):
         """Exige une nouvelle trame de mesure valide de chaque plateforme."""
         if any(plate.handle is None for plate in self.plates):
             raise RuntimeError("Une plateforme est déconnectée.")
-        before_measurements = {
-            plate.side: plate.measurements for plate in self.plates
-        }
-        self.pump(timeout)
-        silent = [
-            plate.side
-            for plate in self.plates
-            if plate.measurements <= before_measurements[plate.side]
-        ]
-        if silent:
-            raise RuntimeError(
-                "Flux de mesure absent: " + ", ".join(silent) + "."
+        silent = [plate.side for plate in self.plates]
+        for attempt in range(1, attempts + 1):
+            before_measurements = {
+                plate.side: plate.measurements for plate in self.plates
+            }
+            self.wake_measurement_streams()
+            self.pump(timeout)
+            silent = [
+                plate.side
+                for plate in self.plates
+                if plate.measurements <= before_measurements[plate.side]
+            ]
+            if not silent:
+                return
+            print(
+                "Flux de mesure encore silencieux: "
+                + ", ".join(silent)
+                + f" (réveil {attempt}/{attempts})."
             )
+        raise RuntimeError(
+            "Flux de mesure absent: " + ", ".join(silent) + "."
+        )
 
     def ensure_recent_notifications(self, max_age=2.0):
         now = time.monotonic()

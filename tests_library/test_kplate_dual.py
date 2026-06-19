@@ -326,7 +326,7 @@ class KPlateDualTest(unittest.TestCase):
 
         def pump(duration):
             for plate in client.plates:
-                plate.notifications += 1
+                plate.measurements += 1
 
         client.start_stream = start_stream
         client.pump = pump
@@ -352,9 +352,9 @@ class KPlateDualTest(unittest.TestCase):
         def pump(duration):
             nonlocal pump_count
             pump_count += 1
-            client.plates[1].notifications += 1
+            client.plates[1].measurements += 1
             if pump_count > 1:
-                client.plates[0].notifications += 1
+                client.plates[0].measurements += 1
 
         client.start_stream = start_stream
         client.pump = pump
@@ -379,6 +379,7 @@ class KPlateDualTest(unittest.TestCase):
                 plate.notifications += 1
                 plate.measurements += 1
 
+        client.wake_measurement_streams = lambda: None
         client.pump = pump
         client.validate_live_streams()
 
@@ -395,10 +396,42 @@ class KPlateDualTest(unittest.TestCase):
         )
         for index, plate in enumerate(client.plates, start=0x10):
             plate.handle = index
+        wake_count = 0
+
+        def wake():
+            nonlocal wake_count
+            wake_count += 1
+
+        client.wake_measurement_streams = wake
         client.pump = lambda duration: None
 
         with self.assertRaisesRegex(RuntimeError, "Flux de mesure absent"):
             client.validate_live_streams()
+        self.assertEqual(wake_count, 3)
+
+    def test_wakes_both_measurement_streams_without_reconnecting(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        sent = []
+        for index, plate in enumerate(client.plates, start=0x10):
+            plate.handle = index
+        client.send_write_command = (
+            lambda plate, value: sent.append((plate.side, value))
+        )
+        client.pump = lambda duration: None
+
+        client.wake_measurement_streams()
+
+        self.assertEqual(
+            sent,
+            [("droite", b"\x11"), ("gauche", b"\x11")],
+        )
 
     def test_idle_session_rejects_stale_notifications(self):
         client = self.module.DualKinventClient(
