@@ -932,6 +932,31 @@ class DualKinventClient:
             f"Connexion initiale impossible pour la plateforme {plate.side}."
         ) from last_error
 
+    def connect_plate_only(self, plate, scan_timeout, connect_timeout):
+        last_error = None
+        for attempt in range(1, 5):
+            try:
+                if attempt > 1:
+                    print(
+                        f"Connexion {plate.side}, nouvel essai "
+                        f"{attempt}/4..."
+                    )
+                self.scan_for(plate, scan_timeout)
+                self.connect(plate, connect_timeout)
+                self.pump(0.5)
+                return
+            except (PlateDisconnected, TimeoutError, RuntimeError) as exc:
+                last_error = exc
+                print(f"Connexion {plate.side} interrompue: {exc}")
+                if plate.handle is not None:
+                    self.by_handle.pop(plate.handle, None)
+                    plate.handle = None
+                plate.samples.clear()
+                time.sleep(0.5)
+        raise RuntimeError(
+            f"Connexion impossible pour la plateforme {plate.side}."
+        ) from last_error
+
     def ensure_streams_ready(self, attempts=3):
         missing = list(self.plates)
         for attempt in range(1, attempts + 1):
@@ -1024,12 +1049,17 @@ class DualKinventClient:
                 self.reset()
                 self.clear_connection_state()
                 for plate in self.plates:
-                    self.connect_and_start_plate(
+                    self.connect_plate_only(
                         plate,
                         scan_timeout,
                         connect_timeout,
-                        write_delay,
                     )
+                # Les deux liaisons sont établies avant toute activation de
+                # flux. La droite, plus sensible après reconnexion, est armée
+                # en premier.
+                for plate in reversed(self.plates):
+                    self.start_stream(plate, write_delay)
+                    self.pump(0.5)
                 self.ensure_streams_ready()
                 return
             except (PlateDisconnected, TimeoutError, RuntimeError) as exc:

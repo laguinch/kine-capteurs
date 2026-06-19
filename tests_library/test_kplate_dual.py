@@ -375,9 +375,13 @@ class KPlateDualTest(unittest.TestCase):
         connections = []
         readiness_checks = 0
         client.reset = lambda: resets.append(True)
-        client.connect_and_start_plate = (
-            lambda plate, scan, connect, delay: connections.append(plate.side)
+        client.connect_plate_only = (
+            lambda plate, scan, connect: connections.append(plate.side)
         )
+        client.start_stream = lambda plate, delay: connections.append(
+            f"flux-{plate.side}"
+        )
+        client.pump = lambda duration: None
 
         def ensure_ready():
             nonlocal readiness_checks
@@ -391,7 +395,52 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(len(resets), 2)
         self.assertEqual(
             connections,
-            ["gauche", "droite", "gauche", "droite"],
+            [
+                "gauche",
+                "droite",
+                "flux-droite",
+                "flux-gauche",
+                "gauche",
+                "droite",
+                "flux-droite",
+                "flux-gauche",
+            ],
+        )
+
+    def test_connects_both_plates_before_starting_streams(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        events = []
+        client.reset = lambda: events.append("reset")
+        client.connect_plate_only = (
+            lambda plate, scan, connect: events.append(
+                f"connect-{plate.side}"
+            )
+        )
+        client.start_stream = lambda plate, delay: events.append(
+            f"stream-{plate.side}"
+        )
+        client.pump = lambda duration: None
+        client.ensure_streams_ready = lambda: events.append("ready")
+
+        client.initialize_session(1, 1, 0, attempts=1)
+
+        self.assertEqual(
+            events,
+            [
+                "reset",
+                "connect-gauche",
+                "connect-droite",
+                "stream-droite",
+                "stream-gauche",
+                "ready",
+            ],
         )
 
     def test_disconnects_both_plates_before_closing(self):
