@@ -253,6 +253,24 @@ class KPlateApiTest(unittest.TestCase):
             "Plateforme gauche déconnectée",
         )
 
+    def test_degraded_state_is_not_reported_as_ready(self):
+        service = DualPlateAcquisitionService()
+        with tempfile.TemporaryDirectory() as directory:
+            service._worker_state_path = Path(directory) / "state.json"
+            service._worker_state_path.write_text(
+                (
+                    f'{{"phase":"degraded","pid":{os.getpid()},'
+                    '"connected_sides":["gauche","droite"],'
+                    '"error":"Flux muets"}'
+                ),
+                encoding="utf-8",
+            )
+
+            status = service.status()
+
+        self.assertFalse(status["bluetooth_connected"])
+        self.assertFalse(status["worker_ready"])
+
 
 if __name__ == "__main__":
     unittest.main()

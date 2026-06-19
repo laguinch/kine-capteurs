@@ -1228,6 +1228,35 @@ class DualKinventClient:
                             self.pump(0.5)
                             self.start_stream(plate, write_delay)
                             self.pump(1.0)
+
+                        before = {
+                            plate.side: plate.notifications
+                            for plate in self.plates
+                        }
+                        self.pump(1.5)
+                        silent = [
+                            plate
+                            for plate in self.plates
+                            if plate.notifications <= before[plate.side]
+                        ]
+                        if silent:
+                            print(
+                                "Liaison présente mais flux muet: "
+                                + ", ".join(plate.side for plate in silent)
+                                + ". Reconstruction complète..."
+                            )
+                            self.disconnect_all()
+                            self.clear_connection_state()
+                            self.close()
+                            self.reconnect_not_before = time.monotonic() + 10.0
+                            self.wait_for_reconnect_cooldown()
+                            self.open()
+                            self.initialize_session(
+                                scan_timeout,
+                                connect_timeout,
+                                write_delay,
+                                attempts=1,
+                            )
                     except (
                         PlateDisconnected,
                         TimeoutError,
@@ -1352,13 +1381,20 @@ class DualKinventClient:
                     if self.paired_samples == 0:
                         self.write_worker_state(
                             state_file,
-                            phase="error",
+                            phase="degraded",
                             generation=generation,
                             csv_path=command["csv_path"],
                             paired_samples=0,
+                            connected_sides=[
+                                plate.side
+                                for plate in self.plates
+                                if plate.handle is not None
+                            ],
                             error=(
-                                "Aucune mesure synchronisée reçue des deux "
-                                "plateformes."
+                                "Les plateformes sont liées en Bluetooth, "
+                                "mais aucun flux de mesure synchronisé n'est "
+                                "actif. Cliquez sur « Connecter les capteurs » "
+                                "pour reconstruire la session."
                             ),
                         )
                     else:
