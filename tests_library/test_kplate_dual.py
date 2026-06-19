@@ -361,6 +361,38 @@ class KPlateDualTest(unittest.TestCase):
 
         self.assertEqual(started, ["gauche"])
 
+    def test_reinitializes_whole_session_when_one_stream_stays_silent(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        resets = []
+        connections = []
+        readiness_checks = 0
+        client.reset = lambda: resets.append(True)
+        client.connect_and_start_plate = (
+            lambda plate, scan, connect, delay: connections.append(plate.side)
+        )
+
+        def ensure_ready():
+            nonlocal readiness_checks
+            readiness_checks += 1
+            if readiness_checks == 1:
+                raise RuntimeError("flux silencieux")
+
+        client.ensure_streams_ready = ensure_ready
+        client.initialize_session(1, 1, 0, attempts=2)
+
+        self.assertEqual(len(resets), 2)
+        self.assertEqual(
+            connections,
+            ["gauche", "droite", "gauche", "droite"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

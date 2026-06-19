@@ -372,6 +372,7 @@ class DualKinventClient:
     def close(self):
         if self.sock:
             self.sock.close()
+            self.sock = None
         if self.csv_file:
             self.csv_file.close()
 
@@ -938,18 +939,62 @@ class DualKinventClient:
             "ne démarre pas."
         )
 
+    def clear_connection_state(self):
+        self.by_handle.clear()
+        self.fragments.clear()
+        self.pending_att.clear()
+        for plate in self.plates:
+            plate.handle = None
+            plate.samples.clear()
+            plate.last_notification_at = None
+            plate.last_sensor_time = None
+            plate.sensor_time_unwrapped = None
+            plate.timeline_sensor_origin = None
+            plate.timeline_host_origin = None
+
+    def initialize_session(
+        self,
+        scan_timeout,
+        connect_timeout,
+        write_delay,
+        attempts=3,
+    ):
+        last_error = None
+        for attempt in range(1, attempts + 1):
+            try:
+                if attempt > 1:
+                    print(
+                        f"Réinitialisation complète de la session, "
+                        f"essai {attempt}/{attempts}..."
+                    )
+                self.reset()
+                self.clear_connection_state()
+                for plate in self.plates:
+                    self.connect_and_start_plate(
+                        plate,
+                        scan_timeout,
+                        connect_timeout,
+                        write_delay,
+                    )
+                self.ensure_streams_ready()
+                return
+            except (PlateDisconnected, TimeoutError, RuntimeError) as exc:
+                last_error = exc
+                print(f"Session Bluetooth incomplète: {exc}")
+                self.clear_connection_state()
+                time.sleep(0.8)
+        raise RuntimeError(
+            "Impossible d'activer simultanément les deux plateformes."
+        ) from last_error
+
     def run(self, scan_timeout, connect_timeout, duration, write_delay):
         self.open()
         try:
-            self.reset()
-            for plate in self.plates:
-                self.connect_and_start_plate(
-                    plate,
-                    scan_timeout,
-                    connect_timeout,
-                    write_delay,
-                )
-            self.ensure_streams_ready()
+            self.initialize_session(
+                scan_timeout,
+                connect_timeout,
+                write_delay,
+            )
             print(f"Acquisition double pendant {duration:.1f} s...")
             self.pump(duration, progress=True)
             print("Acquisition double terminée.")
@@ -969,6 +1014,12 @@ class DualKinventClient:
                 f"droite={self.dropped_samples['droite']}"
             )
         finally:
+            if self.sock is not None:
+                try:
+                    print("Nettoyage du contrôleur Bluetooth...")
+                    self.reset()
+                except (OSError, RuntimeError, TimeoutError):
+                    pass
             self.close()
 
 

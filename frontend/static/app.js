@@ -6,6 +6,7 @@ const state = {
   startedAt: null,
   awaitingTare: false,
   awaitingReady: false,
+  lastMeasurementTimestamp: null,
 };
 
 const format = (value, digits = 1) =>
@@ -47,6 +48,11 @@ function updateStatus(data) {
 
 function updateMeasurement(m) {
   if (!m) return;
+  if (
+    m.timestamp_utc
+    && m.timestamp_utc === state.lastMeasurementTimestamp
+  ) return;
+  state.lastMeasurementTimestamp = m.timestamp_utc || null;
   if (state.awaitingReady) {
     state.awaitingReady = false;
     state.awaitingTare = false;
@@ -78,6 +84,27 @@ function updateMeasurement(m) {
     if (state.history.length > 180) state.history.shift();
     drawHistory();
   }
+}
+
+function resetMeasurement() {
+  state.history = [];
+  state.lastMeasurementTimestamp = null;
+  $("leftKg").textContent = "0,0";
+  $("rightKg").textContent = "0,0";
+  $("totalKg").textContent = "0,0";
+  $("totalN").textContent = "0 N";
+  $("leftPct").textContent = "0,0 %";
+  $("rightPct").textContent = "0,0 %";
+  $("asymmetryBadge").textContent = "0,0 %";
+  $("balanceLeft").style.width = "50%";
+  $("copDot").style.left = "50%";
+  $("copDot").style.top = "50%";
+  $("copX").textContent = "0,000";
+  $("copY").textContent = "0,000";
+  $("syncDelta").textContent = "—";
+  $("syncBadge").textContent = "En attente";
+  $("syncBadge").classList.add("neutral");
+  drawHistory();
 }
 
 function drawHistory() {
@@ -134,7 +161,7 @@ async function poll() {
 
 async function start() {
   setMessage("");
-  state.history = [];
+  resetMeasurement();
   state.awaitingTare = true;
   state.awaitingReady = true;
   const filename = $("filename").value.trim();
