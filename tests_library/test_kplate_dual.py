@@ -172,7 +172,7 @@ class KPlateDualTest(unittest.TestCase):
         self.assertAlmostEqual(reset, 51.000, places=6)
         self.assertAlmostEqual(following, 51.013, places=6)
 
-    def test_keepalive_is_non_intrusive(self):
+    def test_keepalive_is_disabled_during_measurements(self):
         client = self.module.DualKinventClient(
             1,
             "E8:EB:1B:6F:A7:5F",
@@ -182,7 +182,7 @@ class KPlateDualTest(unittest.TestCase):
             1,
         )
 
-        self.assertEqual(client.keepalive_interval, 10.0)
+        self.assertIsNone(client.keepalive_interval)
 
     def test_disconnect_identifies_plate_and_clears_handle(self):
         client = self.module.DualKinventClient(

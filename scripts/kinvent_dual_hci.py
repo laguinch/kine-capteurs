@@ -285,10 +285,10 @@ class DualKinventClient:
         self.last_print = 0.0
         self.print_interval = print_interval
         self.sync_tolerance = sync_tolerance_ms / 1000.0
-        # Les commandes de maintien trop fréquentes perturbent le débit des
-        # mesures. Les notifications entretiennent déjà la liaison; ce rappel
-        # reste seulement un filet de sécurité peu intrusif.
-        self.keepalive_interval = 10.0
+        # Les notifications entretiennent naturellement la liaison. Les
+        # commandes envoyées pendant les mesures provoquent des déconnexions
+        # 0x08 sur ces plateformes.
+        self.keepalive_interval = None
         self.next_keepalive = None
         self.paired_samples = 0
         self.dropped_samples = {"gauche": 0, "droite": 0}
@@ -834,8 +834,7 @@ class DualKinventClient:
         deadline = time.monotonic() + duration
         next_progress = time.monotonic()
         if progress:
-            self.next_keepalive = time.monotonic() + self.keepalive_interval
-        next_stream_check = time.monotonic() + 2.0
+            self.next_keepalive = None
         while time.monotonic() < deadline:
             packet = self.receive()
             if packet:
@@ -852,6 +851,7 @@ class DualKinventClient:
                     self.reconnect_plate(exc.plate, reconnect_deadline)
             if (
                 progress
+                and self.keepalive_interval is not None
                 and self.next_keepalive is not None
                 and time.monotonic() >= self.next_keepalive
             ):
@@ -859,23 +859,6 @@ class DualKinventClient:
                     if plate.handle is not None:
                         self.send_write_command(plate, b"\xff")
                 self.next_keepalive = time.monotonic() + self.keepalive_interval
-            if progress and time.monotonic() >= next_stream_check:
-                now = time.monotonic()
-                for plate in self.plates:
-                    if (
-                        plate.handle is not None
-                        and (
-                            plate.last_notification_at is None
-                            or now - plate.last_notification_at > 2.5
-                        )
-                    ):
-                        print(
-                            f"Flux {plate.side} silencieux; "
-                            "réactivation automatique..."
-                        )
-                        self.start_stream(plate, 0.1)
-                        plate.stream_restarts += 1
-                next_stream_check = time.monotonic() + 2.0
             if progress and show_progress and time.monotonic() >= next_progress:
                 print(f"Temps restant: {max(0, deadline-time.monotonic()):.1f} s")
                 next_progress = time.monotonic() + 5
