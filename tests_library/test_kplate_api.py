@@ -18,7 +18,7 @@ class KPlateApiTest(unittest.TestCase):
     def test_routes_are_registered(self):
         from app.main import app
 
-        paths = {route.path for route in app.routes}
+        paths = set(app.openapi()["paths"])
 
         self.assertIn("/api/kplates/dual/start", paths)
         self.assertIn("/api/kplates/dual/stop", paths)
