@@ -1,10 +1,12 @@
 import csv
+import json
 import os
 import shlex
 import signal
 import subprocess
 import sys
 import threading
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -34,12 +36,29 @@ class DualPlateAcquisitionService:
         self._last_error = None
         self._return_code = None
         self._tare_required = None
+        self._generation = None
+        self._control_path = (
+            BASE_DIR / "storage" / "raw_data" / "kplates_worker_control.json"
+        )
+        self._worker_state_path = (
+            BASE_DIR / "storage" / "raw_data" / "kplates_worker_state.json"
+        )
 
     def _refresh(self):
         if self._process is None:
             return
         return_code = self._process.poll()
+        worker = self._read_worker_state()
         if return_code is None:
+            if (
+                worker.get("generation") == self._generation
+                and worker.get("phase") == "idle"
+                and self._started_at
+            ):
+                self._finished_at = self._finished_at or now_iso()
+                self._return_code = 0
+            elif worker.get("phase") == "error":
+                self._last_error = worker.get("error") or "Erreur Bluetooth."
             return
         self._return_code = return_code
         self._finished_at = self._finished_at or now_iso()
@@ -66,7 +85,9 @@ class DualPlateAcquisitionService:
         with self._lock:
             self._refresh()
             if self._process is not None and self._process.poll() is None:
-                raise RuntimeError("Une acquisition est déjà en cours.")
+                worker = self._read_worker_state()
+                if worker.get("phase") in {"active", "connecting"}:
+                    raise RuntimeError("Une acquisition est déjà en cours.")
 
             if filename is None:
                 stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -84,29 +105,40 @@ class DualPlateAcquisitionService:
             csv_path.parent.mkdir(parents=True, exist_ok=True)
             script = BASE_DIR / "scripts" / "kinvent_dual_hci.py"
             prefix = shlex.split(os.getenv("KINE_HCI_COMMAND_PREFIX", ""))
-            command = prefix + [
-                sys.executable,
-                "-u",
-                str(script),
-                "--adapter",
-                adapter,
-                "--duration",
-                str(duration),
-                "--tare-duration",
-                str(tare_duration),
-                "--calibration-file",
-                str(calibration_path),
-                "--sync-tolerance-ms",
-                str(sync_tolerance_ms),
-                "--csv",
-                str(csv_path),
-            ]
-            if recalibrate:
-                command.append("--recalibrate")
+            self._generation = uuid.uuid4().hex
+            self._write_json(
+                self._control_path,
+                {
+                    "generation": self._generation,
+                    "duration": duration,
+                    "csv_path": str(csv_path),
+                },
+            )
 
-            log_path = csv_path.with_suffix(".log")
-            log_file = log_path.open("w", encoding="utf-8")
-            try:
+            if self._process is None or self._process.poll() is not None:
+                command = prefix + [
+                    sys.executable,
+                    "-u",
+                    str(script),
+                    "--adapter",
+                    adapter,
+                    "--tare-duration",
+                    str(tare_duration),
+                    "--calibration-file",
+                    str(calibration_path),
+                    "--sync-tolerance-ms",
+                    str(sync_tolerance_ms),
+                    "--control-file",
+                    str(self._control_path),
+                    "--state-file",
+                    str(self._worker_state_path),
+                ]
+                if recalibrate:
+                    command.append("--recalibrate")
+                log_path = (
+                    BASE_DIR / "storage" / "raw_data" / "kplates_worker.log"
+                )
+                log_file = log_path.open("a", encoding="utf-8")
                 try:
                     self._process = subprocess.Popen(
                         command,
@@ -119,8 +151,8 @@ class DualPlateAcquisitionService:
                     raise RuntimeError(
                         f"Impossible de lancer le processus Bluetooth: {exc}"
                     ) from exc
-            finally:
-                log_file.close()
+                finally:
+                    log_file.close()
 
             self._started_at = now_iso()
             self._finished_at = None
@@ -148,6 +180,15 @@ class DualPlateAcquisitionService:
         with self._lock:
             self._refresh()
             running = self._process is not None and self._process.poll() is None
+            worker = self._read_worker_state()
+            session_running = (
+                running
+                and (
+                    worker.get("generation") != self._generation
+                    or worker.get("phase") in {"connecting", "active"}
+                )
+                and self._finished_at is None
+            )
             elapsed_seconds = None
             if self._started_at:
                 started = datetime.fromisoformat(self._started_at)
@@ -158,15 +199,15 @@ class DualPlateAcquisitionService:
                 )
                 elapsed_seconds = max(0.0, (finished - started).total_seconds())
             return {
-                "running": running,
+                "running": session_running,
                 "pid": self._process.pid if running else None,
                 "started_at": self._started_at,
                 "finished_at": self._finished_at,
                 "return_code": self._return_code,
                 "csv_path": str(self._csv_path) if self._csv_path else None,
-                "log_path": str(self._csv_path.with_suffix(".log"))
-                if self._csv_path
-                else None,
+                "log_path": str(
+                    BASE_DIR / "storage" / "raw_data" / "kplates_worker.log"
+                ),
                 "last_error": self._last_error,
                 "elapsed_seconds": elapsed_seconds,
                 "tare_required": self._tare_required,
@@ -216,9 +257,15 @@ class DualPlateAcquisitionService:
             return None
 
     def _read_log_tail(self, max_lines=12):
-        if self._csv_path is None:
-            return []
-        log_path = self._csv_path.with_suffix(".log")
+        session_log = (
+            self._csv_path.with_suffix(".log") if self._csv_path else None
+        )
+        worker_log = BASE_DIR / "storage" / "raw_data" / "kplates_worker.log"
+        log_path = (
+            session_log
+            if session_log is not None and session_log.exists()
+            else worker_log
+        )
         if not log_path.exists():
             return []
         try:
@@ -227,6 +274,19 @@ class DualPlateAcquisitionService:
             ]
         except OSError:
             return []
+
+    def _read_worker_state(self):
+        try:
+            return json.loads(self._worker_state_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError, json.JSONDecodeError):
+            return {}
+
+    @staticmethod
+    def _write_json(path, data):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_suffix(".tmp")
+        temporary.write_text(json.dumps(data), encoding="utf-8")
+        temporary.replace(path)
 
     @staticmethod
     def _convert_measurement(row):

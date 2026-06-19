@@ -69,6 +69,28 @@ from scripts.kinvent_raw_hci import (  # noqa: E402
 
 OGF_LINK_CTL = 0x01
 OCF_DISCONNECT = 0x0006
+CSV_FIELDS = [
+    "timestamp_utc",
+    "sync_delta_ms",
+    "sync_quality",
+    "left_sensor_time",
+    "right_sensor_time",
+    "left_kg",
+    "right_kg",
+    "total_kg",
+    "left_n",
+    "right_n",
+    "total_n",
+    "left_pct",
+    "right_pct",
+    "asymmetry_pct",
+    "left_cop_x",
+    "left_cop_y",
+    "right_cop_x",
+    "right_cop_y",
+    "global_cop_x",
+    "global_cop_y",
+]
 
 
 def now_iso():
@@ -273,34 +295,22 @@ class DualKinventClient:
             self.load_calibration()
 
         if csv_path:
-            path = Path(csv_path)
-            path.parent.mkdir(parents=True, exist_ok=True)
-            self.csv_file = path.open("w", newline="", encoding="utf-8")
-            self.writer = csv.writer(self.csv_file)
-            self.writer.writerow(
-                [
-                    "timestamp_utc",
-                    "sync_delta_ms",
-                    "sync_quality",
-                    "left_sensor_time",
-                    "right_sensor_time",
-                    "left_kg",
-                    "right_kg",
-                    "total_kg",
-                    "left_n",
-                    "right_n",
-                    "total_n",
-                    "left_pct",
-                    "right_pct",
-                    "asymmetry_pct",
-                    "left_cop_x",
-                    "left_cop_y",
-                    "right_cop_x",
-                    "right_cop_y",
-                    "global_cop_x",
-                    "global_cop_y",
-                ]
-            )
+            self.open_csv(csv_path)
+
+    def open_csv(self, csv_path):
+        self.close_csv()
+        path = Path(csv_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self.csv_file = path.open("w", newline="", encoding="utf-8")
+        self.writer = csv.writer(self.csv_file)
+        self.writer.writerow(CSV_FIELDS)
+        self.csv_file.flush()
+
+    def close_csv(self):
+        if self.csv_file:
+            self.csv_file.close()
+        self.csv_file = None
+        self.writer = None
 
     def load_calibration(self):
         if self.calibration_path is None or not self.calibration_path.exists():
@@ -376,8 +386,7 @@ class DualKinventClient:
         if self.sock:
             self.sock.close()
             self.sock = None
-        if self.csv_file:
-            self.csv_file.close()
+        self.close_csv()
 
     def send_command(self, ogf, ocf, parameters=b""):
         opcode = hci_opcode(ogf, ocf)
@@ -817,7 +826,7 @@ class DualKinventClient:
                 print("Deux plateformes: hors appui")
             self.last_print = time.monotonic()
 
-    def pump(self, duration, progress=False):
+    def pump(self, duration, progress=False, show_progress=True):
         deadline = time.monotonic() + duration
         next_progress = time.monotonic()
         if progress:
@@ -859,7 +868,7 @@ class DualKinventClient:
                         self.start_stream(plate, 0.1)
                         plate.stream_restarts += 1
                 next_stream_check = time.monotonic() + 2.0
-            if progress and time.monotonic() >= next_progress:
+            if progress and show_progress and time.monotonic() >= next_progress:
                 print(f"Temps restant: {max(0, deadline-time.monotonic()):.1f} s")
                 next_progress = time.monotonic() + 5
 
@@ -1060,6 +1069,73 @@ class DualKinventClient:
                     pass
             self.close()
 
+    @staticmethod
+    def write_worker_state(path, **state):
+        target = Path(path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        temporary = target.with_suffix(".tmp")
+        temporary.write_text(
+            json.dumps({"updated_at": now_iso(), **state}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        temporary.replace(target)
+
+    def run_persistent(
+        self,
+        scan_timeout,
+        connect_timeout,
+        write_delay,
+        control_file,
+        state_file,
+    ):
+        control_path = Path(control_file)
+        generation = None
+        self.open()
+        try:
+            self.write_worker_state(state_file, phase="connecting")
+            self.initialize_session(scan_timeout, connect_timeout, write_delay)
+            self.write_worker_state(state_file, phase="idle")
+            while True:
+                try:
+                    command = json.loads(control_path.read_text(encoding="utf-8"))
+                except (OSError, ValueError, json.JSONDecodeError):
+                    command = {}
+                requested = command.get("generation")
+                if requested and requested != generation:
+                    generation = requested
+                    duration = float(command["duration"])
+                    self.paired_samples = 0
+                    self.dropped_samples = {"gauche": 0, "droite": 0}
+                    for plate in self.plates:
+                        plate.samples.clear()
+                    self.open_csv(command["csv_path"])
+                    self.write_worker_state(
+                        state_file,
+                        phase="active",
+                        generation=generation,
+                        csv_path=command["csv_path"],
+                    )
+                    self.pump(duration, progress=True)
+                    self.close_csv()
+                    self.write_worker_state(
+                        state_file,
+                        phase="idle",
+                        generation=generation,
+                        csv_path=command["csv_path"],
+                        paired_samples=self.paired_samples,
+                    )
+                self.pump(1.0, progress=True, show_progress=False)
+        except Exception as exc:
+            self.write_worker_state(
+                state_file,
+                phase="error",
+                generation=generation,
+                error=f"{type(exc).__name__}: {exc}",
+            )
+            raise
+        finally:
+            self.close()
+
 
 def build_parser():
     parser = argparse.ArgumentParser(
@@ -1083,6 +1159,8 @@ def build_parser():
         help="Écart maximal entre une mesure gauche et droite.",
     )
     parser.add_argument("--csv", default="storage/raw_data/kplates_dual.csv")
+    parser.add_argument("--control-file")
+    parser.add_argument("--state-file")
     return parser
 
 
@@ -1099,12 +1177,21 @@ def main():
         args.calibration_file,
         args.recalibrate,
     )
-    client.run(
-        args.scan_timeout,
-        args.connect_timeout,
-        args.duration,
-        args.write_delay,
-    )
+    if args.control_file and args.state_file:
+        client.run_persistent(
+            args.scan_timeout,
+            args.connect_timeout,
+            args.write_delay,
+            args.control_file,
+            args.state_file,
+        )
+    else:
+        client.run(
+            args.scan_timeout,
+            args.connect_timeout,
+            args.duration,
+            args.write_delay,
+        )
 
 
 if __name__ == "__main__":

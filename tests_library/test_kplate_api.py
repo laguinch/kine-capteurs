@@ -106,6 +106,31 @@ class KPlateApiTest(unittest.TestCase):
         self.assertIn("code 1", status["last_error"])
         self.assertIn("sudo: a password is required", status["last_error"])
 
+    def test_second_test_reuses_persistent_bluetooth_process(self):
+        service = DualPlateAcquisitionService()
+        process = mock.Mock(pid=123)
+        process.poll.return_value = None
+        service._process = process
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            service._control_path = root / "control.json"
+            service._worker_state_path = root / "state.json"
+            service._worker_state_path.write_text(
+                '{"phase":"idle"}',
+                encoding="utf-8",
+            )
+            with (
+                mock.patch.object(acquisition_module, "BASE_DIR", root),
+                mock.patch.object(acquisition_module.subprocess, "Popen") as popen,
+            ):
+                status = service.start(filename="second-test.csv")
+
+            control = service._read_worker_state()
+
+        popen.assert_not_called()
+        self.assertTrue(status["running"])
+        self.assertEqual(control["phase"], "idle")
+
 
 if __name__ == "__main__":
     unittest.main()
