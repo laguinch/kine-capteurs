@@ -220,6 +220,15 @@ class KPlateDualTest(unittest.TestCase):
 
         self.assertEqual(selected, 2)
 
+    def test_uses_hci0_when_external_adapter_disappears(self):
+        with tempfile.TemporaryDirectory() as directory:
+            bluetooth = Path(directory)
+            (bluetooth / "hci0").mkdir()
+            with mock.patch.object(self.module, "BLUETOOTH_SYSFS", bluetooth):
+                selected = self.module.resolve_hci_adapter(1, timeout=0)
+
+        self.assertEqual(selected, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

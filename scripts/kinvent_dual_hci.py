@@ -98,8 +98,8 @@ def resolve_hci_adapter(requested, timeout=8.0):
         if requested in available:
             return requested
 
-        # hci0 est généralement le Bluetooth interne. Si le dongle USB a été
-        # réenregistré après une acquisition, son nouvel index reste non nul.
+        # Si le dongle USB a été réenregistré après une acquisition, son nouvel
+        # index reste généralement non nul.
         external = [adapter for adapter in available if adapter != 0]
         if external:
             selected = max(external)
@@ -108,6 +108,15 @@ def resolve_hci_adapter(requested, timeout=8.0):
                 f"utilisation automatique de hci{selected}."
             )
             return selected
+
+        # Sur le serveur du cabinet, bluetooth.service est désactivé et hci0
+        # peut servir de contrôleur de secours lorsque le dongle USB disparaît.
+        if available == [0]:
+            print(
+                f"hci{requested} n'est plus disponible; "
+                "utilisation automatique de hci0."
+            )
+            return 0
 
         if time.monotonic() >= deadline:
             visible = ", ".join(f"hci{item}" for item in available) or "aucun"

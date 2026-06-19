@@ -68,7 +68,6 @@ if command -v hciconfig >/dev/null 2>&1; then
   for controller_path in /sys/class/bluetooth/hci*; do
     [[ -e "$controller_path" ]] || continue
     controller="${controller_path##*/}"
-    [[ "$controller" == "hci0" ]] && continue
     controller_found=true
     echo "Mise hors ligne de $controller..."
     sudo hciconfig "$controller" down || true
