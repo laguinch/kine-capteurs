@@ -63,7 +63,18 @@ sudo systemctl daemon-reload
 echo "Libération du contrôleur Bluetooth..."
 sudo systemctl mask --now bluetooth.service
 if command -v hciconfig >/dev/null 2>&1; then
-  sudo hciconfig hci1 down
+  controller_found=false
+  for controller_path in /sys/class/bluetooth/hci*; do
+    [[ -e "$controller_path" ]] || continue
+    controller="${controller_path##*/}"
+    [[ "$controller" == "hci0" ]] && continue
+    controller_found=true
+    echo "Mise hors ligne de $controller..."
+    sudo hciconfig "$controller" down || true
+  done
+  if [[ "$controller_found" == false ]]; then
+    echo "Aucun contrôleur Bluetooth externe actuellement visible."
+  fi
 fi
 
 echo "Démarrage de $SERVICE_NAME..."
