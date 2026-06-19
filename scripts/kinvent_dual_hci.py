@@ -285,7 +285,10 @@ class DualKinventClient:
         self.last_print = 0.0
         self.print_interval = print_interval
         self.sync_tolerance = sync_tolerance_ms / 1000.0
-        self.keepalive_interval = 5.0
+        # Les K-Force Plates peuvent couper une liaison silencieuse entre deux
+        # tests. Un keepalive fréquent évite leur retour en publicité (LED
+        # verte) pendant que le worker persistant attend la prochaine session.
+        self.keepalive_interval = 1.0
         self.next_keepalive = None
         self.paired_samples = 0
         self.dropped_samples = {"gauche": 0, "droite": 0}
@@ -1158,7 +1161,41 @@ class DualKinventClient:
                             csv_path=command["csv_path"],
                             paired_samples=self.paired_samples,
                         )
-                self.pump(1.0, progress=True, show_progress=False)
+                try:
+                    self.pump(1.0, progress=True, show_progress=False)
+                except (PlateDisconnected, TimeoutError, RuntimeError) as exc:
+                    print(f"Session inactive interrompue: {exc}")
+                    self.write_worker_state(
+                        state_file,
+                        phase="recovering",
+                        generation=generation,
+                        error=str(exc),
+                    )
+                    while True:
+                        try:
+                            self.initialize_session(
+                                scan_timeout,
+                                connect_timeout,
+                                write_delay,
+                            )
+                            self.write_worker_state(
+                                state_file,
+                                phase="idle",
+                                generation=generation,
+                            )
+                            break
+                        except (PlateDisconnected, TimeoutError, RuntimeError) as recovery:
+                            print(
+                                "Récupération Bluetooth impossible; "
+                                f"nouvel essai dans 10 s: {recovery}"
+                            )
+                            self.write_worker_state(
+                                state_file,
+                                phase="recovering",
+                                generation=generation,
+                                error=str(recovery),
+                            )
+                            time.sleep(10.0)
         except Exception as exc:
             self.write_worker_state(
                 state_file,

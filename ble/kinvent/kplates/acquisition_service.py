@@ -95,8 +95,10 @@ class DualPlateAcquisitionService:
                 self._process is not None
                 and self._process.poll() is None
             ) or worker_alive:
-                if worker.get("phase") in {"active", "connecting"}:
-                    raise RuntimeError("Une acquisition est déjà en cours.")
+                if worker.get("phase") in {"active", "connecting", "recovering"}:
+                    raise RuntimeError(
+                        "Les plateformes sont en cours de reconnexion."
+                    )
 
             if filename is None:
                 stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -202,7 +204,11 @@ class DualPlateAcquisitionService:
                 process_alive
                 and (
                     worker.get("generation") != self._generation
-                    or worker.get("phase") in {"connecting", "active"}
+                    or worker.get("phase") in {
+                        "connecting",
+                        "active",
+                        "recovering",
+                    }
                 )
                 and self._finished_at is None
             )
