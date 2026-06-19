@@ -46,6 +46,15 @@ class DualPlateAcquisitionService:
             if worker.get("phase") != "idle":
                 if worker.get("phase") == "active":
                     raise RuntimeError("Une acquisition est déjà en cours.")
+                if worker.get("phase") == "error":
+                    raise RuntimeError(
+                        worker.get("error")
+                        or "La connexion Bluetooth a échoué."
+                    )
+                if worker.get("phase") == "disconnected":
+                    raise RuntimeError(
+                        "Connectez les capteurs avant de démarrer un test."
+                    )
                 raise RuntimeError(
                     "Les plateformes sont en cours de connexion."
                 )
@@ -80,11 +89,15 @@ class DualPlateAcquisitionService:
         with self._lock:
             worker = self._read_worker_state()
             generation = worker.get("generation") or self._generation
-            if worker.get("phase") == "active" and generation:
+            if generation and (
+                worker.get("phase") == "active"
+                or self._generation is not None
+            ):
                 self._write_json(
                     self._control_path,
                     {"action": "stop", "generation": generation},
                 )
+                self._finished_at = now_iso()
             return self.status()
 
     def connect(self):
@@ -130,6 +143,7 @@ class DualPlateAcquisitionService:
             command_pending = (
                 worker_alive
                 and self._generation is not None
+                and phase == "idle"
                 and worker.get("generation") != self._generation
             )
             running = command_pending or (

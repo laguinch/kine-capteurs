@@ -102,6 +102,24 @@ class KPlateApiTest(unittest.TestCase):
 
         self.assertEqual(status["last_error"], "Connexion Bluetooth impossible")
 
+    def test_worker_error_clears_pending_acquisition(self):
+        service = DualPlateAcquisitionService()
+        service._generation = "pending-test"
+        with tempfile.TemporaryDirectory() as directory:
+            service._worker_state_path = Path(directory) / "state.json"
+            service._worker_state_path.write_text(
+                (
+                    f'{{"phase":"error","pid":{os.getpid()},'
+                    '"generation":"pending-test","error":"Flux absent"}'
+                ),
+                encoding="utf-8",
+            )
+
+            status = service.status()
+
+        self.assertFalse(status["running"])
+        self.assertEqual(status["last_error"], "Flux absent")
+
     def test_second_test_reuses_persistent_bluetooth_process(self):
         service = DualPlateAcquisitionService()
         with tempfile.TemporaryDirectory() as directory:

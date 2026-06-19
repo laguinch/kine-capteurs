@@ -50,6 +50,10 @@ function updateStatus(data) {
     state.awaitingTare = false;
     state.awaitingReady = false;
     setMessage(data.last_error, true);
+  } else if (data.worker_phase === "disconnected") {
+    state.awaitingTare = false;
+    state.awaitingReady = false;
+    setMessage("Capteurs déconnectés. Cliquez sur « Connecter les capteurs ».");
   } else if (!running && data.return_code === 0 && data.csv_path) {
     state.awaitingTare = false;
     state.awaitingReady = false;
