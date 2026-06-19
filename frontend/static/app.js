@@ -5,6 +5,7 @@ const state = {
   polling: null,
   startedAt: null,
   awaitingTare: false,
+  awaitingReady: false,
 };
 
 const format = (value, digits = 1) =>
@@ -35,18 +36,21 @@ function updateStatus(data) {
 
   if (data.last_error) {
     state.awaitingTare = false;
+    state.awaitingReady = false;
     setMessage(data.last_error, true);
   } else if (!running && data.return_code === 0 && data.csv_path) {
     state.awaitingTare = false;
+    state.awaitingReady = false;
     setMessage("Acquisition terminée et enregistrée.");
   }
 }
 
 function updateMeasurement(m) {
   if (!m) return;
-  if (state.awaitingTare) {
+  if (state.awaitingReady) {
+    state.awaitingReady = false;
     state.awaitingTare = false;
-    setMessage("Tare terminée. Vous pouvez monter sur les plateformes.");
+    setMessage("Plateformes prêtes. Vous pouvez monter.");
   }
   $("leftKg").textContent = format(m.left_kg);
   $("rightKg").textContent = format(m.right_kg);
@@ -132,6 +136,7 @@ async function start() {
   setMessage("");
   state.history = [];
   state.awaitingTare = true;
+  state.awaitingReady = true;
   const filename = $("filename").value.trim();
   const body = {
     adapter: "hci1",
@@ -154,16 +159,18 @@ async function start() {
     setMessage(
       state.awaitingTare
         ? "Laissez les deux plateformes vides pendant la tare."
-        : "Tare existante chargée. Vous pouvez monter sur les plateformes."
+        : "Tare existante chargée. Connexion aux plateformes…"
     );
   } catch (error) {
     state.awaitingTare = false;
+    state.awaitingReady = false;
     setMessage(error.message, true);
   }
 }
 
 async function stop() {
   state.awaitingTare = false;
+  state.awaitingReady = false;
   try {
     const response = await fetch("/api/kplates/dual/stop", { method: "POST" });
     const data = await response.json();

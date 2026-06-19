@@ -855,15 +855,43 @@ class DualKinventClient:
             f"Reconnexion impossible pour la plateforme {plate.side}."
         ) from last_error
 
+    def connect_and_start_plate(self, plate, scan_timeout, connect_timeout, write_delay):
+        last_error = None
+        for attempt in range(1, 5):
+            try:
+                if attempt > 1:
+                    print(
+                        f"Initialisation {plate.side}, "
+                        f"nouvel essai {attempt}/4..."
+                    )
+                self.scan_for(plate, scan_timeout)
+                self.connect(plate, connect_timeout)
+                self.pump(0.8)
+                self.start_stream(plate, write_delay)
+                return
+            except (PlateDisconnected, TimeoutError, RuntimeError) as exc:
+                last_error = exc
+                print(f"Initialisation {plate.side} interrompue: {exc}")
+                if plate.handle is not None:
+                    self.by_handle.pop(plate.handle, None)
+                    plate.handle = None
+                plate.samples.clear()
+                time.sleep(0.5)
+        raise RuntimeError(
+            f"Connexion initiale impossible pour la plateforme {plate.side}."
+        ) from last_error
+
     def run(self, scan_timeout, connect_timeout, duration, write_delay):
         self.open()
         try:
             self.reset()
             for plate in self.plates:
-                self.scan_for(plate, scan_timeout)
-                self.connect(plate, connect_timeout)
-                self.pump(0.8)
-                self.start_stream(plate, write_delay)
+                self.connect_and_start_plate(
+                    plate,
+                    scan_timeout,
+                    connect_timeout,
+                    write_delay,
+                )
             print(f"Acquisition double pendant {duration:.1f} s...")
             self.pump(duration, progress=True)
             print("Acquisition double terminée.")

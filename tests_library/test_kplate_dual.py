@@ -269,6 +269,32 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(reused.plates[0].offsets["av_d"], 1)
         self.assertEqual(reused.plates[1].offsets["ar_d"], 8)
 
+    def test_retries_disconnect_during_initial_connection(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        plate = client.plates[0]
+        attempts = []
+        client.scan_for = lambda current, timeout: attempts.append("scan")
+        client.connect = lambda current, timeout: setattr(current, "handle", 0x10)
+        client.start_stream = lambda current, delay: attempts.append("stream")
+
+        def pump(duration):
+            if attempts.count("scan") == 1:
+                plate.handle = None
+                raise self.module.PlateDisconnected(plate, 0x3E)
+
+        client.pump = pump
+        client.connect_and_start_plate(plate, 1, 1, 0)
+
+        self.assertEqual(attempts.count("scan"), 2)
+        self.assertEqual(attempts.count("stream"), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
