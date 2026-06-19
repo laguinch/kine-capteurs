@@ -38,6 +38,7 @@ fi
 
 echo "Vérification du projet..."
 "$PYTHON_BIN" -m unittest discover -s tests_library -p 'test*.py'
+chmod 0755 scripts/run_kpush_session.sh
 
 cat >"$TEMP_UNIT" <<EOF
 [Unit]
@@ -82,6 +83,7 @@ sudo install -o root -g root -m 0644 "$TEMP_UNIT" "$UNIT_FILE"
 sudo install -o root -g root -m 0644 \
   "$TEMP_BLUETOOTH_UNIT" "$BLUETOOTH_UNIT_FILE"
 sudo systemctl daemon-reload
+sudo bash scripts/install_hci_sudoers.sh
 
 echo "Libération du contrôleur Bluetooth..."
 sudo systemctl stop bluetooth.service || true

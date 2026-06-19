@@ -30,6 +30,19 @@ button, input, select { font: inherit; }
   margin: 0 auto;
   padding: 34px 0 48px;
 }
+.sensor-nav { display: flex; gap: 8px; margin-bottom: 20px; }
+.sensor-nav a {
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: .82rem;
+  font-weight: 800;
+}
+.sensor-nav a.active { background: var(--ink); color: #fff; }
+.kpush-metrics { grid-template-columns: repeat(2, 1fr); margin-top: 18px; }
+.kpush-chart-panel { margin-top: 16px; }
+.kpush-history { height: 300px; }
 
 .topbar, .control-panel, .panel-heading, .footer-panel {
   display: flex;

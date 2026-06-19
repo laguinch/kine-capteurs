@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>K‑Push — Kine Capteurs</title>
+    <link rel="stylesheet" href="/static/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <nav class="sensor-nav">
+        <a href="/">K‑Force Plates</a>
+        <a class="active" href="/kpush">K‑Push</a>
+      </nav>
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">K‑Push</p>
+          <h1>Force musculaire</h1>
+          <p class="subtitle">Force instantanée et maximale en temps réel</p>
+        </div>
+        <div class="connection">
+          <span id="statusDot" class="status-dot"></span>
+          <span id="statusText">Prêt</span>
+        </div>
+      </header>
+
+      <section class="control-panel">
+        <label>
+          Durée
+          <select id="duration">
+            <option value="15">15 secondes</option>
+            <option value="30" selected>30 secondes</option>
+            <option value="60">60 secondes</option>
+          </select>
+        </label>
+        <label>
+          Nom du test
+          <input id="filename" placeholder="Créé automatiquement">
+        </label>
+        <button id="startButton" class="primary">Démarrer</button>
+        <button id="stopButton" class="secondary" disabled>Arrêter</button>
+        <a id="downloadButton" class="download disabled" href="/api/kpush/download">Télécharger</a>
+        <div class="timer">
+          <span>Temps</span>
+          <strong id="timer">00:00</strong>
+        </div>
+      </section>
+
+      <div id="message" class="message hidden"></div>
+
+      <section class="metrics-grid kpush-metrics">
+        <article class="metric-card total-card">
+          <span>Force instantanée</span>
+          <strong><b id="forceN">0</b> N</strong>
+          <small id="forceKg">0,0 kg</small>
+        </article>
+        <article class="metric-card left-card">
+          <span>Force maximale</span>
+          <strong><b id="maxN">0</b> N</strong>
+          <small id="maxKg">0,0 kg</small>
+        </article>
+      </section>
+
+      <section class="panel kpush-chart-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Courbe</p>
+            <h2>Force au cours du test</h2>
+          </div>
+          <span class="badge neutral">Newtons</span>
+        </div>
+        <div class="history-wrap kpush-history">
+          <canvas id="forceChart" width="1000" height="320"></canvas>
+        </div>
+      </section>
+
+      <section class="panel footer-panel">
+        <div>
+          <p class="eyebrow">Acquisition</p>
+          <h2 id="fileLabel">Aucun fichier en cours</h2>
+        </div>
+      </section>
+    </main>
+    <script src="/static/kpush.js"></script>
+  </body>
+</html>

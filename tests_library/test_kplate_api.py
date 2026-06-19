@@ -28,6 +28,10 @@ class KPlateApiTest(unittest.TestCase):
         self.assertIn("/api/kplates/dual/status", paths)
         self.assertIn("/api/kplates/dual/latest", paths)
         self.assertIn("/api/kplates/dual/download", paths)
+        self.assertIn("/api/kpush/start", paths)
+        self.assertIn("/api/kpush/stop", paths)
+        self.assertIn("/api/kpush/latest", paths)
+        self.assertIn("/api/kpush/download", paths)
 
     def test_new_service_is_idle(self):
         service = DualPlateAcquisitionService()

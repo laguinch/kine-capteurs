@@ -5,6 +5,7 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SERVICE_USER="${KINE_SERVICE_USER:-${SUDO_USER:-$USER}}"
 PYTHON_BIN="$PROJECT_DIR/.venv/bin/python"
 HCI_SCRIPT="$PROJECT_DIR/scripts/kinvent_dual_hci.py"
+KPUSH_RUNNER="$PROJECT_DIR/scripts/run_kpush_session.sh"
 SUDOERS_FILE="/etc/sudoers.d/kine-capteurs-hci"
 TEMP_FILE="$(mktemp)"
 
@@ -15,6 +16,7 @@ fi
 
 cat >"$TEMP_FILE" <<EOF
 $SERVICE_USER ALL=(root) NOPASSWD: $PYTHON_BIN -u $HCI_SCRIPT *
+$SERVICE_USER ALL=(root) NOPASSWD: $KPUSH_RUNNER *
 EOF
 
 chmod 0440 "$TEMP_FILE"
