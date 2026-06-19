@@ -1,4 +1,5 @@
 import importlib.util
+import struct
 import tempfile
 import time
 import unittest
@@ -450,6 +451,31 @@ class KPlateDualTest(unittest.TestCase):
 
         self.assertEqual(len(reconnect_deadlines), 1)
         self.assertGreaterEqual(reconnect_deadlines[0], started + 29.0)
+
+    def test_connection_uses_long_supervision_timeout(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        plate = client.plates[0]
+        sent = []
+        client.send_command = (
+            lambda ogf, ocf, params: sent.append(params) or 1
+        )
+        client.wait_for_command = lambda opcode: None
+        client.receive = lambda: None
+
+        with self.assertRaises(TimeoutError):
+            client.connect(plate, timeout=0)
+
+        values = struct.unpack("<HHBB6sBHHHHHH", sent[0])
+        self.assertEqual(values[6], 0x000C)
+        self.assertEqual(values[7], 0x0018)
+        self.assertEqual(values[9], 0x07D0)
 
 
 if __name__ == "__main__":

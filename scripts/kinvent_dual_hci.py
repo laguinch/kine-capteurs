@@ -523,10 +523,10 @@ class DualKinventClient:
             0,
             plate.address_le,
             0,
+            0x000C,
             0x0018,
-            0x0028,
             0,
-            0x01F4,
+            0x07D0,
             0,
             0,
         )
@@ -876,7 +876,7 @@ class DualKinventClient:
                 self.scan_for(plate, min(5.0, remaining))
                 self.connect(plate, min(8.0, remaining))
                 self.pump(min(0.8, max(0.0, remaining)))
-                self.start_stream(plate, 0.2)
+                self.start_stream(plate, 0.5)
                 plate.reconnections += 1
                 print(f"Plateforme {plate.side} reconnectée.")
                 return
@@ -1171,35 +1171,11 @@ class DualKinventClient:
                     print(f"Session inactive interrompue: {exc}")
                     self.write_worker_state(
                         state_file,
-                        phase="recovering",
+                        phase="error",
                         generation=generation,
                         error=str(exc),
                     )
-                    while True:
-                        try:
-                            self.initialize_session(
-                                scan_timeout,
-                                connect_timeout,
-                                write_delay,
-                            )
-                            self.write_worker_state(
-                                state_file,
-                                phase="idle",
-                                generation=generation,
-                            )
-                            break
-                        except (PlateDisconnected, TimeoutError, RuntimeError) as recovery:
-                            print(
-                                "Récupération Bluetooth impossible; "
-                                f"nouvel essai dans 10 s: {recovery}"
-                            )
-                            self.write_worker_state(
-                                state_file,
-                                phase="recovering",
-                                generation=generation,
-                                error=str(recovery),
-                            )
-                            time.sleep(10.0)
+                    raise
         except Exception as exc:
             self.write_worker_state(
                 state_file,
