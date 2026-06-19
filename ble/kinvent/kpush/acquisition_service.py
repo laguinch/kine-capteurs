@@ -109,9 +109,12 @@ class KPushAcquisitionService:
         with self._lock:
             self._refresh()
             if self._recording:
-                self._write_recording_csv()
                 self._recording = False
                 self._finished_at = now_iso()
+                # L'état doit basculer immédiatement. La copie finale du CSV
+                # vient ensuite et ne peut plus maintenir l'interface en mode
+                # « Acquisition en cours ».
+                self._write_recording_csv()
             return self.status()
 
     def status(self):

@@ -115,6 +115,21 @@ class KPushApiTest(unittest.TestCase):
         self.assertTrue(status["connected"])
         self.assertEqual(status["phase"], "ready")
 
+    def test_stop_changes_state_before_final_csv_copy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = self.make_ready_service(directory)
+            service._started_at = "2026-06-19T15:00:00+00:00"
+            service._recording = True
+            service._csv_path = Path(directory) / "test.csv"
+            recording_states = []
+            service._write_recording_csv = lambda: recording_states.append(
+                service._recording
+            )
+
+            service.stop()
+
+        self.assertEqual(recording_states, [False])
+
 
 if __name__ == "__main__":
     unittest.main()

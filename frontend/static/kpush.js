@@ -163,11 +163,15 @@ async function start() {
   }
 }
 
-async function stop() {
+async function stopTest() {
+  $("stopButton").disabled = true;
+  $("statusText").textContent = "Arrêt du test…";
+  message("Arrêt et enregistrement du test…");
   try {
     await request("/api/kpush/stop", { method: "POST" });
   } catch (error) {
     message(error.message, true);
+    $("stopButton").disabled = false;
   }
 }
 
@@ -183,7 +187,7 @@ async function poll() {
 $("connectButton").addEventListener("click", connect);
 $("disconnectButton").addEventListener("click", disconnect);
 $("startButton").addEventListener("click", start);
-$("stopButton").addEventListener("click", stop);
+$("stopButton").addEventListener("click", stopTest);
 window.addEventListener("resize", draw);
 poll();
 setInterval(poll, 150);
