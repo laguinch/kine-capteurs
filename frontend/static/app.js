@@ -23,11 +23,14 @@ function setMessage(text, error = false) {
 
 function updateStatus(data) {
   const running = Boolean(data.running);
+  const validating = Boolean(data.validating_streams);
   const connecting = ["connecting", "recovering"].includes(data.worker_phase);
   const degraded = data.worker_phase === "degraded";
   $("statusDot").className = `status-dot ${running || data.worker_ready ? "running" : data.last_error ? "error" : ""}`;
   $("statusText").textContent = running
-    ? "Acquisition en cours"
+    ? validating
+      ? "Vérification des plateformes"
+      : "Acquisition en cours"
     : connecting
       ? "Connexion des capteurs"
       : degraded

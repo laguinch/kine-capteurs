@@ -193,6 +193,7 @@ class DualPlateAcquisitionService:
             return {
                 "running": running,
                 "worker_phase": phase,
+                "validating_streams": command_pending,
                 "worker_ready": worker_alive and phase == "idle",
                 "bluetooth_connected": worker_alive
                 and phase in {"idle", "active"},

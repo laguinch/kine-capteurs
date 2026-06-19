@@ -1083,6 +1083,44 @@ class DualKinventClient:
             "ne démarre pas."
         )
 
+    def validate_live_streams(self, timeout=2.0):
+        """Exige des notifications fraîches et au moins une paire synchronisée."""
+        if any(plate.handle is None for plate in self.plates):
+            raise RuntimeError("Une plateforme est déconnectée.")
+        before_notifications = {
+            plate.side: plate.notifications for plate in self.plates
+        }
+        before_pairs = self.paired_samples
+        self.pump(timeout)
+        silent = [
+            plate.side
+            for plate in self.plates
+            if plate.notifications <= before_notifications[plate.side]
+        ]
+        if silent:
+            raise RuntimeError(
+                "Flux de mesure absent: " + ", ".join(silent) + "."
+            )
+        if self.paired_samples <= before_pairs:
+            raise RuntimeError(
+                "Les deux flux répondent, mais aucune mesure synchronisée "
+                "n'est disponible."
+            )
+
+    def ensure_recent_notifications(self, max_age=2.0):
+        now = time.monotonic()
+        silent = [
+            plate.side
+            for plate in self.plates
+            if plate.handle is None
+            or plate.last_notification_at is None
+            or now - plate.last_notification_at > max_age
+        ]
+        if silent:
+            raise RuntimeError(
+                "Liaison Bluetooth figée: " + ", ".join(silent) + "."
+            )
+
     def clear_connection_state(self):
         self.by_handle.clear()
         self.fragments.clear()
@@ -1418,15 +1456,22 @@ class DualKinventClient:
                     self.dropped_samples = {"gauche": 0, "droite": 0}
                     for plate in self.plates:
                         plate.samples.clear()
-                    self.open_csv(command["csv_path"])
-                    self.write_worker_state(
-                        state_file,
-                        phase="active",
-                        generation=generation,
-                        csv_path=command["csv_path"],
-                        started_at=now_iso(),
-                    )
                     try:
+                        # Ne jamais annoncer une acquisition tant que les deux
+                        # flux n'ont pas produit une paire fraîche.
+                        self.validate_live_streams()
+                        self.paired_samples = 0
+                        self.dropped_samples = {"gauche": 0, "droite": 0}
+                        for plate in self.plates:
+                            plate.samples.clear()
+                        self.open_csv(command["csv_path"])
+                        self.write_worker_state(
+                            state_file,
+                            phase="active",
+                            generation=generation,
+                            csv_path=command["csv_path"],
+                            started_at=now_iso(),
+                        )
                         completed = self.pump(
                             duration,
                             progress=True,
@@ -1477,6 +1522,7 @@ class DualKinventClient:
                     active_generation = None
                 try:
                     self.pump(1.0, progress=True, show_progress=False)
+                    self.ensure_recent_notifications()
                     if (
                         self.sock is not None
                         and time.monotonic() >= next_idle_keepalive

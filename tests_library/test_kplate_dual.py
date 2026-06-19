@@ -362,6 +362,58 @@ class KPlateDualTest(unittest.TestCase):
 
         self.assertEqual(started, ["gauche"])
 
+    def test_validates_fresh_synchronized_data_before_test(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        for index, plate in enumerate(client.plates, start=0x10):
+            plate.handle = index
+
+        def pump(duration):
+            for plate in client.plates:
+                plate.notifications += 1
+            client.paired_samples += 1
+
+        client.pump = pump
+        client.validate_live_streams()
+
+    def test_rejects_connected_but_silent_stream_before_test(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        for index, plate in enumerate(client.plates, start=0x10):
+            plate.handle = index
+        client.pump = lambda duration: None
+
+        with self.assertRaisesRegex(RuntimeError, "Flux de mesure absent"):
+            client.validate_live_streams()
+
+    def test_idle_session_rejects_stale_notifications(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        for index, plate in enumerate(client.plates, start=0x10):
+            plate.handle = index
+            plate.last_notification_at = time.monotonic() - 5
+
+        with self.assertRaisesRegex(RuntimeError, "Liaison Bluetooth figée"):
+            client.ensure_recent_notifications()
+
     def test_reinitializes_whole_session_when_one_stream_stays_silent(self):
         client = self.module.DualKinventClient(
             1,

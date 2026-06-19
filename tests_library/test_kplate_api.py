@@ -161,6 +161,7 @@ class KPlateApiTest(unittest.TestCase):
             control = json.loads(service._control_path.read_text(encoding="utf-8"))
 
         self.assertTrue(status["running"])
+        self.assertTrue(status["validating_streams"])
         self.assertEqual(control["action"], "start")
 
     def test_detects_external_persistent_worker(self):
