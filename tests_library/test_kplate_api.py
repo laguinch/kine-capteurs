@@ -207,6 +207,30 @@ class KPlateApiTest(unittest.TestCase):
         self.assertEqual(command["action"], "connect")
         self.assertTrue(command["generation"])
 
+    def test_reconnection_generation_is_not_an_acquisition(self):
+        service = DualPlateAcquisitionService()
+        service._generation = "old-test"
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            service._control_path = root / "control.json"
+            service._worker_state_path = root / "state.json"
+            service._control_path.write_text(
+                '{"action":"connect","generation":"reconnect"}',
+                encoding="utf-8",
+            )
+            service._worker_state_path.write_text(
+                (
+                    f'{{"phase":"idle","pid":{os.getpid()},'
+                    '"generation":"reconnect"}'
+                ),
+                encoding="utf-8",
+            )
+
+            status = service.status()
+
+        self.assertFalse(status["running"])
+        self.assertTrue(status["bluetooth_connected"])
+
 
 if __name__ == "__main__":
     unittest.main()

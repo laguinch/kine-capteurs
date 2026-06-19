@@ -116,6 +116,9 @@ class DualPlateAcquisitionService:
                 self._control_path,
                 {"action": "connect", "generation": generation},
             )
+            self._generation = None
+            self._started_at = None
+            self._finished_at = None
             return self.status()
 
     def disconnect(self):
@@ -129,6 +132,9 @@ class DualPlateAcquisitionService:
                 self._control_path,
                 {"action": "disconnect"},
             )
+            self._generation = None
+            self._started_at = None
+            self._finished_at = None
             return self.status()
 
     def status(self):
@@ -140,10 +146,13 @@ class DualPlateAcquisitionService:
                 self._generation is not None
                 and worker.get("generation") == self._generation
             )
+            control = self._read_control()
             command_pending = (
                 worker_alive
                 and self._generation is not None
                 and phase == "idle"
+                and control.get("action") == "start"
+                and control.get("generation") == self._generation
                 and worker.get("generation") != self._generation
             )
             running = command_pending or (
@@ -241,6 +250,12 @@ class DualPlateAcquisitionService:
     def _read_worker_state(self):
         try:
             return json.loads(self._worker_state_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError, json.JSONDecodeError):
+            return {}
+
+    def _read_control(self):
+        try:
+            return json.loads(self._control_path.read_text(encoding="utf-8"))
         except (OSError, ValueError, json.JSONDecodeError):
             return {}
 
