@@ -43,6 +43,11 @@ button, input, select { font: inherit; }
 .kpush-metrics { grid-template-columns: repeat(2, 1fr); margin-top: 18px; }
 .kpush-chart-panel { margin-top: 16px; }
 .kpush-history { height: 300px; }
+#forceChart {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
 
 .topbar, .control-panel, .panel-heading, .footer-panel {
   display: flex;

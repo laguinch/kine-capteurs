@@ -23,7 +23,7 @@ function draw() {
   const ctx = canvas.getContext("2d");
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, rect.width, rect.height);
-  const maximum = Math.max(100, ...state.history);
+  const maximum = Math.max(10, ...state.history) * 1.05;
   ctx.strokeStyle = "#dce5e1";
   [0.25, 0.5, 0.75].forEach((ratio) => {
     const y = rect.height * (1 - ratio);
@@ -33,6 +33,21 @@ function draw() {
     ctx.stroke();
   });
   if (state.history.length < 2) return;
+  const gradient = ctx.createLinearGradient(0, 0, 0, rect.height);
+  gradient.addColorStop(0, "rgba(20, 124, 117, .24)");
+  gradient.addColorStop(1, "rgba(20, 124, 117, 0)");
+  ctx.beginPath();
+  state.history.forEach((force, index) => {
+    const x = index / (state.history.length - 1) * rect.width;
+    const y = rect.height - Math.max(0, force) / maximum * rect.height;
+    index ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  });
+  ctx.lineTo(rect.width, rect.height);
+  ctx.lineTo(0, rect.height);
+  ctx.closePath();
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
   ctx.strokeStyle = "#147c75";
   ctx.lineWidth = 3;
   ctx.beginPath();
@@ -91,12 +106,12 @@ function update(data) {
   const m = data.measurement;
   if (!m || m.timestamp_utc === state.lastTimestamp) return;
   state.lastTimestamp = m.timestamp_utc;
-  $("forceN").textContent = format(Math.max(0, m.force_n), 0);
-  $("forceKg").textContent = `${format(Math.max(0, m.force_kg), 1)} kg`;
-  $("maxN").textContent = format(m.max_force_n, 0);
-  $("maxKg").textContent = `${format(m.max_force_kg, 1)} kg`;
+  $("forceKg").textContent = format(Math.max(0, m.force_kg), 1);
+  $("forceN").textContent = `${format(Math.max(0, m.force_n), 0)} N`;
+  $("maxKg").textContent = format(m.max_force_kg, 1);
+  $("maxN").textContent = `${format(m.max_force_n, 0)} N`;
   if (active) {
-    state.history.push(Math.max(0, m.force_n));
+    state.history.push(Math.max(0, m.force_kg));
     if (state.history.length > 300) state.history.shift();
     draw();
   }
