@@ -294,6 +294,7 @@ class DualKinventClient:
         self.dropped_samples = {"gauche": 0, "droite": 0}
         self.csv_file = None
         self.writer = None
+        self.reconnect_not_before = 0.0
 
         if not recalibrate:
             self.load_calibration()
@@ -315,6 +316,14 @@ class DualKinventClient:
             self.csv_file.close()
         self.csv_file = None
         self.writer = None
+
+    def wait_for_reconnect_cooldown(self):
+        remaining = self.reconnect_not_before - time.monotonic()
+        if remaining > 0:
+            print(
+                f"Repos Bluetooth pendant {remaining:.1f} s avant reconnexion..."
+            )
+            time.sleep(remaining)
 
     def load_calibration(self):
         if self.calibration_path is None or not self.calibration_path.exists():
@@ -851,12 +860,10 @@ class DualKinventClient:
                 except PlateDisconnected as exc:
                     if not progress:
                         raise
-                    print(f"{exc}. Reconnexion automatique...")
-                    reconnect_deadline = max(
-                        deadline,
-                        time.monotonic() + 30.0,
-                    )
-                    self.reconnect_plate(exc.plate, reconnect_deadline)
+                    raise RuntimeError(
+                        f"{exc}. Le test est arrêté pour protéger la session "
+                        "Bluetooth."
+                    ) from exc
             if (
                 progress
                 and self.keepalive_interval is not None
@@ -1121,17 +1128,41 @@ class DualKinventClient:
                             phase="connecting",
                             generation=generation,
                         )
-                        self.open()
-                        self.initialize_session(
-                            scan_timeout,
-                            connect_timeout,
-                            write_delay,
-                        )
-                        self.write_worker_state(
-                            state_file,
-                            phase="idle",
-                            generation=generation,
-                        )
+                        try:
+                            self.wait_for_reconnect_cooldown()
+                            self.open()
+                            self.initialize_session(
+                                scan_timeout,
+                                connect_timeout,
+                                write_delay,
+                                attempts=1,
+                            )
+                        except (
+                            OSError,
+                            PlateDisconnected,
+                            TimeoutError,
+                            RuntimeError,
+                            SystemExit,
+                        ) as exc:
+                            self.disconnect_all()
+                            self.clear_connection_state()
+                            self.close()
+                            self.reconnect_not_before = time.monotonic() + 10.0
+                            self.write_worker_state(
+                                state_file,
+                                phase="disconnected",
+                                generation=generation,
+                                error=(
+                                    "Connexion impossible. Attendez quelques "
+                                    f"secondes puis réessayez : {exc}"
+                                ),
+                            )
+                        else:
+                            self.write_worker_state(
+                                state_file,
+                                phase="idle",
+                                generation=generation,
+                            )
                     else:
                         time.sleep(0.25)
                     continue
@@ -1140,6 +1171,7 @@ class DualKinventClient:
                     self.disconnect_all()
                     self.clear_connection_state()
                     self.close()
+                    self.reconnect_not_before = time.monotonic() + 10.0
                     generation = requested or generation
                     self.write_worker_state(
                         state_file,
@@ -1178,40 +1210,12 @@ class DualKinventClient:
                             raise RuntimeError(
                                 "La nouvelle tare n'a pas pu être terminée."
                             )
-                    try:
-                        disconnected = [
-                            plate for plate in self.plates if plate.handle is None
-                        ]
-                        for plate in disconnected:
-                            print(
-                                f"Plateforme {plate.side} déconnectée avant le "
-                                "test; reconnexion..."
-                            )
-                            self.reconnect_plate(
-                                plate,
-                                time.monotonic() + 30.0,
-                            )
-                        self.ensure_streams_ready()
-                    except (
-                        PlateDisconnected,
-                        TimeoutError,
-                        RuntimeError,
-                    ) as exc:
-                        print(
-                            "Connexion interrompue au lancement du test: "
-                            f"{exc}. Réinitialisation complète..."
+                    if any(plate.handle is None for plate in self.plates):
+                        raise RuntimeError(
+                            "Une plateforme est déconnectée. Utilisez le "
+                            "bouton « Connecter les capteurs »."
                         )
-                        self.write_worker_state(
-                            state_file,
-                            phase="recovering",
-                            generation=generation,
-                            error=str(exc),
-                        )
-                        self.initialize_session(
-                            scan_timeout,
-                            connect_timeout,
-                            write_delay,
-                        )
+                    self.ensure_streams_ready()
                     self.paired_samples = 0
                     self.dropped_samples = {"gauche": 0, "droite": 0}
                     for plate in self.plates:
@@ -1224,15 +1228,30 @@ class DualKinventClient:
                         csv_path=command["csv_path"],
                         started_at=now_iso(),
                     )
-                    completed = self.pump(
-                        duration,
-                        progress=True,
-                        stop_requested=lambda: (
-                            read_command().get("action") == "stop"
-                            and read_command().get("generation")
-                            == active_generation
-                        ),
-                    )
+                    try:
+                        completed = self.pump(
+                            duration,
+                            progress=True,
+                            stop_requested=lambda: (
+                                read_command().get("action") == "stop"
+                                and read_command().get("generation")
+                                == active_generation
+                            ),
+                        )
+                    except RuntimeError as exc:
+                        self.close_csv()
+                        self.disconnect_all()
+                        self.clear_connection_state()
+                        self.close()
+                        self.write_worker_state(
+                            state_file,
+                            phase="disconnected",
+                            generation=generation,
+                            csv_path=command["csv_path"],
+                            error=str(exc),
+                        )
+                        active_generation = None
+                        continue
                     self.close_csv()
                     if self.paired_samples == 0:
                         self.write_worker_state(
@@ -1260,13 +1279,15 @@ class DualKinventClient:
                     self.pump(1.0, progress=True, show_progress=False)
                 except (PlateDisconnected, TimeoutError, RuntimeError) as exc:
                     print(f"Session inactive interrompue: {exc}")
+                    self.disconnect_all()
+                    self.clear_connection_state()
+                    self.close()
                     self.write_worker_state(
                         state_file,
-                        phase="error",
+                        phase="disconnected",
                         generation=generation,
                         error=str(exc),
                     )
-                    raise
         except Exception as exc:
             self.write_worker_state(
                 state_file,

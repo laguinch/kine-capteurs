@@ -422,7 +422,7 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(sent[0][0], self.module.OGF_LINK_CTL)
         self.assertEqual(sent[0][1], self.module.OCF_DISCONNECT)
 
-    def test_pump_gives_disconnect_its_own_reconnection_window(self):
+    def test_pump_stops_test_on_disconnect(self):
         client = self.module.DualKinventClient(
             1,
             "E8:EB:1B:6F:A7:5F",
@@ -432,7 +432,6 @@ class KPlateDualTest(unittest.TestCase):
             1,
         )
         plate = client.plates[0]
-        reconnect_deadlines = []
         packets = [(self.module.HCI_EVENT_PKT, b"")]
 
         def receive():
@@ -443,14 +442,11 @@ class KPlateDualTest(unittest.TestCase):
 
         client.receive = receive
         client.process = process
-        client.reconnect_plate = (
-            lambda current, deadline: reconnect_deadlines.append(deadline)
-        )
-        started = time.monotonic()
-        client.pump(0.01, progress=True)
-
-        self.assertEqual(len(reconnect_deadlines), 1)
-        self.assertGreaterEqual(reconnect_deadlines[0], started + 29.0)
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "test est arrêté",
+        ):
+            client.pump(0.01, progress=True)
 
     def test_connection_uses_long_supervision_timeout(self):
         client = self.module.DualKinventClient(
@@ -476,6 +472,22 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(values[6], 0x000C)
         self.assertEqual(values[7], 0x0018)
         self.assertEqual(values[9], 0x07D0)
+
+    def test_waits_for_cooldown_before_manual_reconnection(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        client.reconnect_not_before = time.monotonic() + 5.0
+
+        with mock.patch.object(self.module.time, "sleep") as sleep:
+            client.wait_for_reconnect_cooldown()
+
+        self.assertGreaterEqual(sleep.call_args.args[0], 4.0)
 
 
 if __name__ == "__main__":

@@ -170,7 +170,11 @@ class DualPlateAcquisitionService:
                 )
                 elapsed_seconds = max(0.0, (finished - started).total_seconds())
 
-            last_error = worker.get("error") if phase == "error" else None
+            last_error = (
+                worker.get("error")
+                if phase in {"error", "disconnected"} and worker.get("error")
+                else None
+            )
             return {
                 "running": running,
                 "worker_phase": phase,
