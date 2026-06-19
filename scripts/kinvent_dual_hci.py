@@ -184,6 +184,7 @@ class PlateState:
         self.latest = None
         self.distribution = None
         self.notifications = 0
+        self.measurements = 0
         self.last_notification_at = None
         self.stream_restarts = 0
         self.samples = deque(maxlen=buffer_size)
@@ -255,6 +256,7 @@ class PlateState:
             return None
 
         self.latest = parse_frame(value, self.offsets)
+        self.measurements += 1
         self.distribution = (
             compute_distribution(self.latest)
             if self.latest["force_kg"] >= MIN_VALID_KG
@@ -1084,27 +1086,21 @@ class DualKinventClient:
         )
 
     def validate_live_streams(self, timeout=2.0):
-        """Exige des notifications fraîches et au moins une paire synchronisée."""
+        """Exige une nouvelle trame de mesure valide de chaque plateforme."""
         if any(plate.handle is None for plate in self.plates):
             raise RuntimeError("Une plateforme est déconnectée.")
-        before_notifications = {
-            plate.side: plate.notifications for plate in self.plates
+        before_measurements = {
+            plate.side: plate.measurements for plate in self.plates
         }
-        before_pairs = self.paired_samples
         self.pump(timeout)
         silent = [
             plate.side
             for plate in self.plates
-            if plate.notifications <= before_notifications[plate.side]
+            if plate.measurements <= before_measurements[plate.side]
         ]
         if silent:
             raise RuntimeError(
                 "Flux de mesure absent: " + ", ".join(silent) + "."
-            )
-        if self.paired_samples <= before_pairs:
-            raise RuntimeError(
-                "Les deux flux répondent, mais aucune mesure synchronisée "
-                "n'est disponible."
             )
 
     def ensure_recent_notifications(self, max_age=2.0):

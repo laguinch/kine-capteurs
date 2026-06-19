@@ -377,10 +377,12 @@ class KPlateDualTest(unittest.TestCase):
         def pump(duration):
             for plate in client.plates:
                 plate.notifications += 1
-            client.paired_samples += 1
+                plate.measurements += 1
 
         client.pump = pump
         client.validate_live_streams()
+
+        self.assertEqual(client.paired_samples, 0)
 
     def test_rejects_connected_but_silent_stream_before_test(self):
         client = self.module.DualKinventClient(
