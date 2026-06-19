@@ -14,6 +14,7 @@ from statistics import median
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+BLUETOOTH_SYSFS = Path("/sys/class/bluetooth")
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -77,6 +78,44 @@ class PlateDisconnected(ConnectionError):
         super().__init__(
             f"Plateforme {plate.side} déconnectée: raison 0x{reason:02x}"
         )
+
+
+def available_hci_adapters():
+    if not BLUETOOTH_SYSFS.exists():
+        return []
+    adapters = []
+    for entry in BLUETOOTH_SYSFS.glob("hci*"):
+        suffix = entry.name[3:]
+        if suffix.isdigit():
+            adapters.append(int(suffix))
+    return sorted(adapters)
+
+
+def resolve_hci_adapter(requested, timeout=8.0):
+    deadline = time.monotonic() + timeout
+    while True:
+        available = available_hci_adapters()
+        if requested in available:
+            return requested
+
+        # hci0 est généralement le Bluetooth interne. Si le dongle USB a été
+        # réenregistré après une acquisition, son nouvel index reste non nul.
+        external = [adapter for adapter in available if adapter != 0]
+        if external:
+            selected = max(external)
+            print(
+                f"hci{requested} n'est plus disponible; "
+                f"utilisation automatique de hci{selected}."
+            )
+            return selected
+
+        if time.monotonic() >= deadline:
+            visible = ", ".join(f"hci{item}" for item in available) or "aucun"
+            raise SystemExit(
+                f"Contrôleur hci{requested} introuvable après {timeout:.0f} s "
+                f"(contrôleurs visibles: {visible})."
+            )
+        time.sleep(0.25)
 
 
 class PlateState:
@@ -234,6 +273,7 @@ class DualKinventClient:
     def open(self):
         if sys.platform != "linux":
             raise SystemExit("Ce script doit être exécuté sous Linux.")
+        self.adapter = resolve_hci_adapter(self.adapter)
         self.sock = socket.socket(AF_BLUETOOTH, socket.SOCK_RAW, BTPROTO_HCI)
         try:
             import ctypes

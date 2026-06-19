@@ -1,7 +1,9 @@
 import importlib.util
+import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "kinvent_dual_hci.py"
@@ -198,6 +200,25 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(context.exception.reason, 0x08)
         self.assertIsNone(plate.handle)
         self.assertNotIn(0x10, client.by_handle)
+
+    def test_keeps_requested_adapter_when_available(self):
+        with tempfile.TemporaryDirectory() as directory:
+            bluetooth = Path(directory)
+            (bluetooth / "hci1").mkdir()
+            with mock.patch.object(self.module, "BLUETOOTH_SYSFS", bluetooth):
+                selected = self.module.resolve_hci_adapter(1, timeout=0)
+
+        self.assertEqual(selected, 1)
+
+    def test_uses_renumbered_external_adapter(self):
+        with tempfile.TemporaryDirectory() as directory:
+            bluetooth = Path(directory)
+            (bluetooth / "hci0").mkdir()
+            (bluetooth / "hci2").mkdir()
+            with mock.patch.object(self.module, "BLUETOOTH_SYSFS", bluetooth):
+                selected = self.module.resolve_hci_adapter(1, timeout=0)
+
+        self.assertEqual(selected, 2)
 
 
 if __name__ == "__main__":
