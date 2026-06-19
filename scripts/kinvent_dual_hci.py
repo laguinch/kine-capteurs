@@ -532,10 +532,10 @@ class DualKinventClient:
             0,
             plate.address_le,
             0,
-            0x000C,
             0x0018,
+            0x0028,
             0,
-            0x07D0,
+            0x01F4,
             0,
             0,
         )
@@ -1049,17 +1049,12 @@ class DualKinventClient:
                 self.reset()
                 self.clear_connection_state()
                 for plate in self.plates:
-                    self.connect_plate_only(
+                    self.connect_and_start_plate(
                         plate,
                         scan_timeout,
                         connect_timeout,
+                        write_delay,
                     )
-                # Les deux liaisons sont établies avant toute activation de
-                # flux. La droite, plus sensible après reconnexion, est armée
-                # en premier.
-                for plate in reversed(self.plates):
-                    self.start_stream(plate, write_delay)
-                    self.pump(0.5)
                 self.ensure_streams_ready()
                 return
             except (PlateDisconnected, TimeoutError, RuntimeError) as exc:

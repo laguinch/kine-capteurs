@@ -375,13 +375,9 @@ class KPlateDualTest(unittest.TestCase):
         connections = []
         readiness_checks = 0
         client.reset = lambda: resets.append(True)
-        client.connect_plate_only = (
-            lambda plate, scan, connect: connections.append(plate.side)
+        client.connect_and_start_plate = (
+            lambda plate, scan, connect, delay: connections.append(plate.side)
         )
-        client.start_stream = lambda plate, delay: connections.append(
-            f"flux-{plate.side}"
-        )
-        client.pump = lambda duration: None
 
         def ensure_ready():
             nonlocal readiness_checks
@@ -395,19 +391,10 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(len(resets), 2)
         self.assertEqual(
             connections,
-            [
-                "gauche",
-                "droite",
-                "flux-droite",
-                "flux-gauche",
-                "gauche",
-                "droite",
-                "flux-droite",
-                "flux-gauche",
-            ],
+            ["gauche", "droite", "gauche", "droite"],
         )
 
-    def test_connects_both_plates_before_starting_streams(self):
+    def test_initializes_each_plate_completely_in_sequence(self):
         client = self.module.DualKinventClient(
             1,
             "E8:EB:1B:6F:A7:5F",
@@ -418,15 +405,11 @@ class KPlateDualTest(unittest.TestCase):
         )
         events = []
         client.reset = lambda: events.append("reset")
-        client.connect_plate_only = (
-            lambda plate, scan, connect: events.append(
-                f"connect-{plate.side}"
+        client.connect_and_start_plate = (
+            lambda plate, scan, connect, delay: events.append(
+                f"ready-{plate.side}"
             )
         )
-        client.start_stream = lambda plate, delay: events.append(
-            f"stream-{plate.side}"
-        )
-        client.pump = lambda duration: None
         client.ensure_streams_ready = lambda: events.append("ready")
 
         client.initialize_session(1, 1, 0, attempts=1)
@@ -435,10 +418,8 @@ class KPlateDualTest(unittest.TestCase):
             events,
             [
                 "reset",
-                "connect-gauche",
-                "connect-droite",
-                "stream-droite",
-                "stream-gauche",
+                "ready-gauche",
+                "ready-droite",
                 "ready",
             ],
         )
@@ -521,7 +502,7 @@ class KPlateDualTest(unittest.TestCase):
         ):
             client.pump(0.01, progress=True)
 
-    def test_connection_uses_long_supervision_timeout(self):
+    def test_connection_uses_observed_stable_parameters(self):
         client = self.module.DualKinventClient(
             1,
             "E8:EB:1B:6F:A7:5F",
@@ -542,9 +523,9 @@ class KPlateDualTest(unittest.TestCase):
             client.connect(plate, timeout=0)
 
         values = struct.unpack("<HHBB6sBHHHHHH", sent[0])
-        self.assertEqual(values[6], 0x000C)
-        self.assertEqual(values[7], 0x0018)
-        self.assertEqual(values[9], 0x07D0)
+        self.assertEqual(values[6], 0x0018)
+        self.assertEqual(values[7], 0x0028)
+        self.assertEqual(values[9], 0x01F4)
 
     def test_waits_for_cooldown_before_manual_reconnection(self):
         client = self.module.DualKinventClient(
