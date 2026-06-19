@@ -67,6 +67,9 @@ from scripts.kinvent_raw_hci import (  # noqa: E402
     parse_adapter,
 )
 
+OGF_LINK_CTL = 0x01
+OCF_DISCONNECT = 0x0006
+
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
@@ -952,6 +955,41 @@ class DualKinventClient:
             plate.timeline_sensor_origin = None
             plate.timeline_host_origin = None
 
+    def disconnect_all(self, timeout=3.0):
+        connected = [plate for plate in self.plates if plate.handle is not None]
+        if not connected or self.sock is None:
+            return
+        print("Déconnexion propre des plateformes...")
+        for plate in connected:
+            handle = plate.handle
+            try:
+                opcode = self.send_command(
+                    OGF_LINK_CTL,
+                    OCF_DISCONNECT,
+                    struct.pack("<HB", handle, 0x13),
+                )
+                self.wait_for_command(opcode, timeout=1.5)
+            except (OSError, RuntimeError, TimeoutError, PlateDisconnected):
+                pass
+
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline and any(
+            plate.handle is not None for plate in connected
+        ):
+            packet = self.receive()
+            if packet is None:
+                continue
+            try:
+                self.process(packet)
+            except PlateDisconnected as exc:
+                print(f"Plateforme {exc.plate.side} déconnectée proprement.")
+
+        for plate in connected:
+            if plate.handle is not None:
+                self.by_handle.pop(plate.handle, None)
+                plate.handle = None
+        time.sleep(1.0)
+
     def initialize_session(
         self,
         scan_timeout,
@@ -981,6 +1019,7 @@ class DualKinventClient:
             except (PlateDisconnected, TimeoutError, RuntimeError) as exc:
                 last_error = exc
                 print(f"Session Bluetooth incomplète: {exc}")
+                self.disconnect_all()
                 self.clear_connection_state()
                 time.sleep(0.8)
         raise RuntimeError(
@@ -1016,9 +1055,8 @@ class DualKinventClient:
         finally:
             if self.sock is not None:
                 try:
-                    print("Nettoyage du contrôleur Bluetooth...")
-                    self.reset()
-                except (OSError, RuntimeError, TimeoutError):
+                    self.disconnect_all()
+                except (OSError, RuntimeError, TimeoutError, PlateDisconnected):
                     pass
             self.close()
 

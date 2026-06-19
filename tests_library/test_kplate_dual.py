@@ -393,6 +393,34 @@ class KPlateDualTest(unittest.TestCase):
             ["gauche", "droite", "gauche", "droite"],
         )
 
+    def test_disconnects_both_plates_before_closing(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        sent = []
+        for index, plate in enumerate(client.plates, start=0x10):
+            plate.handle = index
+            client.by_handle[index] = plate
+        client.sock = object()
+        client.send_command = (
+            lambda ogf, ocf, params: sent.append((ogf, ocf, params)) or 1
+        )
+        client.wait_for_command = lambda opcode, timeout: None
+        client.receive = lambda: None
+
+        with mock.patch.object(self.module.time, "sleep"):
+            client.disconnect_all(timeout=0)
+
+        self.assertEqual(len(sent), 2)
+        self.assertTrue(all(plate.handle is None for plate in client.plates))
+        self.assertEqual(sent[0][0], self.module.OGF_LINK_CTL)
+        self.assertEqual(sent[0][1], self.module.OCF_DISCONNECT)
+
 
 if __name__ == "__main__":
     unittest.main()
