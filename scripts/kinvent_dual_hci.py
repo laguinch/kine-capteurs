@@ -1131,6 +1131,16 @@ class DualKinventClient:
                 plate.handle = None
         time.sleep(1.0)
 
+    def shutdown_session(self):
+        """Ferme entièrement les deux liaisons et libère le contrôleur."""
+        if self.sock is not None:
+            try:
+                self.disconnect_all()
+            except (OSError, RuntimeError, TimeoutError, PlateDisconnected):
+                pass
+        self.clear_connection_state()
+        self.close()
+
     def initialize_session(
         self,
         scan_timeout,
@@ -1317,64 +1327,33 @@ class DualKinventClient:
                         generation=generation,
                     )
                     try:
+                        # Une reconnexion partielle fait alterner les deux
+                        # plateformes. On repart toujours d'une session radio
+                        # entièrement libérée.
+                        self.shutdown_session()
                         self.wait_for_reconnect_cooldown()
-                        connection_order = self.connection_order(missing)
-                        for plate in connection_order:
-                            self.scan_for(plate, scan_timeout)
-                            self.connect(plate, connect_timeout)
-                            self.pump(0.5)
-                        self.start_streams(connection_order, write_delay)
-                        self.pump(1.0)
-
-                        before = {
-                            plate.side: plate.notifications
-                            for plate in self.plates
-                        }
-                        self.pump(1.5)
-                        silent = [
-                            plate
-                            for plate in self.plates
-                            if plate.notifications <= before[plate.side]
-                        ]
-                        if silent:
-                            print(
-                                "Liaison présente mais flux muet: "
-                                + ", ".join(plate.side for plate in silent)
-                                + ". Reconstruction complète..."
-                            )
-                            self.disconnect_all()
-                            self.clear_connection_state()
-                            self.close()
-                            self.reconnect_not_before = time.monotonic() + 10.0
-                            self.wait_for_reconnect_cooldown()
-                            self.open()
-                            self.initialize_session(
-                                scan_timeout,
-                                connect_timeout,
-                                write_delay,
-                                attempts=1,
-                            )
+                        self.open()
+                        self.initialize_session(
+                            scan_timeout,
+                            connect_timeout,
+                            write_delay,
+                            attempts=1,
+                        )
                     except (
+                        OSError,
                         PlateDisconnected,
                         TimeoutError,
                         RuntimeError,
+                        SystemExit,
                     ) as exc:
-                        for plate in missing:
-                            if plate.handle is not None:
-                                self.by_handle.pop(plate.handle, None)
-                                plate.handle = None
+                        self.shutdown_session()
                         self.reconnect_not_before = time.monotonic() + 10.0
                         self.write_worker_state(
                             state_file,
-                            phase="degraded",
+                            phase="disconnected",
                             generation=generation,
-                            connected_sides=[
-                                plate.side
-                                for plate in self.plates
-                                if plate.handle is not None
-                            ],
                             error=(
-                                "Reconnexion partielle impossible. Attendez "
+                                "Reconnexion impossible. Attendez "
                                 f"quelques secondes puis réessayez : {exc}"
                             ),
                         )
@@ -1458,40 +1437,31 @@ class DualKinventClient:
                             ),
                         )
                     except RuntimeError as exc:
-                        self.close_csv()
+                        self.shutdown_session()
                         self.reconnect_not_before = time.monotonic() + 10.0
                         self.write_worker_state(
                             state_file,
-                            phase="degraded",
+                            phase="disconnected",
                             generation=generation,
                             csv_path=command["csv_path"],
-                            connected_sides=[
-                                plate.side
-                                for plate in self.plates
-                                if plate.handle is not None
-                            ],
                             error=str(exc),
                         )
                         active_generation = None
                         continue
                     self.close_csv()
                     if self.paired_samples == 0:
+                        self.shutdown_session()
+                        self.reconnect_not_before = time.monotonic() + 10.0
                         self.write_worker_state(
                             state_file,
-                            phase="degraded",
+                            phase="disconnected",
                             generation=generation,
                             csv_path=command["csv_path"],
                             paired_samples=0,
-                            connected_sides=[
-                                plate.side
-                                for plate in self.plates
-                                if plate.handle is not None
-                            ],
                             error=(
-                                "Les plateformes sont liées en Bluetooth, "
-                                "mais aucun flux de mesure synchronisé n'est "
-                                "actif. Cliquez sur « Connecter les capteurs » "
-                                "pour reconstruire la session."
+                                "Aucune mesure synchronisée reçue. La session "
+                                "Bluetooth a été fermée; cliquez sur "
+                                "« Connecter les capteurs »."
                             ),
                         )
                     else:
@@ -1517,16 +1487,12 @@ class DualKinventClient:
                         next_idle_keepalive = time.monotonic() + 10.0
                 except (PlateDisconnected, TimeoutError, RuntimeError) as exc:
                     print(f"Session inactive interrompue: {exc}")
+                    self.shutdown_session()
                     self.reconnect_not_before = time.monotonic() + 10.0
                     self.write_worker_state(
                         state_file,
-                        phase="degraded",
+                        phase="disconnected",
                         generation=generation,
-                        connected_sides=[
-                            plate.side
-                            for plate in self.plates
-                            if plate.handle is not None
-                        ],
                         error=str(exc),
                     )
         except Exception as exc:

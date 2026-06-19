@@ -3,6 +3,7 @@ import json
 import os
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest import mock
 
@@ -119,6 +120,30 @@ class KPlateApiTest(unittest.TestCase):
 
         self.assertFalse(status["running"])
         self.assertEqual(status["last_error"], "Flux absent")
+
+    def test_disconnection_freezes_acquisition_timer(self):
+        service = DualPlateAcquisitionService()
+        service._generation = "interrupted-test"
+        service._started_at = (
+            datetime.now(timezone.utc) - timedelta(seconds=5)
+        ).isoformat()
+        with tempfile.TemporaryDirectory() as directory:
+            service._worker_state_path = Path(directory) / "state.json"
+            service._worker_state_path.write_text(
+                (
+                    f'{{"phase":"disconnected","pid":{os.getpid()},'
+                    '"generation":"interrupted-test",'
+                    '"error":"Plateforme gauche déconnectée"}'
+                ),
+                encoding="utf-8",
+            )
+
+            first = service.status()
+            frozen = first["elapsed_seconds"]
+            second = service.status()
+
+        self.assertFalse(first["running"])
+        self.assertEqual(second["elapsed_seconds"], frozen)
 
     def test_second_test_reuses_persistent_bluetooth_process(self):
         service = DualPlateAcquisitionService()

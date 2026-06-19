@@ -52,6 +52,7 @@ function updateStatus(data) {
   if (data.last_error) {
     state.awaitingTare = false;
     state.awaitingReady = false;
+    if (!running) resetMeasurement();
     setMessage(data.last_error, true);
   } else if (data.worker_phase === "disconnected") {
     state.awaitingTare = false;

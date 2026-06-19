@@ -577,6 +577,29 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(sent[0][0], self.module.OGF_LINK_CTL)
         self.assertEqual(sent[0][1], self.module.OCF_DISCONNECT)
 
+    def test_shutdown_session_never_leaves_one_plate_connected(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        client.sock = object()
+        for index, plate in enumerate(client.plates, start=0x10):
+            plate.handle = index
+            client.by_handle[index] = plate
+        calls = []
+        client.disconnect_all = lambda: calls.append("disconnect")
+        client.close = lambda: calls.append("close")
+
+        client.shutdown_session()
+
+        self.assertEqual(calls, ["disconnect", "close"])
+        self.assertTrue(all(plate.handle is None for plate in client.plates))
+        self.assertFalse(client.by_handle)
+
     def test_pump_stops_test_on_disconnect(self):
         client = self.module.DualKinventClient(
             1,

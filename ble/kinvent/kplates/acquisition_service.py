@@ -166,7 +166,12 @@ class DualPlateAcquisitionService:
                     self._csv_path = Path(worker["csv_path"])
                 if worker.get("started_at"):
                     self._started_at = worker["started_at"]
-                if phase in {"idle", "error"} and self._started_at:
+                if phase in {
+                    "idle",
+                    "error",
+                    "disconnected",
+                    "degraded",
+                } and self._started_at:
                     self._finished_at = self._finished_at or now_iso()
 
             elapsed_seconds = None
