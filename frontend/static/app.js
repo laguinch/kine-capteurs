@@ -29,6 +29,7 @@ function updateStatus(data) {
   const validating = Boolean(data.validating_streams);
   const connecting = ["connecting", "recovering"].includes(data.worker_phase);
   const degraded = data.worker_phase === "degraded";
+  const cmjMode = data.mode === "cmj";
   $("statusDot").className = `status-dot ${running || data.worker_ready ? "running" : data.last_error ? "error" : ""}`;
   $("statusText").textContent = running
     ? validating
@@ -38,6 +39,8 @@ function updateStatus(data) {
       ? "Connexion des capteurs"
       : degraded
         ? "Connexion partielle"
+      : cmjMode && data.finished_at && data.csv_path
+        ? "CMJ enregistré"
       : data.last_error
         ? "Erreur"
         : data.worker_ready
@@ -49,7 +52,6 @@ function updateStatus(data) {
   $("disconnectButton").disabled = running || connecting || (!data.bluetooth_connected && !degraded);
   $("fileLabel").textContent = data.csv_path ? data.csv_path.split("/").pop() : "Aucun fichier en cours";
   $("downloadButton").classList.toggle("disabled", !data.csv_path);
-  const cmjMode = data.mode === "cmj";
   $("balanceMetrics").classList.toggle("hidden", cmjMode);
   $("balanceVisuals").classList.toggle("hidden", cmjMode);
   $("cmjResults").classList.toggle(
@@ -80,6 +82,17 @@ function updateStatus(data) {
     state.awaitingReady = false;
     if (!running) resetMeasurement();
     setMessage(data.last_error, true);
+  } else if (
+    data.worker_phase === "disconnected"
+    && cmjMode
+    && data.csv_path
+    && data.finished_at
+  ) {
+    setMessage(
+      "CMJ enregistré et analysé. Les plateformes ont été déconnectées proprement ; reconnectez-les avant un nouveau test.",
+      false,
+      true
+    );
   } else if (data.worker_phase === "disconnected") {
     state.awaitingTare = false;
     state.awaitingReady = false;

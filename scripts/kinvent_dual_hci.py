@@ -1648,6 +1648,24 @@ class DualKinventClient:
                                 "« Connecter les capteurs »."
                             ),
                         )
+                    elif acquisition_mode == "cmj":
+                        # Après un saut, les plateformes restent souvent sans
+                        # charge et l'une d'elles finit par couper la liaison
+                        # en 0x08. On ferme donc proprement les deux connexions
+                        # dès que le fichier brut est complet.
+                        self.shutdown_session()
+                        self.reconnect_not_before = time.monotonic() + 5.0
+                        self.write_worker_state(
+                            state_file,
+                            phase="disconnected",
+                            generation=generation,
+                            csv_path=command["csv_path"],
+                            paired_samples=self.paired_samples,
+                            cmj_samples=self.cmj_samples,
+                            mode=acquisition_mode,
+                            completed=True,
+                            stopped=not completed,
+                        )
                     else:
                         self.park_measurement_streams()
                         self.write_worker_state(

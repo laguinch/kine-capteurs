@@ -212,6 +212,37 @@ class KPlateApiTest(unittest.TestCase):
         self.assertFalse(first["running"])
         self.assertEqual(second["elapsed_seconds"], frozen)
 
+    def test_completed_cmj_keeps_results_after_clean_disconnect(self):
+        service = DualPlateAcquisitionService()
+        service._mode = "cmj"
+        service._generation = "completed-cmj"
+        service._started_at = (
+            datetime.now(timezone.utc) - timedelta(seconds=15)
+        ).isoformat()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            csv_path = root / "cmj.csv"
+            csv_path.write_text(
+                "elapsed_s,source,source_kg\n",
+                encoding="utf-8",
+            )
+            service._worker_state_path = root / "state.json"
+            service._worker_state_path.write_text(
+                (
+                    f'{{"phase":"disconnected","pid":{os.getpid()},'
+                    '"generation":"completed-cmj","mode":"cmj",'
+                    f'"csv_path":"{csv_path}","completed":true}}'
+                ),
+                encoding="utf-8",
+            )
+
+            status = service.status()
+
+        self.assertFalse(status["running"])
+        self.assertEqual(status["mode"], "cmj")
+        self.assertEqual(status["csv_path"], str(csv_path))
+        self.assertIsNone(status["last_error"])
+
     def test_second_test_reuses_persistent_bluetooth_process(self):
         service = DualPlateAcquisitionService()
         with tempfile.TemporaryDirectory() as directory:
