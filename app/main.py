@@ -19,6 +19,18 @@ app.mount(
     name="static",
 )
 
+
+def frontend_page(filename):
+    return FileResponse(
+        Path(BASE_DIR) / "frontend" / "static" / filename,
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
+
+
 @app.get("/")
 def home():
     return RedirectResponse(url="/kforceplates")
@@ -26,17 +38,17 @@ def home():
 
 @app.get("/kforceplates")
 def kforceplates():
-    return FileResponse(Path(BASE_DIR) / "frontend" / "static" / "index.html")
+    return frontend_page("index.html")
 
 
 @app.get("/kpush")
 def kpush():
-    return FileResponse(Path(BASE_DIR) / "frontend" / "static" / "kpush.html")
+    return frontend_page("kpush.html")
 
 
 @app.get("/kpull")
 def kpull():
-    return FileResponse(Path(BASE_DIR) / "frontend" / "static" / "kpull.html")
+    return frontend_page("kpull.html")
 
 
 @app.get("/api/health")
