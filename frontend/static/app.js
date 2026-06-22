@@ -82,17 +82,6 @@ function updateStatus(data) {
     state.awaitingReady = false;
     if (!running) resetMeasurement();
     setMessage(data.last_error, true);
-  } else if (
-    data.worker_phase === "disconnected"
-    && cmjMode
-    && data.csv_path
-    && data.finished_at
-  ) {
-    setMessage(
-      "CMJ enregistré et analysé. Les plateformes ont été déconnectées proprement ; reconnectez-les avant un nouveau test.",
-      false,
-      true
-    );
   } else if (data.worker_phase === "disconnected") {
     state.awaitingTare = false;
     state.awaitingReady = false;
