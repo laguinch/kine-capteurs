@@ -1135,6 +1135,27 @@ class KPlateDualTest(unittest.TestCase):
         ):
             client.pump(0.01, progress=True)
 
+    def test_idle_pump_preserves_raw_disconnect_reason(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        plate = client.plates[1]
+        packets = [(self.module.HCI_EVENT_PKT, b"")]
+        client.receive = lambda: packets.pop() if packets else None
+        client.process = lambda packet: (
+            (_ for _ in ()).throw(
+                self.module.PlateDisconnected(plate, 0x08)
+            )
+        )
+
+        with self.assertRaises(self.module.PlateDisconnected):
+            client.pump(0.01, progress=False)
+
     def test_connection_uses_observed_stable_parameters(self):
         client = self.module.DualKinventClient(
             1,

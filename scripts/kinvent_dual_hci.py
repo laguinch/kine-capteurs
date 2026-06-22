@@ -1981,11 +1981,17 @@ class DualKinventClient:
                             cmj_samples=self.cmj_samples,
                             mode=acquisition_mode,
                             stopped=not completed,
+                            result_available=(
+                                acquisition_mode == "cmj"
+                            ),
                         )
                     next_idle_keepalive = time.monotonic() + 10.0
                     active_generation = None
                 try:
-                    self.pump(1.0, progress=True, show_progress=False)
+                    # Hors test, une coupure physique ne doit ni être
+                    # reformulée en « test arrêté », ni entraîner la
+                    # déconnexion logicielle de l'autre plateforme.
+                    self.pump(1.0, progress=False, show_progress=False)
                     if (
                         self.sock is not None
                         and not idle_streams_active
@@ -1995,15 +2001,51 @@ class DualKinventClient:
                             if plate.handle is not None:
                                 self.send_write_command(plate, b"\xff")
                         next_idle_keepalive = time.monotonic() + 10.0
-                except (PlateDisconnected, TimeoutError, RuntimeError) as exc:
+                except PlateDisconnected as exc:
                     print(f"Session inactive interrompue: {exc}")
-                    self.shutdown_session()
                     idle_streams_active = False
                     self.reconnect_not_before = time.monotonic() + 10.0
+                    connected_sides = [
+                        plate.side
+                        for plate in self.plates
+                        if plate.handle is not None
+                    ]
                     self.write_worker_state(
                         state_file,
-                        phase="disconnected",
+                        phase=(
+                            "degraded"
+                            if connected_sides
+                            else "disconnected"
+                        ),
                         generation=generation,
+                        csv_path=command.get("csv_path"),
+                        mode=command.get("mode", "balance"),
+                        connected_sides=connected_sides,
+                        result_available=(
+                            command.get("mode") == "cmj"
+                            and bool(command.get("csv_path"))
+                        ),
+                        error=(
+                            f"{exc}. La plateforme restante demeure "
+                            "connectée."
+                            if connected_sides
+                            else str(exc)
+                        ),
+                    )
+                except (TimeoutError, RuntimeError) as exc:
+                    print(f"Session inactive interrompue: {exc}")
+                    connected_sides = [
+                        plate.side
+                        for plate in self.plates
+                        if plate.handle is not None
+                    ]
+                    self.write_worker_state(
+                        state_file,
+                        phase="degraded",
+                        generation=generation,
+                        csv_path=command.get("csv_path"),
+                        mode=command.get("mode", "balance"),
+                        connected_sides=connected_sides,
                         error=str(exc),
                     )
         except Exception as exc:
