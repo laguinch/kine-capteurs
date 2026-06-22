@@ -1393,6 +1393,7 @@ class DualKinventClient:
         connect_timeout,
         write_delay,
         attempts=3,
+        require_measurements=True,
     ):
         last_error = None
         for attempt in range(1, attempts + 1):
@@ -1412,7 +1413,13 @@ class DualKinventClient:
                         connect_timeout,
                     )
                 self.start_streams(connection_order, write_delay)
-                self.ensure_streams_ready()
+                if require_measurements:
+                    self.ensure_streams_ready()
+                else:
+                    print(
+                        "Deux plateformes connectées et configurées; "
+                        "validation du flux différée au démarrage du test."
+                    )
                 return
             except (PlateDisconnected, TimeoutError, RuntimeError) as exc:
                 last_error = exc
@@ -1520,6 +1527,7 @@ class DualKinventClient:
                                 connect_timeout,
                                 write_delay,
                                 attempts=1,
+                                require_measurements=False,
                             )
                             self.park_measurement_streams(commands=1)
                             idle_streams_active = False
@@ -1566,7 +1574,7 @@ class DualKinventClient:
                     if not missing:
                         self.write_worker_state(
                             state_file,
-                            phase="degraded",
+                            phase="idle",
                             generation=generation,
                         )
                         continue
@@ -1587,6 +1595,7 @@ class DualKinventClient:
                             connect_timeout,
                             write_delay,
                             attempts=1,
+                            require_measurements=False,
                         )
                         self.park_measurement_streams(commands=1)
                         idle_streams_active = False

@@ -732,6 +732,40 @@ class KPlateDualTest(unittest.TestCase):
             ],
         )
 
+    def test_persistent_connection_defers_stream_validation(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        events = []
+        client.reset = lambda: events.append("reset")
+        client.connect_plate_only = (
+            lambda plate, scan, connect: events.append(
+                f"connected-{plate.side}"
+            )
+        )
+        client.start_streams = (
+            lambda plates, delay: events.append("streams")
+        )
+        client.ensure_streams_ready = lambda: events.append("ready")
+
+        client.initialize_session(
+            1,
+            1,
+            0,
+            attempts=1,
+            require_measurements=False,
+        )
+
+        self.assertEqual(
+            events,
+            ["reset", "connected-droite", "connected-gauche", "streams"],
+        )
+
     def test_connects_right_plate_first_like_official_application(self):
         client = self.module.DualKinventClient(
             1,
