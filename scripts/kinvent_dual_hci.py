@@ -26,6 +26,7 @@ from ble.kinvent.kplates.protocol import (  # noqa: E402
     compute_distribution,
     parse_frame,
 )
+from ble.kinvent.kplates.cmj_analysis import analyze_cmj_csv  # noqa: E402
 from scripts.kinvent_raw_hci import (  # noqa: E402
     AF_BLUETOOTH,
     ATT_CID,
@@ -149,6 +150,14 @@ class PlateDisconnected(ConnectionError):
         self.reason = reason
         super().__init__(
             f"Plateforme {plate.side} déconnectée: raison 0x{reason:02x}"
+        )
+
+
+class MeasurementStreamSilent(RuntimeError):
+    def __init__(self, sides):
+        self.sides = sides
+        super().__init__(
+            "Flux de mesure figé: " + ", ".join(sides) + "."
         )
 
 
@@ -995,6 +1004,23 @@ class DualKinventClient:
         left_kg = max(0.0, left.latest["force_kg"])
         right_kg = max(0.0, right.latest["force_kg"])
         total_kg = left_kg + right_kg
+        left_age_ms = max(
+            0.0,
+            event_time - left_entry["sample_monotonic"],
+        ) * 1000
+        right_age_ms = max(
+            0.0,
+            event_time - right_entry["sample_monotonic"],
+        ) * 1000
+        # Une valeur opposée trop ancienne ne doit jamais être présentée
+        # comme contemporaine. L'analyse CMJ utilise les flux source bruts.
+        left_current = left_kg if left_age_ms <= 100 else ""
+        right_current = right_kg if right_age_ms <= 100 else ""
+        total_current = (
+            left_kg + right_kg
+            if left_current != "" and right_current != ""
+            else ""
+        )
         source_sample = source_plate.latest
         source_distribution = source_plate.distribution or {}
         source_kg = max(0.0, source_sample["force_kg"])
@@ -1006,8 +1032,8 @@ class DualKinventClient:
                 source_sample["t"],
                 left.latest["t"],
                 right.latest["t"],
-                round(max(0.0, event_time - left_entry["sample_monotonic"]) * 1000, 3),
-                round(max(0.0, event_time - right_entry["sample_monotonic"]) * 1000, 3),
+                round(left_age_ms, 3),
+                round(right_age_ms, 3),
                 round(source_kg, 6),
                 round(source_kg * 9.81, 6),
                 source_sample.get("raw_av_d", ""),
@@ -1020,22 +1046,37 @@ class DualKinventClient:
                 source_sample.get("ar_d", ""),
                 source_distribution.get("cop_x", ""),
                 source_distribution.get("cop_y", ""),
-                round(left_kg, 6),
-                round(right_kg, 6),
-                round(total_kg, 6),
-                round(left_kg * 9.81, 6),
-                round(right_kg * 9.81, 6),
-                round(total_kg * 9.81, 6),
+                round(left_current, 6) if left_current != "" else "",
+                round(right_current, 6) if right_current != "" else "",
+                round(total_current, 6) if total_current != "" else "",
+                round(left_current * 9.81, 6) if left_current != "" else "",
+                round(right_current * 9.81, 6) if right_current != "" else "",
+                round(total_current * 9.81, 6) if total_current != "" else "",
             ]
         )
         self.csv_file.flush()
         self.cmj_samples += 1
         if time.monotonic() - self.last_print >= self.print_interval:
-            print(
-                f"CMJ G={left_kg:.1f} kg | D={right_kg:.1f} kg | "
-                f"TOTAL={total_kg:.1f} kg"
-            )
+            if left_current == "" or right_current == "":
+                print(
+                    f"CMJ {source_plate.side}={source_kg:.1f} kg | "
+                    "mesure opposée trop ancienne"
+                )
+            else:
+                print(
+                    f"CMJ G={left_kg:.1f} kg | D={right_kg:.1f} kg | "
+                    f"TOTAL={total_kg:.1f} kg"
+                )
             self.last_print = time.monotonic()
+
+    def silent_plate_sides(self, timeout, now=None):
+        current = time.monotonic() if now is None else now
+        return [
+            plate.side
+            for plate in self.plates
+            if plate.last_notification_at is None
+            or current - plate.last_notification_at > timeout
+        ]
 
     def pump(
         self,
@@ -1043,8 +1084,10 @@ class DualKinventClient:
         progress=False,
         show_progress=True,
         stop_requested=None,
+        stream_silence_timeout=None,
     ):
         deadline = time.monotonic() + duration
+        started_at = time.monotonic()
         next_progress = time.monotonic()
         if progress:
             self.next_keepalive = None
@@ -1062,6 +1105,15 @@ class DualKinventClient:
                         f"{exc}. Le test est arrêté pour protéger la session "
                         "Bluetooth."
                     ) from exc
+            if (
+                stream_silence_timeout is not None
+                and time.monotonic() - started_at >= 2.0
+            ):
+                silent = self.silent_plate_sides(
+                    stream_silence_timeout
+                )
+                if silent:
+                    raise MeasurementStreamSilent(silent)
             if (
                 progress
                 and self.keepalive_interval is not None
@@ -1623,12 +1675,94 @@ class DualKinventClient:
                         completed = self.pump(
                             duration,
                             progress=True,
+                            stream_silence_timeout=(
+                                1.0 if acquisition_mode == "cmj" else None
+                            ),
                             stop_requested=lambda: (
                                 read_command().get("action") == "stop"
                                 and read_command().get("generation")
                                 == active_generation
                             ),
                         )
+                    except MeasurementStreamSilent as exc:
+                        self.close_csv()
+                        print(f"{exc} Arrêt anticipé du CMJ.")
+                        try:
+                            analyze_cmj_csv(command["csv_path"])
+                        except (OSError, ValueError) as analysis_error:
+                            result_available = False
+                            print(
+                                "CMJ incomplet après silence du flux: "
+                                f"{analysis_error}"
+                            )
+                        else:
+                            result_available = True
+                            print(
+                                "Décollage et atterrissage déjà enregistrés; "
+                                "analyse CMJ conservée."
+                            )
+
+                        self.shutdown_session()
+                        idle_streams_active = False
+                        self.write_worker_state(
+                            state_file,
+                            phase="recovering",
+                            generation=generation,
+                            csv_path=command["csv_path"],
+                            mode=acquisition_mode,
+                            interrupted=True,
+                        )
+                        time.sleep(5.0)
+                        try:
+                            self.open()
+                            self.initialize_session(
+                                scan_timeout,
+                                connect_timeout,
+                                write_delay,
+                                attempts=2,
+                            )
+                            self.park_measurement_streams()
+                        except (
+                            OSError,
+                            PlateDisconnected,
+                            TimeoutError,
+                            RuntimeError,
+                            SystemExit,
+                        ) as reconnect_error:
+                            self.shutdown_session()
+                            self.reconnect_not_before = (
+                                time.monotonic() + 10.0
+                            )
+                            self.write_worker_state(
+                                state_file,
+                                phase="disconnected",
+                                generation=generation,
+                                csv_path=command["csv_path"],
+                                mode=acquisition_mode,
+                                error=(
+                                    "Le CMJ a été enregistré, mais la "
+                                    "reconnexion automatique a échoué : "
+                                    f"{reconnect_error}"
+                                    if result_available
+                                    else (
+                                        "CMJ incomplet et reconnexion "
+                                        "automatique impossible : "
+                                        f"{reconnect_error}"
+                                    )
+                                ),
+                            )
+                        else:
+                            self.write_worker_state(
+                                state_file,
+                                phase="idle",
+                                generation=generation,
+                                csv_path=command["csv_path"],
+                                mode=acquisition_mode,
+                                interrupted=True,
+                                result_available=result_available,
+                            )
+                        active_generation = None
+                        continue
                     except RuntimeError as exc:
                         self.shutdown_session()
                         self.reconnect_not_before = time.monotonic() + 10.0

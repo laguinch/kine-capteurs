@@ -196,6 +196,65 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(rows[1]["source"], "gauche")
         self.assertEqual(float(rows[1]["source_kg"]), 45.0)
 
+    def test_cmj_does_not_repeat_stale_opposite_measurement(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "cmj-stale.csv"
+            client = self.module.DualKinventClient(
+                1,
+                "E8:EB:1B:6F:A7:5F",
+                "E8:EB:1B:79:B1:AB",
+                None,
+                0,
+                1,
+            )
+            client.open_csv(path, mode="cmj")
+            left, right = client.plates
+            base = time.monotonic()
+            left.latest = {"force_kg": 35.0, "t": 100}
+            right.latest = {"force_kg": 55.0, "t": 200}
+            left.samples.append(
+                {
+                    "received_monotonic": base,
+                    "sample_monotonic": base,
+                    "received_utc": "2026-06-22T08:00:00+00:00",
+                    "sample": left.latest,
+                    "distribution": None,
+                }
+            )
+            right.samples.append(
+                {
+                    "received_monotonic": base + 0.2,
+                    "sample_monotonic": base + 0.2,
+                    "received_utc": "2026-06-22T08:00:00.200+00:00",
+                    "sample": right.latest,
+                    "distribution": None,
+                }
+            )
+            client.write_cmj_event(right)
+            client.close_csv()
+            with path.open(encoding="utf-8", newline="") as source:
+                row = next(csv.DictReader(source))
+
+        self.assertEqual(row["left_kg"], "")
+        self.assertEqual(float(row["right_kg"]), 55.0)
+        self.assertEqual(row["total_kg"], "")
+
+    def test_detects_silent_measurement_stream(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        client.plates[0].last_notification_at = 10.0
+        client.plates[1].last_notification_at = 11.5
+
+        silent = client.silent_plate_sides(1.0, now=12.0)
+
+        self.assertEqual(silent, ["gauche"])
+
     def test_sensor_clock_reconstructs_regular_timeline_from_bursts(self):
         plate = self.module.PlateState(
             "gauche",

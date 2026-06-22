@@ -41,6 +41,8 @@ class DualPlateAcquisitionService:
     ):
         del adapter, tare_duration, sync_tolerance_ms
         with self._lock:
+            if mode == "cmj":
+                duration = 15.0
             worker = self._read_worker_state()
             if not self._worker_alive(worker.get("pid")):
                 raise RuntimeError(

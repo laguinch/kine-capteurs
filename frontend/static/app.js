@@ -360,6 +360,9 @@ $("startButton").addEventListener("click", start);
 $("stopButton").addEventListener("click", stop);
 $("connectButton").addEventListener("click", () => setBluetoothConnection("connect"));
 $("disconnectButton").addEventListener("click", () => setBluetoothConnection("disconnect"));
+$("testMode").addEventListener("change", () => {
+  $("duration").value = $("testMode").value === "cmj" ? "15" : "30";
+});
 window.addEventListener("resize", drawHistory);
 poll();
 state.polling = setInterval(poll, 250);
