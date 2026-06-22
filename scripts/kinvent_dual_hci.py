@@ -1234,39 +1234,39 @@ class DualKinventClient:
         )
 
     def wake_measurement_streams(self):
-        """Relance la diffusion sans reconstruire les connexions BLE."""
+        """Relance la diffusion avec la séquence observée dans Kinvent."""
         if any(plate.handle is None for plate in self.plates):
             raise RuntimeError("Une plateforme est déconnectée.")
-        # La commande 0x11 précède immédiatement les trames de force dans les
-        # captures officielles. Elle suffit lorsque les services et CCCD sont
-        # déjà configurés.
+        # Entre deux tests, l'application officielle conserve les liaisons,
+        # envoie 0x90 aux deux plateformes, attend environ 700 ms, puis 0x11.
+        for plate in self.connection_order():
+            self.send_write_command(plate, b"\x90")
+        self.pump(0.70)
         for plate in self.connection_order():
             self.send_write_command(plate, b"\x11")
-        self.pump(0.15)
+        self.pump(0.25)
 
-    def park_measurement_streams(self):
-        """Met les mesures au repos en conservant les deux liaisons BLE."""
+    def park_measurement_streams(self, commands=3):
+        """Met les mesures au repos sans fermer les liaisons BLE."""
         connected = [
             plate for plate in self.connection_order()
             if plate.handle is not None
         ]
         if not connected:
             return
-        # À la fin d'une mesure, l'application Kinvent envoie trois commandes
-        # 0x10 à chaque plateforme, puis conserve seulement le keepalive 0xff.
-        for _ in range(3):
+        # Après un test, Kinvent envoie trois 0x10. Juste après
+        # l'initialisation, un seul 0x10 suffit à placer le flux au repos.
+        for _ in range(commands):
             for plate in connected:
                 self.send_write_command(plate, b"\x10")
             self.pump(0.05)
         print("Flux de mesure au repos; connexions Bluetooth conservées.")
 
     def finish_acquisition_streams(self, acquisition_mode):
-        """Conserve les flux actifs jusqu'à la déconnexion explicite."""
-        print(
-            "Test terminé; flux de mesure maintenus actifs pour préserver "
-            "les connexions Bluetooth."
-        )
-        return True
+        """Reproduit la fin de test Kinvent tout en restant connecté."""
+        del acquisition_mode
+        self.park_measurement_streams(commands=3)
+        return False
 
     def validate_live_streams(self, timeout=2.0, attempts=3):
         """Exige une nouvelle trame de mesure valide de chaque plateforme."""
@@ -1501,11 +1501,8 @@ class DualKinventClient:
                                 write_delay,
                                 attempts=1,
                             )
-                            # Les K-Force Plates ne redémarrent pas toujours
-                            # leur flux après une commande de mise au repos.
-                            # Tant que l'utilisateur garde les capteurs
-                            # connectés, on conserve donc le flux actif.
-                            idle_streams_active = True
+                            self.park_measurement_streams(commands=1)
+                            idle_streams_active = False
                         except (
                             OSError,
                             PlateDisconnected,
@@ -1549,7 +1546,7 @@ class DualKinventClient:
                     if not missing:
                         self.write_worker_state(
                             state_file,
-                            phase="idle",
+                            phase="degraded",
                             generation=generation,
                         )
                         continue
@@ -1571,7 +1568,8 @@ class DualKinventClient:
                             write_delay,
                             attempts=1,
                         )
-                        idle_streams_active = True
+                        self.park_measurement_streams(commands=1)
+                        idle_streams_active = False
                     except (
                         OSError,
                         PlateDisconnected,
@@ -1594,7 +1592,7 @@ class DualKinventClient:
                         next_idle_keepalive = time.monotonic() + 10.0
                         self.write_worker_state(
                             state_file,
-                            phase="idle",
+                            phase="degraded",
                             generation=generation,
                         )
                     continue
@@ -1701,12 +1699,11 @@ class DualKinventClient:
                                 "analyse CMJ conservée."
                             )
 
-                        self.shutdown_session()
+                        self.park_measurement_streams(commands=3)
                         idle_streams_active = False
-                        self.reconnect_not_before = time.monotonic() + 10.0
                         self.write_worker_state(
                             state_file,
-                            phase="disconnected",
+                            phase="degraded",
                             generation=generation,
                             csv_path=command["csv_path"],
                             mode=acquisition_mode,
@@ -1714,24 +1711,22 @@ class DualKinventClient:
                             result_available=result_available,
                             error=(
                                 "CMJ enregistré malgré l'arrêt d'un flux. "
-                                "Attendez 10 secondes puis cliquez sur "
-                                "« Connecter les capteurs »."
+                                "Les plateformes restent connectées."
                                 if result_available
                                 else (
                                     "CMJ incomplet après l'arrêt d'un flux. "
-                                    "Attendez 10 secondes puis reconnectez "
-                                    "les capteurs."
+                                    "Les plateformes restent connectées."
                                 )
                             ),
                         )
                         active_generation = None
                         continue
                     except RuntimeError as exc:
-                        self.shutdown_session()
-                        self.reconnect_not_before = time.monotonic() + 10.0
+                        self.park_measurement_streams(commands=3)
+                        idle_streams_active = False
                         self.write_worker_state(
                             state_file,
-                            phase="disconnected",
+                            phase="idle",
                             generation=generation,
                             csv_path=command["csv_path"],
                             error=str(exc),
@@ -1745,19 +1740,19 @@ class DualKinventClient:
                         else self.paired_samples
                     )
                     if sample_count == 0:
-                        self.shutdown_session()
-                        self.reconnect_not_before = time.monotonic() + 10.0
+                        self.park_measurement_streams(commands=3)
+                        idle_streams_active = False
                         self.write_worker_state(
                             state_file,
-                            phase="disconnected",
+                            phase="idle",
                             generation=generation,
                             csv_path=command["csv_path"],
                             paired_samples=0,
                             cmj_samples=0,
                             error=(
-                                "Aucune mesure exploitable reçue. La session "
-                                "Bluetooth a été fermée; cliquez sur "
-                                "« Connecter les capteurs »."
+                                "Aucune mesure exploitable reçue. La connexion "
+                                "Bluetooth est conservée; vous pouvez "
+                                "relancer le test."
                             ),
                         )
                     else:

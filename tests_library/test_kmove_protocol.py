@@ -10,8 +10,12 @@ from ble.kinvent.kmove.protocol import (
 
 
 class KMoveProtocolTest(unittest.TestCase):
-    def test_quaternion_mode_ends_with_stream_start_command(self):
-        self.assertEqual(INIT_COMMANDS[-3:], [b"\xb6", b"\xb0", b"\x11"])
+    def test_quaternion_mode_waits_for_explicit_test_start(self):
+        self.assertEqual(INIT_COMMANDS[-3:], [
+            bytes.fromhex("ac 00 54 f8"),
+            b"\xb6",
+            b"\xb0",
+        ])
 
     def test_reads_kmove_name_from_advertising_data(self):
         advertising = bytes.fromhex(

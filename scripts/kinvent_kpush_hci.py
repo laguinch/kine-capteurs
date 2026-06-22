@@ -149,14 +149,21 @@ class KPushHciClient(RawKinventClient):
             )
             self.last_measurement_print = time.monotonic()
 
+    def session_ready(self):
+        return self.tare_offset is not None
+
+    def ready_message(self):
+        return "K-Push prêt; liaison Bluetooth conservée."
+
     def pump(self, duration, show_progress=False):
         """Entretient la liaison comme l'application Kinvent officielle."""
-        deadline = time.monotonic() + duration
+        persistent = duration <= 0
+        deadline = None if persistent else time.monotonic() + duration
         next_progress = time.monotonic()
         if self.next_keepalive_at is None:
             self.next_keepalive_at = time.monotonic() + self.keepalive_interval
 
-        while time.monotonic() < deadline:
+        while persistent or time.monotonic() < deadline:
             packet = self.receive_packet()
             if packet is not None:
                 self.process_packet(packet)
@@ -165,7 +172,11 @@ class KPushHciClient(RawKinventClient):
                 self.next_keepalive_at = (
                     time.monotonic() + self.keepalive_interval
                 )
-            if show_progress and time.monotonic() >= next_progress:
+            if (
+                show_progress
+                and not persistent
+                and time.monotonic() >= next_progress
+            ):
                 remaining = max(0, deadline - time.monotonic())
                 print(f"Temps restant: {remaining:4.1f} s")
                 next_progress = time.monotonic() + 5.0
@@ -184,6 +195,7 @@ def build_parser():
     parser.add_argument("--write-delay", type=float, default=0.5)
     parser.add_argument("--print-interval", type=float, default=0.1)
     parser.add_argument("--csv")
+    parser.add_argument("--control-file")
     return parser
 
 
@@ -196,12 +208,20 @@ def main():
         tare_duration=args.tare_duration,
         print_interval=args.print_interval,
     )
-    client.run(
-        scan_timeout=args.scan_timeout,
-        connect_timeout=args.connect_timeout,
-        duration=args.duration,
-        write_delay=args.write_delay,
-    )
+    if args.control_file:
+        client.run_persistent(
+            scan_timeout=args.scan_timeout,
+            connect_timeout=args.connect_timeout,
+            write_delay=args.write_delay,
+            control_file=args.control_file,
+        )
+    else:
+        client.run(
+            scan_timeout=args.scan_timeout,
+            connect_timeout=args.connect_timeout,
+            duration=args.duration,
+            write_delay=args.write_delay,
+        )
     print(f"Force maximale: {client.maximum_force_n:.1f} N")
 
 

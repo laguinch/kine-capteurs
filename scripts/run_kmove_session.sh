@@ -5,9 +5,11 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DURATION="${1:-30}"
 CSV_NAME="${2:-kmove_test.csv}"
 REFERENCE_DURATION="${3:-2}"
+CONTROL_FILE="${4:-$PROJECT_DIR/storage/raw_data/kmove_worker_control.json}"
 BLUETOOTH_SERVICE_NAME="${KINE_BLUETOOTH_SERVICE_NAME:-kine-capteurs-bluetooth}"
 UPDATE_MARKER="$PROJECT_DIR/storage/raw_data/update_in_progress"
 SESSION_LOCK="/run/lock/kine-capteurs-hci-session.lock"
+KPLATES_STATE="$PROJECT_DIR/storage/raw_data/kplates_worker_state.json"
 
 if [[ ! "$DURATION" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
   echo "Durée K-Move invalide." >&2
@@ -25,6 +27,13 @@ fi
 exec 9>"$SESSION_LOCK"
 if ! flock -n 9; then
   echo "Un autre capteur Kinvent utilise déjà le dongle Bluetooth." >&2
+  exit 1
+fi
+
+if systemctl is-active --quiet "$BLUETOOTH_SERVICE_NAME" \
+  && [[ -f "$KPLATES_STATE" ]] \
+  && ! grep -Eq '"phase": "(disconnected|error)"' "$KPLATES_STATE"; then
+  echo "Les K-Force Plates sont encore connectées. Cliquez d'abord sur « Déconnecter les capteurs » depuis leur page." >&2
   exit 1
 fi
 
@@ -51,4 +60,5 @@ fi
   --adapter hci0 \
   --duration "$DURATION" \
   --reference-duration "$REFERENCE_DURATION" \
+  --control-file "$CONTROL_FILE" \
   --csv "$PROJECT_DIR/storage/raw_data/$CSV_NAME"

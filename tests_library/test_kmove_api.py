@@ -30,8 +30,9 @@ class KMoveApiTest(unittest.TestCase):
         root = Path(directory)
         service._live_path = root / "live.csv"
         service._log_path = root / "worker.log"
+        service._control_path = root / "control.json"
         service._log_path.write_text(
-            "Référence K-Move enregistrée. Les trois axes sont à zéro.\n",
+            "K-Move prêt; liaison Bluetooth conservée.\n",
             encoding="utf-8",
         )
         service._process = mock.Mock(pid=123)
@@ -63,6 +64,7 @@ class KMoveApiTest(unittest.TestCase):
             root = Path(directory)
             service._live_path = root / "live.csv"
             service._log_path = root / "worker.log"
+            service._control_path = root / "control.json"
             with mock.patch(
                 "ble.kinvent.kmove.acquisition_service.subprocess.Popen",
                 return_value=process,
@@ -72,6 +74,7 @@ class KMoveApiTest(unittest.TestCase):
         command = popen.call_args.args[0]
         self.assertEqual(command[:2], ["sudo", "-n"])
         self.assertTrue(command[2].endswith("run_kmove_session.sh"))
+        self.assertEqual(command[3], "0")
         self.assertTrue(status["connected"])
 
     def test_reports_reference_then_ready(self):
@@ -83,7 +86,7 @@ class KMoveApiTest(unittest.TestCase):
             )
             self.assertEqual(service.status()["phase"], "reference")
             service._log_path.write_text(
-                "Référence K-Move enregistrée.\n",
+                "K-Move prêt; liaison Bluetooth conservée.\n",
                 encoding="utf-8",
             )
             self.assertEqual(service.status()["phase"], "ready")
@@ -116,10 +119,12 @@ class KMoveApiTest(unittest.TestCase):
             service._csv_path = Path(directory) / "test.csv"
 
             status = service.stop()
+            control = service._control_path.read_text()
 
         self.assertFalse(status["running"])
         self.assertTrue(status["connected"])
         self.assertEqual(status["phase"], "ready")
+        self.assertIn('"action": "stop"', control)
 
 
 if __name__ == "__main__":

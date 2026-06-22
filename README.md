@@ -93,6 +93,24 @@ Le processus HCI nécessite les droits d'accès au contrôleur Bluetooth brut.
 La variable `KINE_HCI_COMMAND_PREFIX` permet de définir un préfixe de lancement
 fourni par le service système, par exemple `sudo -n` après configuration dédiée.
 
+## Cycle Bluetooth Kinvent
+
+Les pilotes reproduisent le cycle observé dans les captures HCI de
+l'application officielle :
+
+- la connexion BLE et les notifications restent configurées tant que
+  l'utilisateur ne clique pas sur « Déconnecter » ;
+- hors test, le flux de mesure est mis au repos avec la commande Kinvent
+  `0x10`, tandis que le maintien de liaison `0xFF` est envoyé toutes les
+  dix secondes ;
+- au démarrage d'un test, le flux est relancé sans recréer la connexion ;
+- à la fin du test, trois commandes `0x10` remettent le capteur au repos sans
+  fermer la liaison Bluetooth.
+
+Pour les K-Force Plates, la relance observée est `0x90`, une attente d'environ
+700 ms, puis `0x11` sur chaque plateforme. Pour le K-Push, le K-Pull et le
+K-Move, la relance du test utilise `0x11`.
+
 ## Installation et mise à jour du serveur
 
 Après le premier clonage du dépôt dans `/opt/kine-capteurs-staging`, une seule

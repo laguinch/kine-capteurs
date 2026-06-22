@@ -24,8 +24,9 @@ class KPullApiTest(unittest.TestCase):
         root = Path(directory)
         service._live_path = root / "live.csv"
         service._log_path = root / "worker.log"
+        service._control_path = root / "control.json"
         service._log_path.write_text(
-            "Tare K-Pull terminée: offset=43680.\n",
+            "K-Pull prêt; liaison Bluetooth conservée.\n",
             encoding="utf-8",
         )
         service._process = mock.Mock(pid=123)
@@ -51,6 +52,7 @@ class KPullApiTest(unittest.TestCase):
             root = Path(directory)
             service._live_path = root / "live.csv"
             service._log_path = root / "worker.log"
+            service._control_path = root / "control.json"
             with mock.patch(
                 "ble.kinvent.kpull.acquisition_service.subprocess.Popen",
                 return_value=process,
@@ -60,6 +62,7 @@ class KPullApiTest(unittest.TestCase):
         command = popen.call_args.args[0]
         self.assertEqual(command[:2], ["sudo", "-n"])
         self.assertTrue(command[2].endswith("run_kpull_session.sh"))
+        self.assertEqual(command[3], "0")
         self.assertTrue(status["connected"])
 
     def test_reports_tare_then_ready(self):
@@ -71,7 +74,7 @@ class KPullApiTest(unittest.TestCase):
             )
             self.assertEqual(service.status()["phase"], "tare")
             service._log_path.write_text(
-                "Tare K-Pull terminée: offset=43680.\n",
+                "K-Pull prêt; liaison Bluetooth conservée.\n",
                 encoding="utf-8",
             )
             self.assertEqual(service.status()["phase"], "ready")
@@ -106,10 +109,12 @@ class KPullApiTest(unittest.TestCase):
             service._csv_path = Path(directory) / "test.csv"
 
             status = service.stop()
+            control = service._control_path.read_text()
 
         self.assertFalse(status["running"])
         self.assertTrue(status["connected"])
         self.assertEqual(status["phase"], "ready")
+        self.assertIn('"action": "stop"', control)
 
 
 if __name__ == "__main__":

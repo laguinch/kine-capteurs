@@ -48,7 +48,7 @@ class DualPlateAcquisitionService:
                 raise RuntimeError(
                     "Le service Bluetooth permanent n'est pas démarré."
                 )
-            if worker.get("phase") != "idle":
+            if worker.get("phase") not in {"idle", "degraded"}:
                 if worker.get("phase") == "active":
                     raise RuntimeError("Une acquisition est déjà en cours.")
                 if worker.get("phase") == "error":
@@ -203,9 +203,9 @@ class DualPlateAcquisitionService:
                 "running": running,
                 "worker_phase": phase,
                 "validating_streams": command_pending,
-                "worker_ready": worker_alive and phase == "idle",
+                "worker_ready": worker_alive and phase in {"idle", "degraded"},
                 "bluetooth_connected": worker_alive
-                and phase in {"idle", "active"},
+                and phase in {"idle", "active", "degraded"},
                 "connected_sides": worker.get("connected_sides", []),
                 "pid": worker.get("pid") if worker_alive else None,
                 "started_at": self._started_at,

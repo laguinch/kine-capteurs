@@ -6,6 +6,25 @@ from scripts.kinvent_kpush_hci import KPushHciClient
 
 
 class KPushProtocolTest(unittest.TestCase):
+    def test_official_test_transitions_keep_connection_alive(self):
+        client = KPushHciClient(
+            adapter=0,
+            address="60:8A:10:30:9B:FA",
+            csv_path=None,
+        )
+        commands = []
+        client.send_write_command = commands.append
+        client.pump = mock.Mock()
+
+        client.stop_test_stream(commands=1)
+        client.start_test_stream()
+        client.stop_test_stream(commands=3)
+
+        self.assertEqual(
+            commands,
+            [b"\x10", b"\x11", b"\x10", b"\x10", b"\x10"],
+        )
+
     def test_decodes_force_frame_from_official_capture(self):
         frame = bytes.fromhex(
             "ff ff fe 7b de 00 72 e7 00 0f 51 00 0f 51 00 0f 52"

@@ -46,7 +46,6 @@ INIT_COMMANDS = [
     bytes.fromhex("ac 00 54 f8"),
     b"\xb6",
     b"\xb0",
-    b"\x11",
 ]
 
 
@@ -266,11 +265,12 @@ class KMoveHciClient(RawKinventClient):
             self.last_measurement_print = time.monotonic()
 
     def pump(self, duration, show_progress=False):
-        deadline = time.monotonic() + duration
+        persistent = duration <= 0
+        deadline = None if persistent else time.monotonic() + duration
         next_progress = time.monotonic()
         if self.next_keepalive_at is None:
             self.next_keepalive_at = time.monotonic() + self.keepalive_interval
-        while time.monotonic() < deadline:
+        while persistent or time.monotonic() < deadline:
             packet = self.receive_packet()
             if packet is not None:
                 self.process_packet(packet)
@@ -279,9 +279,19 @@ class KMoveHciClient(RawKinventClient):
                 self.next_keepalive_at = (
                     time.monotonic() + self.keepalive_interval
                 )
-            if show_progress and time.monotonic() >= next_progress:
+            if (
+                show_progress
+                and not persistent
+                and time.monotonic() >= next_progress
+            ):
                 print(f"Temps restant: {max(0, deadline-time.monotonic()):.1f} s")
                 next_progress = time.monotonic() + 5.0
+
+    def session_ready(self):
+        return self.reference_quaternion is not None
+
+    def ready_message(self):
+        return "K-Move prêt; liaison Bluetooth conservée."
 
 
 def build_parser():
@@ -297,6 +307,7 @@ def build_parser():
     parser.add_argument("--write-delay", type=float, default=0.5)
     parser.add_argument("--print-interval", type=float, default=0.1)
     parser.add_argument("--csv")
+    parser.add_argument("--control-file")
     return parser
 
 
@@ -309,12 +320,20 @@ def main():
         reference_duration=args.reference_duration,
         print_interval=args.print_interval,
     )
-    client.run(
-        scan_timeout=args.scan_timeout,
-        connect_timeout=args.connect_timeout,
-        duration=args.duration,
-        write_delay=args.write_delay,
-    )
+    if args.control_file:
+        client.run_persistent(
+            scan_timeout=args.scan_timeout,
+            connect_timeout=args.connect_timeout,
+            write_delay=args.write_delay,
+            control_file=args.control_file,
+        )
+    else:
+        client.run(
+            scan_timeout=args.scan_timeout,
+            connect_timeout=args.connect_timeout,
+            duration=args.duration,
+            write_delay=args.write_delay,
+        )
 
 
 if __name__ == "__main__":

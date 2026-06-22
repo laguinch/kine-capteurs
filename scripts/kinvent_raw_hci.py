@@ -15,6 +15,7 @@ import argparse
 import ctypes
 import csv
 import errno
+import json
 import socket
 import struct
 import sys
@@ -709,6 +710,80 @@ class RawKinventClient:
             self.pump(duration, show_progress=True)
             print("Acquisition terminée.")
             print(f"Notifications reçues: {self.notifications}")
+        finally:
+            self.close()
+
+    def session_ready(self):
+        """Indique que la tare ou la référence initiale est terminée."""
+        return True
+
+    def ready_message(self):
+        return "Capteur Kinvent prêt."
+
+    def start_test_stream(self):
+        self.send_write_command(b"\x11")
+        self.pump(0.20)
+
+    def stop_test_stream(self, commands=3):
+        for _ in range(commands):
+            self.send_write_command(b"\x10")
+            self.pump(0.05)
+
+    @staticmethod
+    def read_control(path):
+        try:
+            return json.loads(Path(path).read_text(encoding="utf-8"))
+        except (OSError, ValueError, json.JSONDecodeError):
+            return {}
+
+    def run_persistent(
+        self,
+        scan_timeout,
+        connect_timeout,
+        write_delay,
+        control_file,
+    ):
+        """Conserve la liaison et reproduit les transitions de Kinvent."""
+        self.open()
+        try:
+            self.reset()
+            self.wait_for_advertisement(scan_timeout)
+            self.connect(connect_timeout)
+            self.service_initial_handshake()
+            self.start_stream(write_delay)
+
+            ready_deadline = time.monotonic() + 30.0
+            while not self.session_ready():
+                if time.monotonic() >= ready_deadline:
+                    raise RuntimeError(
+                        "Le capteur est connecté, mais sa préparation "
+                        "ne se termine pas."
+                    )
+                self.pump(0.20)
+
+            # La capture officielle place le flux au repos avec un 0x10,
+            # sans désactiver le CCCD ni fermer la liaison.
+            self.stop_test_stream(commands=1)
+            print(self.ready_message())
+            last_command = None
+            while True:
+                command = self.read_control(control_file)
+                current = (
+                    command.get("action"),
+                    command.get("generation"),
+                )
+                if current != last_command:
+                    action, _ = current
+                    if action == "start":
+                        self.start_test_stream()
+                        print("Flux de test démarré.")
+                    elif action == "stop":
+                        self.stop_test_stream(commands=3)
+                        print(
+                            "Flux de test arrêté; liaison Bluetooth conservée."
+                        )
+                    last_command = current
+                self.pump(0.20)
         finally:
             self.close()
 

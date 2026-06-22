@@ -1,8 +1,10 @@
 import csv
+import json
 import os
 import signal
 import subprocess
 import threading
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -26,9 +28,11 @@ class KPushAcquisitionService:
         self._csv_path = None
         self._live_path = raw_dir / "kpush_live.csv"
         self._log_path = raw_dir / "kpush_worker.log"
+        self._control_path = raw_dir / "kpush_worker_control.json"
         self._last_error = None
         self._stop_requested = False
         self._sensor_ready = False
+        self._test_generation = None
 
     def connect(self, tare_duration=2.0):
         with self._lock:
@@ -41,13 +45,15 @@ class KPushAcquisitionService:
                     path.unlink()
                 except FileNotFoundError:
                     pass
+            self._write_control("idle")
             command = [
                 "sudo",
                 "-n",
                 str(BASE_DIR / "scripts" / "run_kpush_session.sh"),
-                "86400",
+                "0",
                 self._live_path.name,
                 str(float(tare_duration)),
+                str(self._control_path),
             ]
             log_file = self._log_path.open("w", encoding="utf-8")
             try:
@@ -102,6 +108,8 @@ class KPushAcquisitionService:
             self._finished_at = None
             self._duration = float(duration)
             self._recording = True
+            self._test_generation = uuid.uuid4().hex
+            self._write_control("start", self._test_generation)
             self._write_recording_csv()
             return self.status()
 
@@ -111,6 +119,7 @@ class KPushAcquisitionService:
             if self._recording:
                 self._recording = False
                 self._finished_at = now_iso()
+                self._write_control("stop", self._test_generation)
                 # L'état doit basculer immédiatement. La copie finale du CSV
                 # vient ensuite et ne peut plus maintenir l'interface en mode
                 # « Acquisition en cours ».
@@ -170,7 +179,7 @@ class KPushAcquisitionService:
         if self._sensor_ready:
             return "ready"
         text = self._read_log()
-        if "Tare K-Push terminée" in text:
+        if "K-Push prêt; liaison Bluetooth conservée." in text:
             self._sensor_ready = True
             return "ready"
         if "Tare K-Push pendant" in text:
@@ -207,6 +216,20 @@ class KPushAcquisitionService:
             )
         self._stop_requested = False
         self._sensor_ready = False
+
+    def _write_control(self, action, generation=None):
+        self._control_path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = self._control_path.with_suffix(".tmp")
+        temporary.write_text(
+            json.dumps(
+                {
+                    "action": action,
+                    "generation": generation or uuid.uuid4().hex,
+                }
+            ),
+            encoding="utf-8",
+        )
+        temporary.replace(self._control_path)
 
     def _recording_rows(self):
         if not self._started_at or not self._live_path.exists():

@@ -169,11 +169,12 @@ class KPullHciClient(RawKinventClient):
             self.last_measurement_print = time.monotonic()
 
     def pump(self, duration, show_progress=False):
-        deadline = time.monotonic() + duration
+        persistent = duration <= 0
+        deadline = None if persistent else time.monotonic() + duration
         next_progress = time.monotonic()
         if self.next_keepalive_at is None:
             self.next_keepalive_at = time.monotonic() + self.keepalive_interval
-        while time.monotonic() < deadline:
+        while persistent or time.monotonic() < deadline:
             packet = self.receive_packet()
             if packet is not None:
                 self.process_packet(packet)
@@ -182,7 +183,11 @@ class KPullHciClient(RawKinventClient):
                 self.next_keepalive_at = (
                     time.monotonic() + self.keepalive_interval
                 )
-            if show_progress and time.monotonic() >= next_progress:
+            if (
+                show_progress
+                and not persistent
+                and time.monotonic() >= next_progress
+            ):
                 print(f"Temps restant: {max(0, deadline-time.monotonic()):.1f} s")
                 next_progress = time.monotonic() + 5.0
 
@@ -196,6 +201,12 @@ class KPullHciClient(RawKinventClient):
             self.force_deltas,
             self.known_load_kg,
         )
+
+    def session_ready(self):
+        return self.tare_offset is not None
+
+    def ready_message(self):
+        return "K-Pull prêt; liaison Bluetooth conservée."
 
 
 def build_parser():
@@ -213,6 +224,7 @@ def build_parser():
     parser.add_argument("--counts-per-kg", type=float)
     parser.add_argument("--known-load-kg", type=float)
     parser.add_argument("--csv")
+    parser.add_argument("--control-file")
     return parser
 
 
@@ -227,12 +239,20 @@ def main():
         counts_per_kg=args.counts_per_kg,
         known_load_kg=args.known_load_kg,
     )
-    client.run(
-        scan_timeout=args.scan_timeout,
-        connect_timeout=args.connect_timeout,
-        duration=args.duration,
-        write_delay=args.write_delay,
-    )
+    if args.control_file:
+        client.run_persistent(
+            scan_timeout=args.scan_timeout,
+            connect_timeout=args.connect_timeout,
+            write_delay=args.write_delay,
+            control_file=args.control_file,
+        )
+    else:
+        client.run(
+            scan_timeout=args.scan_timeout,
+            connect_timeout=args.connect_timeout,
+            duration=args.duration,
+            write_delay=args.write_delay,
+        )
     print(f"Variation maximale: {client.maximum_delta} comptes.")
     calibration = client.calibration_result()
     if calibration is not None:

@@ -296,7 +296,7 @@ class KPlateDualTest(unittest.TestCase):
 
         self.assertIsNone(client.keepalive_interval)
 
-    def test_cmj_keeps_streams_active_after_acquisition(self):
+    def test_cmj_parks_streams_after_acquisition(self):
         client = self.module.DualKinventClient(
             1,
             "E8:EB:1B:6F:A7:5F",
@@ -306,14 +306,16 @@ class KPlateDualTest(unittest.TestCase):
             1,
         )
         parked = []
-        client.park_measurement_streams = lambda: parked.append(True)
+        client.park_measurement_streams = (
+            lambda commands=3: parked.append(commands)
+        )
 
         streams_active = client.finish_acquisition_streams("cmj")
 
-        self.assertTrue(streams_active)
-        self.assertEqual(parked, [])
+        self.assertFalse(streams_active)
+        self.assertEqual(parked, [3])
 
-    def test_balance_keeps_streams_active_after_acquisition(self):
+    def test_balance_parks_streams_after_acquisition(self):
         client = self.module.DualKinventClient(
             1,
             "E8:EB:1B:6F:A7:5F",
@@ -323,12 +325,14 @@ class KPlateDualTest(unittest.TestCase):
             1,
         )
         parked = []
-        client.park_measurement_streams = lambda: parked.append(True)
+        client.park_measurement_streams = (
+            lambda commands=3: parked.append(commands)
+        )
 
         streams_active = client.finish_acquisition_streams("balance")
 
-        self.assertTrue(streams_active)
-        self.assertEqual(parked, [])
+        self.assertFalse(streams_active)
+        self.assertEqual(parked, [3])
 
     def test_disconnect_identifies_plate_and_clears_handle(self):
         client = self.module.DualKinventClient(
@@ -575,7 +579,12 @@ class KPlateDualTest(unittest.TestCase):
 
         self.assertEqual(
             sent,
-            [("droite", b"\x11"), ("gauche", b"\x11")],
+            [
+                ("droite", b"\x90"),
+                ("gauche", b"\x90"),
+                ("droite", b"\x11"),
+                ("gauche", b"\x11"),
+            ],
         )
 
     def test_parks_measurement_streams_without_disconnecting(self):

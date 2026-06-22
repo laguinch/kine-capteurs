@@ -347,7 +347,7 @@ class KPlateApiTest(unittest.TestCase):
             "Plateforme gauche déconnectée",
         )
 
-    def test_degraded_state_is_not_reported_as_ready(self):
+    def test_degraded_state_stays_connected_and_can_retry(self):
         service = DualPlateAcquisitionService()
         with tempfile.TemporaryDirectory() as directory:
             service._worker_state_path = Path(directory) / "state.json"
@@ -362,8 +362,8 @@ class KPlateApiTest(unittest.TestCase):
 
             status = service.status()
 
-        self.assertFalse(status["bluetooth_connected"])
-        self.assertFalse(status["worker_ready"])
+        self.assertTrue(status["bluetooth_connected"])
+        self.assertTrue(status["worker_ready"])
 
 
 if __name__ == "__main__":
