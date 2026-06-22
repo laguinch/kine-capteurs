@@ -46,6 +46,7 @@ INIT_COMMANDS = [
     bytes.fromhex("ac 00 54 f8"),
     b"\xb6",
     b"\xb0",
+    b"\x11",
 ]
 
 

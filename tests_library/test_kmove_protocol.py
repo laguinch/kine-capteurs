@@ -1,6 +1,6 @@
 import math
 import unittest
-from scripts.kinvent_kmove_hci import KMoveHciClient
+from scripts.kinvent_kmove_hci import INIT_COMMANDS, KMoveHciClient
 
 from ble.kinvent.kmove.protocol import (
     parse_quaternion_frame,
@@ -10,6 +10,9 @@ from ble.kinvent.kmove.protocol import (
 
 
 class KMoveProtocolTest(unittest.TestCase):
+    def test_quaternion_mode_ends_with_stream_start_command(self):
+        self.assertEqual(INIT_COMMANDS[-3:], [b"\xb6", b"\xb0", b"\x11"])
+
     def test_reads_kmove_name_from_advertising_data(self):
         advertising = bytes.fromhex(
             "02 01 06 10 09 4b 46 4f 52 43 45 53 65 6e 73 30 32 31 34 33"

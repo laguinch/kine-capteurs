@@ -171,6 +171,17 @@ class KMoveAcquisitionService:
             return "ready"
         if "Référence K-Move pendant" in text:
             return "reference"
+        if self._connected_at:
+            connected_at = datetime.fromisoformat(self._connected_at)
+            waiting = (
+                datetime.now(timezone.utc) - connected_at
+            ).total_seconds()
+            if waiting >= 45:
+                self._last_error = (
+                    "Le K-Move est connecté, mais son flux de mesure "
+                    "ne démarre pas."
+                )
+                return "error"
         return "connecting"
 
     def _recording_elapsed(self):
