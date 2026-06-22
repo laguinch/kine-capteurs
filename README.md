@@ -142,3 +142,21 @@ sudo scripts/run_anr_m40_diagnostic.sh \
 ```
 
 Le service permanent des plateformes est restauré automatiquement à la fin.
+
+## Diagnostic K-Pull
+
+Le K-Pull capturé est `KFORCELink02287`
+(`E8:EB:1B:61:11:AF`). Le premier diagnostic conserve les comptes bruts afin de
+calculer précisément l'échelle avec une charge connue :
+
+```bash
+cd /opt/kine-capteurs-staging
+sudo scripts/run_kpull_diagnostic.sh \
+  --duration 30 \
+  --known-load-kg 20 \
+  --csv storage/raw_data/kpull_calibration.csv
+```
+
+Laisser le câble sans tension pendant les deux premières secondes, puis
+appliquer ou suspendre exactement la charge indiquée. Le script affiche alors
+le coefficient en comptes/kg.
