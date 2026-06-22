@@ -239,7 +239,7 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(float(row["right_kg"]), 55.0)
         self.assertEqual(row["total_kg"], "")
 
-    def test_cmj_marks_support_then_flight(self):
+    def test_cmj_marks_support_flight_then_landing(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "cmj-flight.csv"
             client = self.module.DualKinventClient(
@@ -254,7 +254,11 @@ class KPlateDualTest(unittest.TestCase):
             left, right = client.plates
             base = time.monotonic()
 
-            for force, offset in ((50.0, 0.0), (0.0, 0.1)):
+            for force, offset in (
+                (50.0, 0.0),
+                (0.0, 0.1),
+                (55.0, 0.2),
+            ):
                 for plate in (left, right):
                     plate.latest = {"force_kg": force, "t": 100}
                     plate.samples.append(
@@ -270,10 +274,12 @@ class KPlateDualTest(unittest.TestCase):
 
             self.assertTrue(client.cmj_support_observed)
             self.assertTrue(client.cmj_flight_observed)
+            self.assertTrue(client.cmj_landing_observed)
             client.close_csv()
 
         self.assertFalse(client.cmj_support_observed)
         self.assertFalse(client.cmj_flight_observed)
+        self.assertFalse(client.cmj_landing_observed)
 
     def test_targeted_stream_wake_uses_official_sequence(self):
         client = self.module.DualKinventClient(

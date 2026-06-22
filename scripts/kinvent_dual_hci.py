@@ -377,6 +377,7 @@ class DualKinventClient:
         self.cmj_samples = 0
         self.cmj_support_observed = False
         self.cmj_flight_observed = False
+        self.cmj_landing_observed = False
         self.reconnect_not_before = 0.0
         self.streams_parked_at = None
 
@@ -397,6 +398,7 @@ class DualKinventClient:
         self.cmj_samples = 0
         self.cmj_support_observed = False
         self.cmj_flight_observed = False
+        self.cmj_landing_observed = False
         self.writer.writerow(CMJ_FIELDS if mode == "cmj" else CSV_FIELDS)
         self.csv_file.flush()
 
@@ -409,6 +411,7 @@ class DualKinventClient:
         self.cmj_started_monotonic = None
         self.cmj_support_observed = False
         self.cmj_flight_observed = False
+        self.cmj_landing_observed = False
 
     def wait_for_reconnect_cooldown(self):
         remaining = self.reconnect_not_before - time.monotonic()
@@ -1134,6 +1137,8 @@ class DualKinventClient:
         source_sample = source_plate.latest
         source_distribution = source_plate.distribution or {}
         source_kg = max(0.0, source_sample["force_kg"])
+        if self.cmj_flight_observed and source_kg >= 20.0:
+            self.cmj_landing_observed = True
         self.writer.writerow(
             [
                 source_entry["received_utc"],
@@ -1238,13 +1243,21 @@ class DualKinventClient:
                         recover_silent_streams
                         and len(silent) == 1
                         and recoverable
-                        and not self.cmj_flight_observed
+                        and (
+                            not self.cmj_flight_observed
+                            or self.cmj_landing_observed
+                        )
                     ):
                         plate = recoverable[0]
                         recovered_sides.add(plate.side)
+                        phase = (
+                            "après l'atterrissage"
+                            if self.cmj_landing_observed
+                            else "avant le décollage"
+                        )
                         print(
-                            f"Flux {plate.side} silencieux avant le "
-                            "décollage; réveil ciblé unique..."
+                            f"Flux {plate.side} silencieux {phase}; "
+                            "réveil ciblé unique..."
                         )
                         if self.wake_measurement_stream(plate):
                             print(
