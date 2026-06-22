@@ -1,4 +1,5 @@
 import importlib.util
+import csv
 import struct
 import tempfile
 import time
@@ -143,6 +144,57 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(client.dropped_samples["gauche"], 1)
         self.assertFalse(left.samples)
         self.assertTrue(right.samples)
+
+    def test_cmj_keeps_each_unilateral_sample(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "cmj.csv"
+            client = self.module.DualKinventClient(
+                1,
+                "E8:EB:1B:6F:A7:5F",
+                "E8:EB:1B:79:B1:AB",
+                None,
+                0,
+                1,
+            )
+            client.open_csv(path, mode="cmj")
+            left, right = client.plates
+            base = time.monotonic()
+            for plate, force, offset in (
+                (left, 40.0, 0.0),
+                (right, 42.0, 0.003),
+            ):
+                plate.latest = {"force_kg": force, "t": 100}
+                plate.samples.append(
+                    {
+                        "received_monotonic": base + offset,
+                        "sample_monotonic": base + offset,
+                        "received_utc": "2026-06-22T08:00:00+00:00",
+                        "sample": plate.latest,
+                        "distribution": None,
+                    }
+                )
+            client.write_cmj_event(right)
+            left.latest = {"force_kg": 45.0, "t": 101}
+            left.samples.append(
+                {
+                    "received_monotonic": base + 0.013,
+                    "sample_monotonic": base + 0.013,
+                    "received_utc": "2026-06-22T08:00:00.013+00:00",
+                    "sample": left.latest,
+                    "distribution": None,
+                }
+            )
+            client.write_cmj_event(left)
+            client.close_csv()
+
+            with path.open(encoding="utf-8", newline="") as source:
+                rows = list(csv.DictReader(source))
+
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["source"], "droite")
+        self.assertEqual(float(rows[0]["source_kg"]), 42.0)
+        self.assertEqual(rows[1]["source"], "gauche")
+        self.assertEqual(float(rows[1]["source_kg"]), 45.0)
 
     def test_sensor_clock_reconstructs_regular_timeline_from_bursts(self):
         plate = self.module.PlateState(

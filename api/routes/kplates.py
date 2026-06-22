@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from ble.kinvent.kplates.acquisition_service import dual_plate_service
+from ble.kinvent.kplates.cmj_analysis import analyze_cmj_csv
 
 
 router = APIRouter(prefix="/api/kplates", tags=["K-Force Plates"])
@@ -17,6 +18,7 @@ class DualAcquisitionRequest(BaseModel):
     sync_tolerance_ms: float = Field(default=20.0, ge=5.0, le=100.0)
     filename: str | None = None
     recalibrate: bool = False
+    mode: str = "balance"
 
 
 @router.post("/dual/start")
@@ -29,6 +31,7 @@ def start_dual_acquisition(request: DualAcquisitionRequest):
             sync_tolerance_ms=request.sync_tolerance_ms,
             filename=request.filename,
             recalibrate=request.recalibrate,
+            mode=request.mode,
         )
     except (RuntimeError, ValueError) as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -76,3 +79,20 @@ def download_dual_acquisition():
         media_type="text/csv",
         filename=Path(csv_path).name,
     )
+
+
+@router.get("/cmj/result")
+def cmj_result():
+    status = dual_plate_service.status()
+    if status.get("running"):
+        raise HTTPException(
+            status_code=409,
+            detail="L'analyse CMJ sera disponible après la fin du test.",
+        )
+    csv_path = status.get("csv_path")
+    if status.get("mode") != "cmj" or not csv_path or not Path(csv_path).exists():
+        raise HTTPException(status_code=404, detail="Aucun test CMJ disponible.")
+    try:
+        return analyze_cmj_csv(csv_path)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc

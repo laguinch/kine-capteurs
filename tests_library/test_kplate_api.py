@@ -33,6 +33,7 @@ class KPlateApiTest(unittest.TestCase):
         self.assertIn("/api/kplates/dual/status", paths)
         self.assertIn("/api/kplates/dual/latest", paths)
         self.assertIn("/api/kplates/dual/download", paths)
+        self.assertIn("/api/kplates/cmj/result", paths)
         self.assertIn("/api/kpush/start", paths)
         self.assertIn("/api/kpush/stop", paths)
         self.assertIn("/api/kpush/connect", paths)
@@ -109,6 +110,24 @@ class KPlateApiTest(unittest.TestCase):
                 status = service.start(filename="session")
 
         self.assertTrue(status["csv_path"].endswith("/session.csv"))
+
+    def test_cmj_mode_is_sent_to_persistent_worker(self):
+        service = DualPlateAcquisitionService()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            service._control_path = root / "control.json"
+            service._worker_state_path = root / "state.json"
+            service._worker_state_path.write_text(
+                f'{{"phase":"idle","pid":{os.getpid()}}}',
+                encoding="utf-8",
+            )
+            with mock.patch.object(acquisition_module, "BASE_DIR", root):
+                service.start(filename="cmj.csv", mode="cmj")
+            control = json.loads(
+                service._control_path.read_text(encoding="utf-8")
+            )
+
+        self.assertEqual(control["mode"], "cmj")
 
     def test_worker_error_is_reported(self):
         service = DualPlateAcquisitionService()

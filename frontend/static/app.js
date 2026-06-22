@@ -7,6 +7,7 @@ const state = {
   awaitingTare: false,
   awaitingReady: false,
   lastMeasurementTimestamp: null,
+  cmjResultLoaded: false,
 };
 
 const format = (value, digits = 1) =>
@@ -46,6 +47,13 @@ function updateStatus(data) {
   $("disconnectButton").disabled = running || connecting || (!data.bluetooth_connected && !degraded);
   $("fileLabel").textContent = data.csv_path ? data.csv_path.split("/").pop() : "Aucun fichier en cours";
   $("downloadButton").classList.toggle("disabled", !data.csv_path);
+  const cmjMode = data.mode === "cmj";
+  $("balanceMetrics").classList.toggle("hidden", cmjMode);
+  $("balanceVisuals").classList.toggle("hidden", cmjMode);
+  $("cmjResults").classList.toggle(
+    "hidden",
+    !cmjMode || running || !data.finished_at
+  );
 
   const elapsed = data.elapsed_seconds || 0;
   const minutes = Math.floor(elapsed / 60).toString().padStart(2, "0");
@@ -65,6 +73,39 @@ function updateStatus(data) {
     state.awaitingTare = false;
     state.awaitingReady = false;
     setMessage("Acquisition terminée et enregistrée.");
+  }
+  if (
+    !running
+    && data.mode === "cmj"
+    && data.csv_path
+    && data.finished_at
+    && !state.cmjResultLoaded
+  ) {
+    loadCmjResult();
+  }
+}
+
+async function loadCmjResult() {
+  state.cmjResultLoaded = true;
+  try {
+    const response = await fetch("/api/kplates/cmj/result", {
+      cache: "no-store",
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.detail || "Analyse CMJ impossible");
+    $("jumpHeight").textContent = format(result.jump_height_cm, 1);
+    $("flightTime").textContent =
+      `Temps de vol ${format(result.flight_time_s, 3)} s`;
+    $("cmjPeakKg").textContent = format(result.peak_force_kg, 1);
+    $("cmjPeakN").textContent = `${format(result.peak_force_n, 0)} N`;
+    $("cmjRate").textContent = format(
+      Math.min(result.left_source_rate_hz, result.right_source_rate_hz),
+      0
+    );
+    $("cmjSamples").textContent =
+      `${result.raw_event_count} événements bruts conservés`;
+  } catch (error) {
+    setMessage(error.message, true);
   }
 }
 
@@ -186,6 +227,11 @@ async function start() {
   resetMeasurement();
   state.awaitingTare = true;
   state.awaitingReady = true;
+  state.cmjResultLoaded = false;
+  const mode = $("testMode").value;
+  $("balanceMetrics").classList.toggle("hidden", mode === "cmj");
+  $("balanceVisuals").classList.toggle("hidden", mode === "cmj");
+  $("cmjResults").classList.add("hidden");
   const filename = $("filename").value.trim();
   const body = {
     adapter: "hci1",
@@ -194,6 +240,7 @@ async function start() {
     sync_tolerance_ms: 20,
     filename: filename || null,
     recalibrate: $("recalibrate").checked,
+    mode,
   };
   try {
     const response = await fetch("/api/kplates/dual/start", {
@@ -206,7 +253,9 @@ async function start() {
     state.awaitingTare = Boolean(data.tare_required);
     updateStatus(data);
     setMessage(
-      state.awaitingTare
+      mode === "cmj"
+        ? "Enregistrement brut en cours. Restez debout une seconde, puis réalisez votre CMJ. Les résultats seront calculés après le test."
+        : state.awaitingTare
         ? "Laissez les deux plateformes vides pendant la tare."
         : "Plateformes connectées. Démarrage de l’enregistrement…"
     );

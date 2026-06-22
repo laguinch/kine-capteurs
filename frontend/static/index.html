@@ -28,6 +28,13 @@
 
       <section class="control-panel">
         <label>
+          Type de test
+          <select id="testMode">
+            <option value="balance">Analyse bipodale</option>
+            <option value="cmj">CMJ — saut vertical</option>
+          </select>
+        </label>
+        <label>
           Durée
           <select id="duration">
             <option value="30">30 secondes</option>
@@ -56,7 +63,25 @@
 
       <div id="message" class="message hidden"></div>
 
-      <section class="metrics-grid">
+      <section id="cmjResults" class="metrics-grid hidden">
+        <article class="metric-card total-card">
+          <span>Hauteur du saut</span>
+          <strong><b id="jumpHeight">—</b> cm</strong>
+          <small id="flightTime">Temps de vol —</small>
+        </article>
+        <article class="metric-card left-card">
+          <span>Force maximale</span>
+          <strong><b id="cmjPeakKg">—</b> kg</strong>
+          <small id="cmjPeakN">— N</small>
+        </article>
+        <article class="metric-card right-card">
+          <span>Qualité d'acquisition</span>
+          <strong><b id="cmjRate">—</b> Hz</strong>
+          <small id="cmjSamples">— événements conservés</small>
+        </article>
+      </section>
+
+      <section id="balanceMetrics" class="metrics-grid">
         <article class="metric-card left-card">
           <span>Plateforme gauche</span>
           <strong><b id="leftKg">0,0</b> kg</strong>
@@ -74,7 +99,7 @@
         </article>
       </section>
 
-      <section class="visual-grid">
+      <section id="balanceVisuals" class="visual-grid">
         <article class="panel balance-panel">
           <div class="panel-heading">
             <div>
@@ -132,6 +157,6 @@
         </div>
       </section>
     </main>
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=2"></script>
   </body>
 </html>

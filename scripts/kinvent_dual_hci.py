@@ -109,6 +109,34 @@ CSV_FIELDS = [
     "global_cop_x",
     "global_cop_y",
 ]
+CMJ_FIELDS = [
+    "timestamp_utc",
+    "elapsed_s",
+    "source",
+    "source_sensor_time",
+    "left_sensor_time",
+    "right_sensor_time",
+    "left_age_ms",
+    "right_age_ms",
+    "source_kg",
+    "source_n",
+    "source_raw_av_d",
+    "source_raw_av_g",
+    "source_raw_ar_g",
+    "source_raw_ar_d",
+    "source_force_av_d_counts",
+    "source_force_av_g_counts",
+    "source_force_ar_g_counts",
+    "source_force_ar_d_counts",
+    "source_cop_x",
+    "source_cop_y",
+    "left_kg",
+    "right_kg",
+    "total_kg",
+    "left_n",
+    "right_n",
+    "total_n",
+]
 
 
 def now_iso():
@@ -313,6 +341,9 @@ class DualKinventClient:
         self.dropped_samples = {"gauche": 0, "droite": 0}
         self.csv_file = None
         self.writer = None
+        self.acquisition_mode = "balance"
+        self.cmj_started_monotonic = None
+        self.cmj_samples = 0
         self.reconnect_not_before = 0.0
 
         if not recalibrate:
@@ -321,13 +352,16 @@ class DualKinventClient:
         if csv_path:
             self.open_csv(csv_path)
 
-    def open_csv(self, csv_path):
+    def open_csv(self, csv_path, mode="balance"):
         self.close_csv()
         path = Path(csv_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         self.csv_file = path.open("w", newline="", encoding="utf-8")
         self.writer = csv.writer(self.csv_file)
-        self.writer.writerow(CSV_FIELDS)
+        self.acquisition_mode = mode
+        self.cmj_started_monotonic = None
+        self.cmj_samples = 0
+        self.writer.writerow(CMJ_FIELDS if mode == "cmj" else CSV_FIELDS)
         self.csv_file.flush()
 
     def close_csv(self):
@@ -335,6 +369,8 @@ class DualKinventClient:
             self.csv_file.close()
         self.csv_file = None
         self.writer = None
+        self.acquisition_mode = "balance"
+        self.cmj_started_monotonic = None
 
     def wait_for_reconnect_cooldown(self):
         remaining = self.reconnect_not_before - time.monotonic()
@@ -812,7 +848,10 @@ class DualKinventClient:
             value = att[3:]
             sample = plate.decode(value)
             if sample:
-                self.pair_samples()
+                if self.acquisition_mode == "cmj":
+                    self.write_cmj_event(plate)
+                else:
+                    self.pair_samples()
 
     def combined_values(self, left_entry=None, right_entry=None):
         left, right = self.plates
@@ -939,6 +978,63 @@ class DualKinventClient:
                 )
             else:
                 print("Deux plateformes: hors appui")
+            self.last_print = time.monotonic()
+
+    def write_cmj_event(self, source_plate):
+        left, right = self.plates
+        if left.latest is None or right.latest is None or self.writer is None:
+            return
+        source_entry = source_plate.samples[-1]
+        event_time = source_entry["sample_monotonic"]
+        if self.cmj_started_monotonic is None:
+            self.cmj_started_monotonic = event_time
+        left_entry = left.samples[-1] if left.samples else None
+        right_entry = right.samples[-1] if right.samples else None
+        if left_entry is None or right_entry is None:
+            return
+        left_kg = max(0.0, left.latest["force_kg"])
+        right_kg = max(0.0, right.latest["force_kg"])
+        total_kg = left_kg + right_kg
+        source_sample = source_plate.latest
+        source_distribution = source_plate.distribution or {}
+        source_kg = max(0.0, source_sample["force_kg"])
+        self.writer.writerow(
+            [
+                source_entry["received_utc"],
+                round(event_time - self.cmj_started_monotonic, 6),
+                source_plate.side,
+                source_sample["t"],
+                left.latest["t"],
+                right.latest["t"],
+                round(max(0.0, event_time - left_entry["sample_monotonic"]) * 1000, 3),
+                round(max(0.0, event_time - right_entry["sample_monotonic"]) * 1000, 3),
+                round(source_kg, 6),
+                round(source_kg * 9.81, 6),
+                source_sample.get("raw_av_d", ""),
+                source_sample.get("raw_av_g", ""),
+                source_sample.get("raw_ar_g", ""),
+                source_sample.get("raw_ar_d", ""),
+                source_sample.get("av_d", ""),
+                source_sample.get("av_g", ""),
+                source_sample.get("ar_g", ""),
+                source_sample.get("ar_d", ""),
+                source_distribution.get("cop_x", ""),
+                source_distribution.get("cop_y", ""),
+                round(left_kg, 6),
+                round(right_kg, 6),
+                round(total_kg, 6),
+                round(left_kg * 9.81, 6),
+                round(right_kg * 9.81, 6),
+                round(total_kg * 9.81, 6),
+            ]
+        )
+        self.csv_file.flush()
+        self.cmj_samples += 1
+        if time.monotonic() - self.last_print >= self.print_interval:
+            print(
+                f"CMJ G={left_kg:.1f} kg | D={right_kg:.1f} kg | "
+                f"TOTAL={total_kg:.1f} kg"
+            )
             self.last_print = time.monotonic()
 
     def pump(
@@ -1458,6 +1554,7 @@ class DualKinventClient:
                     generation = requested
                     active_generation = generation
                     duration = float(command["duration"])
+                    acquisition_mode = command.get("mode", "balance")
                     if command.get("recalibrate"):
                         print("Nouvelle tare demandée.")
                         self.calibration_saved = False
@@ -1487,6 +1584,7 @@ class DualKinventClient:
                             "bouton « Connecter les capteurs »."
                         )
                     self.paired_samples = 0
+                    self.cmj_samples = 0
                     self.dropped_samples = {"gauche": 0, "droite": 0}
                     for plate in self.plates:
                         plate.samples.clear()
@@ -1498,13 +1596,14 @@ class DualKinventClient:
                         self.dropped_samples = {"gauche": 0, "droite": 0}
                         for plate in self.plates:
                             plate.samples.clear()
-                        self.open_csv(command["csv_path"])
+                        self.open_csv(command["csv_path"], acquisition_mode)
                         self.write_worker_state(
                             state_file,
                             phase="active",
                             generation=generation,
                             csv_path=command["csv_path"],
                             started_at=now_iso(),
+                            mode=acquisition_mode,
                         )
                         completed = self.pump(
                             duration,
@@ -1528,7 +1627,12 @@ class DualKinventClient:
                         active_generation = None
                         continue
                     self.close_csv()
-                    if self.paired_samples == 0:
+                    sample_count = (
+                        self.cmj_samples
+                        if acquisition_mode == "cmj"
+                        else self.paired_samples
+                    )
+                    if sample_count == 0:
                         self.shutdown_session()
                         self.reconnect_not_before = time.monotonic() + 10.0
                         self.write_worker_state(
@@ -1537,8 +1641,9 @@ class DualKinventClient:
                             generation=generation,
                             csv_path=command["csv_path"],
                             paired_samples=0,
+                            cmj_samples=0,
                             error=(
-                                "Aucune mesure synchronisée reçue. La session "
+                                "Aucune mesure exploitable reçue. La session "
                                 "Bluetooth a été fermée; cliquez sur "
                                 "« Connecter les capteurs »."
                             ),
@@ -1551,6 +1656,8 @@ class DualKinventClient:
                             generation=generation,
                             csv_path=command["csv_path"],
                             paired_samples=self.paired_samples,
+                            cmj_samples=self.cmj_samples,
+                            mode=acquisition_mode,
                             stopped=not completed,
                         )
                     next_idle_keepalive = time.monotonic() + 10.0

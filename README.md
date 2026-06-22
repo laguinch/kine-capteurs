@@ -57,6 +57,16 @@ sudo .venv/bin/python scripts/kinvent_dual_hci.py \
 Le CSV contient une ligne par paire synchronisée, l'écart temporel, le poids de
 chaque plateforme, l'asymétrie et le centre de pression global.
 
+### Mode CMJ
+
+Le mode CMJ de la page `/kforceplates` conserve chaque mesure brute gauche et
+droite sans rejeter les échantillons non appariés. Les deux flux natifs
+d'environ 75 Hz sont ensuite interpolés sur une chronologie commune à 100 Hz
+pour détecter le décollage, le temps de vol et l'atterrissage.
+
+Au démarrage du test, rester debout et immobile pendant une seconde avant de
+réaliser le saut.
+
 ## API K-Force Plates
 
 - `POST /api/kplates/dual/start`

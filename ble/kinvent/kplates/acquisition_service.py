@@ -26,6 +26,7 @@ class DualPlateAcquisitionService:
         self._finished_at = None
         self._csv_path = None
         self._tare_required = None
+        self._mode = "balance"
 
     def start(
         self,
@@ -35,6 +36,7 @@ class DualPlateAcquisitionService:
         sync_tolerance_ms=20.0,
         filename=None,
         recalibrate=False,
+        mode="balance",
     ):
         del adapter, tare_duration, sync_tolerance_ms
         with self._lock:
@@ -73,6 +75,9 @@ class DualPlateAcquisitionService:
             self._started_at = now_iso()
             self._finished_at = None
             self._tare_required = recalibrate or not self._calibration_path.exists()
+            if mode not in {"balance", "cmj"}:
+                raise ValueError("Mode d'acquisition inconnu.")
+            self._mode = mode
             self._write_json(
                 self._control_path,
                 {
@@ -81,6 +86,7 @@ class DualPlateAcquisitionService:
                     "duration": duration,
                     "csv_path": str(self._csv_path),
                     "recalibrate": recalibrate,
+                    "mode": mode,
                 },
             )
             return self.status()
@@ -208,11 +214,18 @@ class DualPlateAcquisitionService:
                 "elapsed_seconds": elapsed_seconds,
                 "tare_required": self._tare_required,
                 "calibration_available": self._calibration_path.exists(),
+                "mode": worker.get("mode") or self._mode,
             }
 
     def latest(self):
         with self._lock:
             status = self.status()
+            if status.get("mode") == "cmj":
+                return {
+                    **status,
+                    "measurement": None,
+                    "log_tail": self._read_log_tail(),
+                }
             row = self._read_latest_row()
             return {
                 **status,
@@ -289,6 +302,10 @@ class DualPlateAcquisitionService:
     @staticmethod
     def _convert_measurement(row):
         numeric_fields = {
+            "elapsed_s",
+            "left_age_ms",
+            "right_age_ms",
+            "source_kg",
             "sync_delta_ms",
             "left_sensor_time",
             "right_sensor_time",
