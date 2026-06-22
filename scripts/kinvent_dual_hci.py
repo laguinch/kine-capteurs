@@ -73,20 +73,21 @@ OCF_DISCONNECT = 0x0006
 OCF_LE_CONN_UPDATE = 0x0013
 
 # Séquence observée dans les captures HCI de l'application Kinvent avec deux
-# K-Force Plates. Elle est distincte de l'initialisation du K-Push définie
-# dans kinvent_raw_hci.py.
+# K-Force Plates. Les réponses du firmware sont attendues explicitement:
+# les délais fixes trop courts laissaient certaines plateformes en mode
+# diagnostic 11 octets au lieu du mode force 17 octets.
 KPLATE_INIT_STEPS = [
-    (b"\x09", 0.05),
-    (b"\x76", 0.25),
-    (b"\x11", 0.10),
-    (b"\x10", 0.05),
-    (b"\x10", 0.30),
-    (bytes.fromhex("60 00 19 00 4b 0d 0a"), 0.01),
-    (b"\x66", 1.50),
-    (b"\x56", 0.05),
-    (bytes.fromhex("ac 00 54 f8"), 0.05),
-    (bytes.fromhex("ac 01 04 a9"), 0.05),
-    (b"\x11", 0.10),
+    (b"\x09", b"KINVENT FW", 0.50),
+    (b"\x76", b"F=75Hz", 0.50),
+    (b"\x11", None, 0.15),
+    (b"\x10", None, 0.05),
+    (b"\x10", None, 0.35),
+    (bytes.fromhex("60 00 19 00 4b 0d 0a"), None, 0.02),
+    (b"\x66", b"F=25Hz", 2.20),
+    (b"\x56", b"F=25Hz", 0.50),
+    (bytes.fromhex("ac 00 54 f8"), bytes.fromhex("ac 00 54"), 0.50),
+    (bytes.fromhex("ac 01 04 a9"), bytes.fromhex("ac 01 04"), 0.50),
+    (b"\x11", None, 0.20),
 ]
 CSV_FIELDS = [
     "timestamp_utc",
@@ -223,6 +224,7 @@ class PlateState:
         self.notifications = 0
         self.measurements = 0
         self.rejected_frames = 0
+        self.protocol_messages = deque(maxlen=32)
         self.last_notification_at = None
         self.stream_restarts = 0
         self.samples = deque(maxlen=buffer_size)
@@ -260,6 +262,7 @@ class PlateState:
     def decode(self, value):
         raw_sample = parse_frame(value)
         if raw_sample is None:
+            self.protocol_messages.append(value)
             self.rejected_frames += 1
             if self.rejected_frames <= 3:
                 print(
@@ -723,6 +726,30 @@ class DualKinventClient:
             self.process(packet)
         raise TimeoutError(f"Réglage radio sans réponse pour {plate.side}")
 
+    def wait_protocol_response(self, plates, prefix, timeout):
+        """Attend la réponse de mode de chaque plateforme."""
+        deadline = time.monotonic() + timeout
+        pending = {plate.side for plate in plates}
+        while time.monotonic() < deadline:
+            for plate in plates:
+                if plate.side not in pending:
+                    continue
+                if any(
+                    message.startswith(prefix)
+                    for message in plate.protocol_messages
+                ):
+                    pending.remove(plate.side)
+            if not pending:
+                return
+            packet = self.receive()
+            if packet is not None:
+                self.process(packet)
+        raise TimeoutError(
+            "Réponse de configuration absente pour "
+            + ", ".join(sorted(pending))
+            + f" (commande attendue: {prefix.hex(' ')})."
+        )
+
     def start_streams(self, plates, write_delay=0.1):
         """Initialise un ou plusieurs flux selon la séquence Kinvent."""
         connected = [plate for plate in plates if plate.handle is not None]
@@ -752,10 +779,20 @@ class DualKinventClient:
         for plate in connected:
             self.update_connection_interval(plate)
 
-        for command, delay in KPLATE_INIT_STEPS:
+        for command, expected, timeout in KPLATE_INIT_STEPS:
+            if expected is not None:
+                for plate in connected:
+                    plate.protocol_messages.clear()
             for plate in connected:
                 self.send_write_command(plate, command)
-            self.pump(delay)
+            if expected is None:
+                self.pump(timeout)
+            else:
+                self.wait_protocol_response(
+                    connected,
+                    expected,
+                    timeout,
+                )
 
         for plate in connected:
             print(f"Flux {plate.side} démarré.")

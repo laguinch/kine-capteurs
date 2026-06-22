@@ -885,6 +885,9 @@ class KPlateDualTest(unittest.TestCase):
         client.update_connection_interval = (
             lambda plate: updates.append(plate.side)
         )
+        client.wait_protocol_response = (
+            lambda plates, prefix, timeout: None
+        )
         client.pump = lambda duration: None
 
         client.start_streams(client.plates)
@@ -912,6 +915,24 @@ class KPlateDualTest(unittest.TestCase):
         )
         self.assertEqual(updates, ["gauche", "droite"])
         self.assertEqual(len(cccd), 2)
+
+    def test_waits_for_both_platform_mode_responses(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        for plate in client.plates:
+            plate.protocol_messages.append(b"F=25Hz\x00\x00")
+
+        client.wait_protocol_response(
+            client.plates,
+            b"F=25Hz",
+            0.1,
+        )
 
     def test_connection_update_matches_official_final_radio_window(self):
         client = self.module.DualKinventClient(
