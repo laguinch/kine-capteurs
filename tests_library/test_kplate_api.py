@@ -153,7 +153,7 @@ class KPlateApiTest(unittest.TestCase):
             )
 
         self.assertEqual(control["mode"], "cmj")
-        self.assertEqual(control["duration"], 15.0)
+        self.assertEqual(control["duration"], 10.0)
 
     def test_worker_error_is_reported(self):
         service = DualPlateAcquisitionService()

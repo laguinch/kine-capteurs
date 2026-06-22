@@ -1704,63 +1704,27 @@ class DualKinventClient:
 
                         self.shutdown_session()
                         idle_streams_active = False
+                        self.reconnect_not_before = time.monotonic() + 10.0
                         self.write_worker_state(
                             state_file,
-                            phase="recovering",
+                            phase="disconnected",
                             generation=generation,
                             csv_path=command["csv_path"],
                             mode=acquisition_mode,
                             interrupted=True,
+                            result_available=result_available,
+                            error=(
+                                "CMJ enregistré malgré l'arrêt d'un flux. "
+                                "Attendez 10 secondes puis cliquez sur "
+                                "« Connecter les capteurs »."
+                                if result_available
+                                else (
+                                    "CMJ incomplet après l'arrêt d'un flux. "
+                                    "Attendez 10 secondes puis reconnectez "
+                                    "les capteurs."
+                                )
+                            ),
                         )
-                        time.sleep(5.0)
-                        try:
-                            self.open()
-                            self.initialize_session(
-                                scan_timeout,
-                                connect_timeout,
-                                write_delay,
-                                attempts=2,
-                            )
-                            self.park_measurement_streams()
-                        except (
-                            OSError,
-                            PlateDisconnected,
-                            TimeoutError,
-                            RuntimeError,
-                            SystemExit,
-                        ) as reconnect_error:
-                            self.shutdown_session()
-                            self.reconnect_not_before = (
-                                time.monotonic() + 10.0
-                            )
-                            self.write_worker_state(
-                                state_file,
-                                phase="disconnected",
-                                generation=generation,
-                                csv_path=command["csv_path"],
-                                mode=acquisition_mode,
-                                error=(
-                                    "Le CMJ a été enregistré, mais la "
-                                    "reconnexion automatique a échoué : "
-                                    f"{reconnect_error}"
-                                    if result_available
-                                    else (
-                                        "CMJ incomplet et reconnexion "
-                                        "automatique impossible : "
-                                        f"{reconnect_error}"
-                                    )
-                                ),
-                            )
-                        else:
-                            self.write_worker_state(
-                                state_file,
-                                phase="idle",
-                                generation=generation,
-                                csv_path=command["csv_path"],
-                                mode=acquisition_mode,
-                                interrupted=True,
-                                result_available=result_available,
-                            )
                         active_generation = None
                         continue
                     except RuntimeError as exc:

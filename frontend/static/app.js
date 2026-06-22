@@ -361,7 +361,7 @@ $("stopButton").addEventListener("click", stop);
 $("connectButton").addEventListener("click", () => setBluetoothConnection("connect"));
 $("disconnectButton").addEventListener("click", () => setBluetoothConnection("disconnect"));
 $("testMode").addEventListener("change", () => {
-  $("duration").value = $("testMode").value === "cmj" ? "15" : "30";
+  $("duration").value = $("testMode").value === "cmj" ? "10" : "30";
 });
 window.addEventListener("resize", drawHistory);
 poll();
