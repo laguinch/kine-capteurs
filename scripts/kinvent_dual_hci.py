@@ -740,14 +740,49 @@ class DualKinventClient:
                 ):
                     pending.remove(plate.side)
             if not pending:
-                return
+                return []
             packet = self.receive()
             if packet is not None:
                 self.process(packet)
+        return sorted(pending)
+
+    def send_protocol_step(
+        self,
+        plates,
+        command,
+        expected,
+        timeout,
+        attempts=3,
+    ):
+        """Relance uniquement la plateforme qui n'a pas accusé réception."""
+        pending = list(plates)
+        for attempt in range(1, attempts + 1):
+            for plate in pending:
+                plate.protocol_messages.clear()
+            for plate in pending:
+                self.send_write_command(plate, command)
+                # L'application officielle espace légèrement les écritures
+                # destinées aux deux connexions.
+                self.pump(0.02)
+            missing_sides = (
+                self.wait_protocol_response(pending, expected, timeout) or []
+            )
+            if not missing_sides:
+                return
+            pending = [
+                plate for plate in pending
+                if plate.side in missing_sides
+            ]
+            print(
+                "Commande "
+                f"{command.hex(' ')} sans réponse pour "
+                + ", ".join(missing_sides)
+                + f" (essai {attempt}/{attempts})."
+            )
         raise TimeoutError(
             "Réponse de configuration absente pour "
-            + ", ".join(sorted(pending))
-            + f" (commande attendue: {prefix.hex(' ')})."
+            + ", ".join(plate.side for plate in pending)
+            + f" (commande attendue: {expected.hex(' ')})."
         )
 
     def start_streams(self, plates, write_delay=0.1):
@@ -780,16 +815,14 @@ class DualKinventClient:
             self.update_connection_interval(plate)
 
         for command, expected, timeout in KPLATE_INIT_STEPS:
-            if expected is not None:
-                for plate in connected:
-                    plate.protocol_messages.clear()
-            for plate in connected:
-                self.send_write_command(plate, command)
             if expected is None:
+                for plate in connected:
+                    self.send_write_command(plate, command)
                 self.pump(timeout)
             else:
-                self.wait_protocol_response(
+                self.send_protocol_step(
                     connected,
+                    command,
                     expected,
                     timeout,
                 )

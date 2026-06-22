@@ -888,6 +888,12 @@ class KPlateDualTest(unittest.TestCase):
         client.wait_protocol_response = (
             lambda plates, prefix, timeout: None
         )
+        client.send_protocol_step = (
+            lambda plates, command, expected, timeout: [
+                writes.append((plate.side, command))
+                for plate in plates
+            ]
+        )
         client.pump = lambda duration: None
 
         client.start_streams(client.plates)
@@ -932,6 +938,41 @@ class KPlateDualTest(unittest.TestCase):
             client.plates,
             b"F=25Hz",
             0.1,
+        )
+
+    def test_retries_protocol_command_only_for_missing_platform(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        sent = []
+        responses = [["droite"], []]
+        client.send_write_command = (
+            lambda plate, command: sent.append((plate.side, command))
+        )
+        client.pump = lambda duration: None
+        client.wait_protocol_response = (
+            lambda plates, prefix, timeout: responses.pop(0)
+        )
+
+        client.send_protocol_step(
+            client.connection_order(),
+            b"\x09",
+            b"KINVENT FW",
+            0.1,
+        )
+
+        self.assertEqual(
+            sent,
+            [
+                ("droite", b"\x09"),
+                ("gauche", b"\x09"),
+                ("droite", b"\x09"),
+            ],
         )
 
     def test_connection_update_matches_official_final_radio_window(self):
