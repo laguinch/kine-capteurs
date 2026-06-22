@@ -222,6 +222,7 @@ class PlateState:
         self.distribution = None
         self.notifications = 0
         self.measurements = 0
+        self.rejected_frames = 0
         self.last_notification_at = None
         self.stream_restarts = 0
         self.samples = deque(maxlen=buffer_size)
@@ -259,6 +260,12 @@ class PlateState:
     def decode(self, value):
         raw_sample = parse_frame(value)
         if raw_sample is None:
+            self.rejected_frames += 1
+            if self.rejected_frames <= 3:
+                print(
+                    f"Trame rejetée {self.side}: longueur={len(value)}, "
+                    f"données={value.hex(' ')}"
+                )
             return None
 
         if self.offsets is None:
@@ -1297,19 +1304,29 @@ class DualKinventClient:
             f"{duration:.0f} secondes..."
         )
         before = {
-            plate.side: (plate.notifications, plate.measurements)
+            plate.side: (
+                plate.notifications,
+                plate.measurements,
+                plate.rejected_frames,
+            )
             for plate in self.plates
         }
         self.pump(duration)
         missing = []
         for plate in self.plates:
-            previous_notifications, previous_measurements = before[plate.side]
+            (
+                previous_notifications,
+                previous_measurements,
+                previous_rejected,
+            ) = before[plate.side]
             notification_delta = plate.notifications - previous_notifications
             measurement_delta = plate.measurements - previous_measurements
+            rejected_delta = plate.rejected_frames - previous_rejected
             print(
                 f"Flux initial {plate.side}: "
                 f"{notification_delta} notification(s), "
-                f"{measurement_delta} mesure(s) valide(s)."
+                f"{measurement_delta} mesure(s) valide(s), "
+                f"{rejected_delta} trame(s) rejetée(s)."
             )
             if measurement_delta == 0:
                 missing.append(plate.side)

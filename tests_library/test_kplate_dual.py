@@ -836,6 +836,16 @@ class KPlateDualTest(unittest.TestCase):
 
         self.assertEqual(client.settle_initial_streams(), [])
 
+    def test_rejected_frame_is_counted_for_diagnostics(self):
+        plate = self.module.PlateState(
+            "gauche",
+            "E8:EB:1B:6F:A7:5F",
+            0,
+        )
+
+        self.assertIsNone(plate.decode(b"\xff\xff\xfe\x00"))
+        self.assertEqual(plate.rejected_frames, 1)
+
     def test_connects_right_plate_first_like_official_application(self):
         client = self.module.DualKinventClient(
             1,
