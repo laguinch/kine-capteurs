@@ -100,6 +100,16 @@ ne sont ni remplacés ni envoyés sur GitHub.
 
 L'interface est ensuite disponible sur `http://ADRESSE_DU_SERVEUR:8000/`.
 
+## Interfaces web
+
+- K-Force Plates : `/kforceplates`
+- K-Push : `/kpush`
+- K-Pull : `/kpull`
+
+Le K-Pull utilise le coefficient validé avec une charge étalon de 12 kg :
+`9722.166667 comptes/kg`. Le câble doit rester complètement détendu pendant
+la tare réalisée à chaque connexion.
+
 ## Premier test K-Push
 
 Le K-Push détecté dans la capture officielle est `KFORCEMuscle03578`

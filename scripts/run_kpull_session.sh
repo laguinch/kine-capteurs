@@ -3,14 +3,15 @@ set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DURATION="${1:-30}"
-CSV_NAME="${2:-kpush_test.csv}"
+CSV_NAME="${2:-kpull_test.csv}"
 TARE_DURATION="${3:-2}"
 BLUETOOTH_SERVICE_NAME="${KINE_BLUETOOTH_SERVICE_NAME:-kine-capteurs-bluetooth}"
 UPDATE_MARKER="$PROJECT_DIR/storage/raw_data/update_in_progress"
+COUNTS_PER_KG="9722.166667"
 SESSION_LOCK="/run/lock/kine-capteurs-hci-session.lock"
 
 if [[ ! "$DURATION" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
-  echo "Durée K-Push invalide." >&2
+  echo "Durée K-Pull invalide." >&2
   exit 2
 fi
 if [[ ! "$TARE_DURATION" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
@@ -18,7 +19,7 @@ if [[ ! "$TARE_DURATION" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
   exit 2
 fi
 if [[ "$CSV_NAME" != "$(basename "$CSV_NAME")" || "$CSV_NAME" != *.csv ]]; then
-  echo "Nom CSV K-Push invalide." >&2
+  echo "Nom CSV K-Pull invalide." >&2
   exit 2
 fi
 
@@ -47,8 +48,9 @@ if command -v hciconfig >/dev/null 2>&1; then
 fi
 
 "$PROJECT_DIR/.venv/bin/python" -u \
-  "$PROJECT_DIR/scripts/kinvent_kpush_hci.py" \
+  "$PROJECT_DIR/scripts/kinvent_kpull_hci.py" \
   --adapter hci0 \
   --duration "$DURATION" \
   --tare-duration "$TARE_DURATION" \
+  --counts-per-kg "$COUNTS_PER_KG" \
   --csv "$PROJECT_DIR/storage/raw_data/$CSV_NAME"

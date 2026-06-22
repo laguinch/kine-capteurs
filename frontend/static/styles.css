@@ -30,7 +30,7 @@ button, input, select { font: inherit; }
   margin: 0 auto;
   padding: 34px 0 48px;
 }
-.sensor-nav { display: flex; gap: 8px; margin-bottom: 20px; }
+.sensor-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
 .sensor-nav a {
   padding: 8px 12px;
   border-radius: 999px;

@@ -3,20 +3,20 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>K‑Push — Kine Capteurs</title>
+    <title>K‑Pull — Kine Capteurs</title>
     <link rel="stylesheet" href="/static/styles.css">
   </head>
   <body>
     <main class="shell">
       <nav class="sensor-nav">
         <a href="/kforceplates">K‑Force Plates</a>
-        <a class="active" href="/kpush">K‑Push</a>
-        <a href="/kpull">K‑Pull</a>
+        <a href="/kpush">K‑Push</a>
+        <a class="active" href="/kpull">K‑Pull</a>
       </nav>
       <header class="topbar">
         <div>
-          <p class="eyebrow">K‑Push</p>
-          <h1>Force musculaire</h1>
+          <p class="eyebrow">K‑Pull</p>
+          <h1>Force de traction</h1>
           <p class="subtitle">Force instantanée et maximale en temps réel</p>
         </div>
         <div class="connection">
@@ -40,9 +40,9 @@
         </label>
         <button id="startButton" class="primary">Démarrer</button>
         <button id="stopButton" class="secondary" disabled>Arrêter</button>
-        <button id="connectButton" class="secondary">Connecter le K‑Push</button>
+        <button id="connectButton" class="secondary">Connecter le K‑Pull</button>
         <button id="disconnectButton" class="secondary" disabled>Déconnecter</button>
-        <a id="downloadButton" class="download disabled" href="/api/kpush/download">Télécharger</a>
+        <a id="downloadButton" class="download disabled" href="/api/kpull/download">Télécharger</a>
         <div class="timer">
           <span>Temps</span>
           <strong id="timer">00:00</strong>
@@ -68,7 +68,7 @@
         <div class="panel-heading">
           <div>
             <p class="eyebrow">Courbe</p>
-            <h2>Force au cours du test</h2>
+            <h2>Traction au cours du test</h2>
           </div>
           <span class="badge neutral">Kilogrammes</span>
         </div>
@@ -84,6 +84,6 @@
         </div>
       </section>
     </main>
-    <script src="/static/kpush.js?v=4"></script>
+    <script src="/static/kpull.js?v=1"></script>
   </body>
 </html>
