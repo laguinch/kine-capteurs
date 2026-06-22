@@ -110,6 +110,21 @@ Le K-Pull utilise le coefficient validé avec une charge étalon de 12 kg :
 `9722.166667 comptes/kg`. Le câble doit rester complètement détendu pendant
 la tare réalisée à chaque connexion.
 
+## Diagnostic K-Move
+
+Le K-Move transmet un quaternion, les accélérations et la batterie à 75 Hz.
+Le diagnostic fixe les trois rotations à zéro pendant les deux premières
+secondes, puis affiche les axes X, Y et Z en degrés :
+
+```bash
+sudo scripts/run_kmove_diagnostic.sh \
+  --duration 30 \
+  --csv storage/raw_data/kmove_diagnostic.csv
+```
+
+Maintenir le K-Move immobile pendant la prise de référence, puis effectuer
+successivement un mouvement autour de chacun de ses trois axes.
+
 ## Premier test K-Push
 
 Le K-Push détecté dans la capture officielle est `KFORCEMuscle03578`

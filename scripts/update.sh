@@ -46,6 +46,7 @@ chmod 0755 scripts/run_kpush_session.sh
 chmod 0755 scripts/run_anr_m40_diagnostic.sh
 chmod 0755 scripts/run_kpull_diagnostic.sh
 chmod 0755 scripts/run_kpull_session.sh
+chmod 0755 scripts/run_kmove_diagnostic.sh
 
 cat >"$TEMP_UNIT" <<EOF
 [Unit]
