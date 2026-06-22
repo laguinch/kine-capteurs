@@ -24,8 +24,13 @@ from scripts.kinvent_raw_hci import (  # noqa: E402
     ATT_OP_MTU_REQUEST,
     ATT_OP_MTU_RESPONSE,
     ATT_OP_NOTIFICATION,
+    EVT_LE_ADVERTISING_REPORT,
+    EVT_LE_META_EVENT,
+    HCI_EVENT_PKT,
     RawKinventClient,
     UART_CCCD_HANDLE,
+    address_to_le_bytes,
+    le_bytes_to_address,
     now_iso,
     parse_adapter,
 )
@@ -92,6 +97,79 @@ class KMoveHciClient(RawKinventClient):
                     "accel_z_raw",
                     "battery_pct",
                 ]
+            )
+
+    @staticmethod
+    def _advertised_name(data):
+        offset = 0
+        while offset < len(data):
+            length = data[offset]
+            if length == 0 or offset + length >= len(data):
+                break
+            ad_type = data[offset + 1]
+            value = data[offset + 2:offset + 1 + length]
+            if ad_type in (0x08, 0x09):
+                return value.decode("utf-8", errors="replace")
+            offset += length + 1
+        return None
+
+    def wait_for_advertisement(self, timeout):
+        print(
+            f"Recherche du K-Move {self.address} ou KFORCESens "
+            f"pendant {timeout:.1f} s..."
+        )
+        self.start_scan()
+        found = False
+        deadline = time.monotonic() + timeout
+        try:
+            while time.monotonic() < deadline:
+                packet = self.receive_packet()
+                if packet is None:
+                    continue
+                packet_type, payload = packet
+                if packet_type != HCI_EVENT_PKT or len(payload) < 4:
+                    continue
+                if (
+                    payload[0] != EVT_LE_META_EVENT
+                    or payload[2] != EVT_LE_ADVERTISING_REPORT
+                ):
+                    continue
+                reports = payload[3]
+                offset = 4
+                for _ in range(reports):
+                    if offset + 10 > len(payload):
+                        break
+                    address_type = payload[offset + 1]
+                    address = le_bytes_to_address(
+                        payload[offset + 2:offset + 8]
+                    )
+                    data_length = payload[offset + 8]
+                    data = payload[
+                        offset + 9:offset + 9 + data_length
+                    ]
+                    name = self._advertised_name(data)
+                    if address == self.address or (
+                        name and name.startswith("KFORCESens")
+                    ):
+                        self.address = address
+                        self.address_le = address_to_le_bytes(address)
+                        self.address_type = address_type
+                        print(
+                            f"K-Move trouvé: {name or 'nom inconnu'} "
+                            f"({address})"
+                        )
+                        found = True
+                        break
+                    offset += 10 + data_length
+                if found:
+                    break
+        finally:
+            self.stop_scan()
+
+        if not found:
+            raise TimeoutError(
+                "K-Move introuvable. Vérifiez qu'il est allumé et qu'il "
+                "n'est plus connecté au téléphone."
             )
 
     def start_stream(self, write_delay):
@@ -213,7 +291,7 @@ def build_parser():
     parser.add_argument("--address", default=KMOVE)
     parser.add_argument("--duration", type=float, default=30.0)
     parser.add_argument("--reference-duration", type=float, default=2.0)
-    parser.add_argument("--scan-timeout", type=float, default=15.0)
+    parser.add_argument("--scan-timeout", type=float, default=30.0)
     parser.add_argument("--connect-timeout", type=float, default=15.0)
     parser.add_argument("--write-delay", type=float, default=0.5)
     parser.add_argument("--print-interval", type=float, default=0.1)
