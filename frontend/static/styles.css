@@ -43,6 +43,20 @@ button, input, select { font: inherit; }
 .kpush-metrics { grid-template-columns: repeat(2, 1fr); margin-top: 18px; }
 .kpush-chart-panel { margin-top: 16px; }
 .kpush-history { height: 300px; }
+.kmove-metrics { margin-top: 18px; }
+.kmove-legend { display: flex; flex-wrap: wrap; gap: 18px; margin: 10px 0; color: var(--muted); }
+.kmove-legend span::before {
+  content: "";
+  display: inline-block;
+  width: 22px;
+  height: 3px;
+  margin-right: 7px;
+  vertical-align: middle;
+  border-radius: 2px;
+}
+.rotation-line::before { background: #347fb4; }
+.flexion-line::before { background: #147c75; }
+.inclination-line::before { background: #e7792f; }
 #forceChart {
   display: block;
   width: 100%;

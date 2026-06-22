@@ -3,22 +3,22 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>K‑Push — Kine Capteurs</title>
-    <link rel="stylesheet" href="/static/styles.css?v=5">
+    <title>K‑Move — Kine Capteurs</title>
+    <link rel="stylesheet" href="/static/styles.css?v=6">
   </head>
   <body>
     <main class="shell">
       <nav class="sensor-nav">
         <a href="/kforceplates">K‑Force Plates</a>
-        <a class="active" href="/kpush">K‑Push</a>
+        <a href="/kpush">K‑Push</a>
         <a href="/kpull">K‑Pull</a>
-        <a href="/kmove">K‑Move</a>
+        <a class="active" href="/kmove">K‑Move</a>
       </nav>
       <header class="topbar">
         <div>
-          <p class="eyebrow">K‑Push</p>
-          <h1>Force musculaire</h1>
-          <p class="subtitle">Force instantanée et maximale en temps réel</p>
+          <p class="eyebrow">K‑Move</p>
+          <h1>Mobilité tridimensionnelle</h1>
+          <p class="subtitle">Rotation, flexion-extension et inclinaison en temps réel</p>
         </div>
         <div class="connection">
           <span id="statusDot" class="status-dot"></span>
@@ -41,9 +41,9 @@
         </label>
         <button id="startButton" class="primary">Démarrer</button>
         <button id="stopButton" class="secondary" disabled>Arrêter</button>
-        <button id="connectButton" class="secondary">Connecter le K‑Push</button>
+        <button id="connectButton" class="secondary">Connecter le K‑Move</button>
         <button id="disconnectButton" class="secondary" disabled>Déconnecter</button>
-        <a id="downloadButton" class="download disabled" href="/api/kpush/download">Télécharger</a>
+        <a id="downloadButton" class="download disabled" href="/api/kmove/download">Télécharger</a>
         <div class="timer">
           <span>Temps</span>
           <strong id="timer">00:00</strong>
@@ -52,29 +52,39 @@
 
       <div id="message" class="message hidden"></div>
 
-      <section class="metrics-grid kpush-metrics">
-        <article class="metric-card total-card">
-          <span>Force instantanée</span>
-          <strong><b id="forceKg">0,0</b> kg</strong>
-          <small id="forceN">0 N</small>
-        </article>
+      <section class="metrics-grid kmove-metrics">
         <article class="metric-card left-card">
-          <span>Force maximale</span>
-          <strong><b id="maxKg">0,0</b> kg</strong>
-          <small id="maxN">0 N</small>
+          <span>Rotation droite / gauche</span>
+          <strong><b id="rotation">0,0</b>°</strong>
+          <small id="rotationRange">Min 0,0° · Max 0,0°</small>
+        </article>
+        <article class="metric-card total-card">
+          <span>Flexion / extension</span>
+          <strong><b id="flexion">0,0</b>°</strong>
+          <small id="flexionRange">Min 0,0° · Max 0,0°</small>
+        </article>
+        <article class="metric-card right-card">
+          <span>Inclinaison droite / gauche</span>
+          <strong><b id="inclination">0,0</b>°</strong>
+          <small id="inclinationRange">Min 0,0° · Max 0,0°</small>
         </article>
       </section>
 
       <section class="panel kpush-chart-panel">
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">Courbe</p>
-            <h2>Force au cours du test</h2>
+            <p class="eyebrow">Courbes</p>
+            <h2>Angles au cours du test</h2>
           </div>
-          <span class="badge neutral">Kilogrammes</span>
+          <span id="batteryBadge" class="badge neutral">Batterie —</span>
+        </div>
+        <div class="kmove-legend">
+          <span class="rotation-line">Rotation</span>
+          <span class="flexion-line">Flexion-extension</span>
+          <span class="inclination-line">Inclinaison</span>
         </div>
         <div class="history-wrap kpush-history">
-          <canvas id="forceChart" width="1000" height="320"></canvas>
+          <canvas id="angleChart" width="1000" height="320"></canvas>
         </div>
       </section>
 
@@ -85,6 +95,6 @@
         </div>
       </section>
     </main>
-    <script src="/static/kpush.js?v=4"></script>
+    <script src="/static/kmove.js?v=1"></script>
   </body>
 </html>

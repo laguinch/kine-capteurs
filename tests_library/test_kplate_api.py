@@ -25,6 +25,7 @@ class KPlateApiTest(unittest.TestCase):
         self.assertIn("/kforceplates", paths)
         self.assertIn("/kpush", paths)
         self.assertIn("/kpull", paths)
+        self.assertIn("/kmove", paths)
         self.assertIn("/api/kplates/dual/start", paths)
         self.assertIn("/api/kplates/dual/stop", paths)
         self.assertIn("/api/kplates/dual/connect", paths)
@@ -44,6 +45,12 @@ class KPlateApiTest(unittest.TestCase):
         self.assertIn("/api/kpull/disconnect", paths)
         self.assertIn("/api/kpull/latest", paths)
         self.assertIn("/api/kpull/download", paths)
+        self.assertIn("/api/kmove/start", paths)
+        self.assertIn("/api/kmove/stop", paths)
+        self.assertIn("/api/kmove/connect", paths)
+        self.assertIn("/api/kmove/disconnect", paths)
+        self.assertIn("/api/kmove/latest", paths)
+        self.assertIn("/api/kmove/download", paths)
 
     def test_new_service_is_idle(self):
         service = DualPlateAcquisitionService()

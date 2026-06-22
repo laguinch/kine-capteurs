@@ -47,6 +47,7 @@ chmod 0755 scripts/run_anr_m40_diagnostic.sh
 chmod 0755 scripts/run_kpull_diagnostic.sh
 chmod 0755 scripts/run_kpull_session.sh
 chmod 0755 scripts/run_kmove_diagnostic.sh
+chmod 0755 scripts/run_kmove_session.sh
 
 cat >"$TEMP_UNIT" <<EOF
 [Unit]
@@ -118,11 +119,15 @@ sudo pkill -TERM -f "$PROJECT_DIR/scripts/[r]un_kpush_session.sh" || true
 sudo pkill -TERM -f "$PROJECT_DIR/scripts/[k]invent_kpush_hci.py" || true
 sudo pkill -TERM -f "$PROJECT_DIR/scripts/[r]un_kpull_session.sh" || true
 sudo pkill -TERM -f "$PROJECT_DIR/scripts/[k]invent_kpull_hci.py" || true
+sudo pkill -TERM -f "$PROJECT_DIR/scripts/[r]un_kmove_session.sh" || true
+sudo pkill -TERM -f "$PROJECT_DIR/scripts/[k]invent_kmove_hci.py" || true
 sleep 1
 sudo pkill -KILL -f "$PROJECT_DIR/scripts/[r]un_kpush_session.sh" || true
 sudo pkill -KILL -f "$PROJECT_DIR/scripts/[k]invent_kpush_hci.py" || true
 sudo pkill -KILL -f "$PROJECT_DIR/scripts/[r]un_kpull_session.sh" || true
 sudo pkill -KILL -f "$PROJECT_DIR/scripts/[k]invent_kpull_hci.py" || true
+sudo pkill -KILL -f "$PROJECT_DIR/scripts/[r]un_kmove_session.sh" || true
+sudo pkill -KILL -f "$PROJECT_DIR/scripts/[k]invent_kmove_hci.py" || true
 sudo systemctl kill --kill-who=all --signal=SIGKILL \
   "$BLUETOOTH_SERVICE_NAME" 2>/dev/null || true
 sudo timeout 10s systemctl stop "$BLUETOOTH_SERVICE_NAME" 2>/dev/null || true

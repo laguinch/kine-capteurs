@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.routes.kplates import router as kplates_router
+from api.routes.kmove import router as kmove_router
 from api.routes.kpull import router as kpull_router
 from api.routes.kpush import router as kpush_router
 from app.config import BASE_DIR
@@ -13,6 +14,7 @@ app = FastAPI(title="Kine Capteurs")
 app.include_router(kplates_router)
 app.include_router(kpush_router)
 app.include_router(kpull_router)
+app.include_router(kmove_router)
 app.mount(
     "/static",
     StaticFiles(directory=BASE_DIR / "frontend" / "static"),
@@ -49,6 +51,11 @@ def kpush():
 @app.get("/kpull")
 def kpull():
     return frontend_page("kpull.html")
+
+
+@app.get("/kmove")
+def kmove():
+    return frontend_page("kmove.html")
 
 
 @app.get("/api/health")

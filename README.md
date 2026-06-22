@@ -105,6 +105,7 @@ L'interface est ensuite disponible sur `http://ADRESSE_DU_SERVEUR:8000/`.
 - K-Force Plates : `/kforceplates`
 - K-Push : `/kpush`
 - K-Pull : `/kpull`
+- K-Move : `/kmove`
 
 Le K-Pull utilise le coefficient validé avec une charge étalon de 12 kg :
 `9722.166667 comptes/kg`. Le câble doit rester complètement détendu pendant
