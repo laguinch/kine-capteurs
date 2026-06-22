@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.routes.kplates import router as kplates_router
@@ -19,6 +19,11 @@ app.mount(
 
 @app.get("/")
 def home():
+    return RedirectResponse(url="/kforceplates")
+
+
+@app.get("/kforceplates")
+def kforceplates():
     return FileResponse(Path(BASE_DIR) / "frontend" / "static" / "index.html")
 
 

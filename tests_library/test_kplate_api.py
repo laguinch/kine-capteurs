@@ -21,6 +21,9 @@ class KPlateApiTest(unittest.TestCase):
 
         paths = set(app.openapi()["paths"])
 
+        self.assertIn("/", paths)
+        self.assertIn("/kforceplates", paths)
+        self.assertIn("/kpush", paths)
         self.assertIn("/api/kplates/dual/start", paths)
         self.assertIn("/api/kplates/dual/stop", paths)
         self.assertIn("/api/kplates/dual/connect", paths)
