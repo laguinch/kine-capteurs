@@ -125,3 +125,20 @@ K-Push. Pour remettre ensuite les plateformes en service :
 ```bash
 sudo systemctl restart kine-capteurs-bluetooth
 ```
+
+## Diagnostic ANR M40
+
+Le M40 utilise le profil GATT standard. Le script suivant bascule
+temporairement le dongle USB vers BlueZ, recherche le Company ID ANR `0x05DA`,
+lit l'identité et la batterie, règle la couleur d'identification et enregistre
+les notifications EMG à 10 Hz :
+
+```bash
+cd /opt/kine-capteurs-staging
+sudo scripts/run_anr_m40_diagnostic.sh \
+  --duration 30 \
+  --device-id 1 \
+  --csv storage/raw_data/anr_m40_test.csv
+```
+
+Le service permanent des plateformes est restauré automatiquement à la fin.

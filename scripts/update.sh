@@ -43,6 +43,7 @@ fi
 echo "Vérification du projet..."
 "$PYTHON_BIN" -m unittest discover -s tests_library -p 'test*.py'
 chmod 0755 scripts/run_kpush_session.sh
+chmod 0755 scripts/run_anr_m40_diagnostic.sh
 
 cat >"$TEMP_UNIT" <<EOF
 [Unit]
