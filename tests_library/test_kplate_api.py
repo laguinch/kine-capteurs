@@ -81,6 +81,31 @@ class KPlateApiTest(unittest.TestCase):
         self.assertEqual(measurement["right_kg"], 55.0)
         self.assertEqual(measurement["total_kg"], 105.0)
 
+    def test_cmj_latest_only_reports_weight_readiness(self):
+        service = DualPlateAcquisitionService()
+        service._mode = "cmj"
+        service._generation = "cmj-test"
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            service._worker_state_path = root / "state.json"
+            service._worker_state_path.write_text(
+                (
+                    f'{{"phase":"active","pid":{os.getpid()},'
+                    '"generation":"cmj-test","mode":"cmj"}}'
+                ),
+                encoding="utf-8",
+            )
+            service._csv_path = root / "cmj.csv"
+            service._csv_path.write_text(
+                "elapsed_s,source,source_kg\n",
+                encoding="utf-8",
+            )
+
+            latest = service.latest()
+
+        self.assertIsNone(latest["measurement"])
+        self.assertFalse(latest["cmj_preparation"]["ready"])
+
     def test_command_prefix_supports_shell_quoting(self):
         service = DualPlateAcquisitionService()
         original = os.environ.get("KINE_HCI_COMMAND_PREFIX")

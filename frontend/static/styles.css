@@ -141,6 +141,7 @@ button:disabled { opacity: .45; cursor: default; }
 .timer strong { font-variant-numeric: tabular-nums; font-size: 1.4rem; }
 
 .message { margin: 0 0 18px; border-radius: 12px; padding: 12px 15px; background: #fff3d7; color: #785916; }
+.message.ready { background: #e1f5ea; color: #12663f; }
 .message.error { background: #fde7e5; color: #8d2c28; }
 .hidden { display: none; }
 

@@ -3,7 +3,7 @@ from pathlib import Path
 from statistics import median
 
 
-def analyze_cmj_csv(path):
+def _resampled_rows(path, minimum_source_samples=15):
     streams = {"gauche": [], "droite": []}
     with Path(path).open(encoding="utf-8", newline="") as source:
         for row in csv.DictReader(source):
@@ -15,14 +15,14 @@ def analyze_cmj_csv(path):
                     )
             except (KeyError, TypeError, ValueError):
                 continue
-    if min(len(values) for values in streams.values()) < 15:
+    if min(len(values) for values in streams.values()) < minimum_source_samples:
         raise ValueError("Acquisition CMJ trop courte.")
 
     for values in streams.values():
         values.sort()
     start_time = max(values[0][0] for values in streams.values())
     end_time = min(values[-1][0] for values in streams.values())
-    if end_time - start_time < 1.5:
+    if end_time <= start_time:
         raise ValueError("Acquisition CMJ trop courte.")
 
     def interpolate(values, target, index):
@@ -56,19 +56,56 @@ def analyze_cmj_csv(path):
             }
         )
         target += 0.01
+    return rows, streams, start_time, end_time
 
-    baseline_rows = [row for row in rows if row["t"] <= 1.0]
-    if len(baseline_rows) < 10:
-        raise ValueError("Référence debout insuffisante au début du test.")
-    body_mass_kg = median(row["total_kg"] for row in baseline_rows)
-    if body_mass_kg < 20:
-        raise ValueError("Le patient doit être debout au début du test.")
+
+def detect_stable_body_mass(path):
+    try:
+        rows, _, _, _ = _resampled_rows(path, minimum_source_samples=5)
+    except (OSError, ValueError):
+        return {"ready": False, "status": "waiting_presence"}
+
+    window_size = 100
+    if len(rows) < window_size:
+        return {"ready": False, "status": "waiting_presence"}
+    for end in range(window_size, len(rows) + 1):
+        window = rows[end - window_size:end]
+        values = [row["total_kg"] for row in window]
+        body_mass_kg = median(values)
+        if body_mass_kg < 20:
+            continue
+        tolerance = max(2.0, body_mass_kg * 0.03)
+        if max(abs(value - body_mass_kg) for value in values) <= tolerance:
+            return {
+                "ready": True,
+                "status": "ready",
+                "body_mass_kg": body_mass_kg,
+                "reference_start_s": window[0]["t"],
+                "reference_end_s": window[-1]["t"],
+            }
+    if max(row["total_kg"] for row in rows) >= 20:
+        return {"ready": False, "status": "stabilizing"}
+    return {"ready": False, "status": "waiting_presence"}
+
+
+def analyze_cmj_csv(path):
+    rows, streams, start_time, end_time = _resampled_rows(path)
+    if end_time - start_time < 1.5:
+        raise ValueError("Acquisition CMJ trop courte.")
+
+    preparation = detect_stable_body_mass(path)
+    if not preparation["ready"]:
+        raise ValueError(
+            "Aucun poids stable n'a été enregistré avant le saut."
+        )
+    body_mass_kg = preparation["body_mass_kg"]
+    search_after = preparation["reference_end_s"]
 
     flight_threshold = max(5.0, body_mass_kg * 0.05)
     takeoff_index = landing_index = None
     start = None
     for index, row in enumerate(rows):
-        if row["t"] < 1.0:
+        if row["t"] <= search_after:
             continue
         if row["total_kg"] <= flight_threshold:
             start = index if start is None else start
@@ -113,6 +150,8 @@ def analyze_cmj_csv(path):
 
     return {
         "body_mass_kg": body_mass_kg,
+        "weight_reference_start_s": preparation["reference_start_s"],
+        "weight_reference_end_s": preparation["reference_end_s"],
         "takeoff_time_s": takeoff_time,
         "landing_time_s": landing_time,
         "flight_time_s": flight_time,

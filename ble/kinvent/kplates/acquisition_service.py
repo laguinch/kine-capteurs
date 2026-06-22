@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from app.config import BASE_DIR
+from ble.kinvent.kplates.cmj_analysis import detect_stable_body_mass
 
 
 def now_iso():
@@ -221,9 +222,16 @@ class DualPlateAcquisitionService:
         with self._lock:
             status = self.status()
             if status.get("mode") == "cmj":
+                preparation = (
+                    detect_stable_body_mass(self._csv_path)
+                    if self._csv_path
+                    and self._csv_path.exists()
+                    else {"ready": False, "status": "waiting_presence"}
+                )
                 return {
                     **status,
                     "measurement": None,
+                    "cmj_preparation": preparation,
                     "log_tail": self._read_log_tail(),
                 }
             row = self._read_latest_row()

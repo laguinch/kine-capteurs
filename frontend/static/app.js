@@ -8,6 +8,7 @@ const state = {
   awaitingReady: false,
   lastMeasurementTimestamp: null,
   cmjResultLoaded: false,
+  cmjReady: false,
 };
 
 const format = (value, digits = 1) =>
@@ -15,11 +16,12 @@ const format = (value, digits = 1) =>
     ? value.toLocaleString("fr-FR", { minimumFractionDigits: digits, maximumFractionDigits: digits })
     : "—";
 
-function setMessage(text, error = false) {
+function setMessage(text, error = false, ready = false) {
   const box = $("message");
   box.textContent = text || "";
   box.classList.toggle("hidden", !text);
   box.classList.toggle("error", error);
+  box.classList.toggle("ready", ready);
 }
 
 function updateStatus(data) {
@@ -73,6 +75,24 @@ function updateStatus(data) {
     state.awaitingTare = false;
     state.awaitingReady = false;
     setMessage("Acquisition terminée et enregistrée.");
+  } else if (running && cmjMode) {
+    const preparation = data.cmj_preparation;
+    if (preparation?.ready) {
+      state.cmjReady = true;
+      setMessage(
+        `✓ Poids enregistré : ${format(preparation.body_mass_kg, 1)} kg. Vous pouvez débuter le saut.`,
+        false,
+        true
+      );
+    } else if (preparation?.status === "stabilizing") {
+      setMessage(
+        "Patient détecté. Restez debout et immobile pendant l’enregistrement du poids."
+      );
+    } else {
+      setMessage(
+        "Montez sur les deux plateformes et restez debout immobile."
+      );
+    }
   }
   if (
     !running
@@ -228,6 +248,7 @@ async function start() {
   state.awaitingTare = true;
   state.awaitingReady = true;
   state.cmjResultLoaded = false;
+  state.cmjReady = false;
   const mode = $("testMode").value;
   $("balanceMetrics").classList.toggle("hidden", mode === "cmj");
   $("balanceVisuals").classList.toggle("hidden", mode === "cmj");
@@ -254,7 +275,7 @@ async function start() {
     updateStatus(data);
     setMessage(
       mode === "cmj"
-        ? "Enregistrement brut en cours. Restez debout une seconde, puis réalisez votre CMJ. Les résultats seront calculés après le test."
+        ? "Montez sur les deux plateformes et restez debout immobile. Attendez le feu vert avant de sauter."
         : state.awaitingTare
         ? "Laissez les deux plateformes vides pendant la tare."
         : "Plateformes connectées. Démarrage de l’enregistrement…"

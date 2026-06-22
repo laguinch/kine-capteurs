@@ -3,7 +3,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from ble.kinvent.kplates.cmj_analysis import analyze_cmj_csv
+from ble.kinvent.kplates.cmj_analysis import (
+    analyze_cmj_csv,
+    detect_stable_body_mass,
+)
 
 
 class CMJAnalysisTest(unittest.TestCase):
@@ -57,3 +60,32 @@ class CMJAnalysisTest(unittest.TestCase):
         self.assertGreater(result["left_source_rate_hz"], 74)
         self.assertEqual(result["resampled_rate_hz"], 100)
         self.assertEqual(result["raw_event_count"], 452)
+
+    def test_waits_for_stable_weight_after_patient_steps_on(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "preparation.csv"
+            with path.open("w", newline="", encoding="utf-8") as target:
+                writer = csv.DictWriter(
+                    target,
+                    fieldnames=["elapsed_s", "source", "source_kg"],
+                )
+                writer.writeheader()
+                for index in range(190):
+                    t = index / 75
+                    total = 0.0 if t < 0.4 else 80.0
+                    for side in ("gauche", "droite"):
+                        writer.writerow(
+                            {
+                                "elapsed_s": t + (
+                                    0.003 if side == "droite" else 0
+                                ),
+                                "source": side,
+                                "source_kg": total / 2,
+                            }
+                        )
+
+            preparation = detect_stable_body_mass(path)
+
+        self.assertTrue(preparation["ready"])
+        self.assertAlmostEqual(preparation["body_mass_kg"], 80.0)
+        self.assertGreater(preparation["reference_start_s"], 0.3)
