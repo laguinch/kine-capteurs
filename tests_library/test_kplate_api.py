@@ -66,7 +66,10 @@ class KPlateApiTest(unittest.TestCase):
     def test_latest_reads_last_complete_measurement(self):
         service = DualPlateAcquisitionService()
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "dual.csv"
+            root = Path(directory)
+            service._worker_state_path = root / "missing-state.json"
+            service._worker_log_path = root / "missing-worker.log"
+            path = root / "dual.csv"
             path.write_text(
                 "timestamp_utc,sync_delta_ms,left_kg,right_kg,total_kg\n"
                 "2026-06-18T08:00:00+00:00,12.5,50.0,55.0,105.0\n",
