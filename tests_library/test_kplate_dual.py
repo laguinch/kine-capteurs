@@ -237,6 +237,40 @@ class KPlateDualTest(unittest.TestCase):
 
         self.assertIsNone(client.keepalive_interval)
 
+    def test_cmj_keeps_streams_active_after_acquisition(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        parked = []
+        client.park_measurement_streams = lambda: parked.append(True)
+
+        streams_active = client.finish_acquisition_streams("cmj")
+
+        self.assertTrue(streams_active)
+        self.assertEqual(parked, [])
+
+    def test_balance_parks_streams_after_acquisition(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        parked = []
+        client.park_measurement_streams = lambda: parked.append(True)
+
+        streams_active = client.finish_acquisition_streams("balance")
+
+        self.assertFalse(streams_active)
+        self.assertEqual(parked, [True])
+
     def test_disconnect_identifies_plate_and_clears_handle(self):
         client = self.module.DualKinventClient(
             1,

@@ -1208,6 +1208,17 @@ class DualKinventClient:
             self.pump(0.05)
         print("Flux de mesure au repos; connexions Bluetooth conservées.")
 
+    def finish_acquisition_streams(self, acquisition_mode):
+        """Conserve le flux CMJ actif pour éviter la déconnexion 0x08."""
+        if acquisition_mode == "cmj":
+            print(
+                "CMJ terminé; flux de mesure maintenus actifs pour préserver "
+                "les connexions Bluetooth."
+            )
+            return True
+        self.park_measurement_streams()
+        return False
+
     def validate_live_streams(self, timeout=2.0, attempts=3):
         """Exige une nouvelle trame de mesure valide de chaque plateforme."""
         if any(plate.handle is None for plate in self.plates):
@@ -1404,6 +1415,7 @@ class DualKinventClient:
         generation = None
         active_generation = None
         next_idle_keepalive = 0.0
+        idle_streams_active = False
 
         def read_command():
             try:
@@ -1441,6 +1453,7 @@ class DualKinventClient:
                                 attempts=1,
                             )
                             self.park_measurement_streams()
+                            idle_streams_active = False
                         except (
                             OSError,
                             PlateDisconnected,
@@ -1507,6 +1520,7 @@ class DualKinventClient:
                             attempts=1,
                         )
                         self.park_measurement_streams()
+                        idle_streams_active = False
                     except (
                         OSError,
                         PlateDisconnected,
@@ -1538,6 +1552,7 @@ class DualKinventClient:
                     self.disconnect_all()
                     self.clear_connection_state()
                     self.close()
+                    idle_streams_active = False
                     self.reconnect_not_before = time.monotonic() + 10.0
                     generation = requested or generation
                     self.write_worker_state(
@@ -1649,7 +1664,9 @@ class DualKinventClient:
                             ),
                         )
                     else:
-                        self.park_measurement_streams()
+                        idle_streams_active = self.finish_acquisition_streams(
+                            acquisition_mode
+                        )
                         self.write_worker_state(
                             state_file,
                             phase="idle",
@@ -1666,6 +1683,7 @@ class DualKinventClient:
                     self.pump(1.0, progress=True, show_progress=False)
                     if (
                         self.sock is not None
+                        and not idle_streams_active
                         and time.monotonic() >= next_idle_keepalive
                     ):
                         for plate in self.plates:
@@ -1675,6 +1693,7 @@ class DualKinventClient:
                 except (PlateDisconnected, TimeoutError, RuntimeError) as exc:
                     print(f"Session inactive interrompue: {exc}")
                     self.shutdown_session()
+                    idle_streams_active = False
                     self.reconnect_not_before = time.monotonic() + 10.0
                     self.write_worker_state(
                         state_file,
