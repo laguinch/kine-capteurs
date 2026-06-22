@@ -1282,6 +1282,14 @@ class DualKinventClient:
         self.streams_parked_at = time.monotonic()
         print("Flux de mesure au repos; connexions Bluetooth conservées.")
 
+    def settle_initial_streams(self, duration=2.0):
+        """Laisse le mode mesure se stabiliser avant son premier repos."""
+        print(
+            "Stabilisation initiale des flux pendant "
+            f"{duration:.0f} secondes..."
+        )
+        self.pump(duration)
+
     def finish_acquisition_streams(self, acquisition_mode):
         """Reproduit la fin de test Kinvent tout en restant connecté."""
         del acquisition_mode
@@ -1529,6 +1537,11 @@ class DualKinventClient:
                                 attempts=1,
                                 require_measurements=False,
                             )
+                            # Dans la capture officielle, les flux tournent
+                            # environ deux secondes après la fin de
+                            # l'initialisation avant le premier 0x10. Un repos
+                            # immédiat laisse ensuite les deux firmwares muets.
+                            self.settle_initial_streams()
                             self.park_measurement_streams(commands=1)
                             idle_streams_active = False
                         except (
@@ -1597,6 +1610,7 @@ class DualKinventClient:
                             attempts=1,
                             require_measurements=False,
                         )
+                        self.settle_initial_streams()
                         self.park_measurement_streams(commands=1)
                         idle_streams_active = False
                     except (

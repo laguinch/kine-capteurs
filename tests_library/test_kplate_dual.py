@@ -766,6 +766,22 @@ class KPlateDualTest(unittest.TestCase):
             ["reset", "connected-droite", "connected-gauche", "streams"],
         )
 
+    def test_initial_streams_can_settle_before_first_park(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        pumped = []
+        client.pump = pumped.append
+
+        client.settle_initial_streams()
+
+        self.assertEqual(pumped, [2.0])
+
     def test_connects_right_plate_first_like_official_application(self):
         client = self.module.DualKinventClient(
             1,
