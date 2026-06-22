@@ -375,6 +375,8 @@ class DualKinventClient:
         self.acquisition_mode = "balance"
         self.cmj_started_monotonic = None
         self.cmj_samples = 0
+        self.cmj_support_observed = False
+        self.cmj_flight_observed = False
         self.reconnect_not_before = 0.0
         self.streams_parked_at = None
 
@@ -393,6 +395,8 @@ class DualKinventClient:
         self.acquisition_mode = mode
         self.cmj_started_monotonic = None
         self.cmj_samples = 0
+        self.cmj_support_observed = False
+        self.cmj_flight_observed = False
         self.writer.writerow(CMJ_FIELDS if mode == "cmj" else CSV_FIELDS)
         self.csv_file.flush()
 
@@ -403,6 +407,8 @@ class DualKinventClient:
         self.writer = None
         self.acquisition_mode = "balance"
         self.cmj_started_monotonic = None
+        self.cmj_support_observed = False
+        self.cmj_flight_observed = False
 
     def wait_for_reconnect_cooldown(self):
         remaining = self.reconnect_not_before - time.monotonic()
@@ -1120,6 +1126,11 @@ class DualKinventClient:
             if left_current != "" and right_current != ""
             else ""
         )
+        if total_current != "":
+            if total_current >= 20.0:
+                self.cmj_support_observed = True
+            elif self.cmj_support_observed and total_current <= 10.0:
+                self.cmj_flight_observed = True
         source_sample = source_plate.latest
         source_distribution = source_plate.distribution or {}
         source_kg = max(0.0, source_sample["force_kg"])
@@ -1184,10 +1195,12 @@ class DualKinventClient:
         show_progress=True,
         stop_requested=None,
         stream_silence_timeout=None,
+        recover_silent_streams=False,
     ):
         deadline = time.monotonic() + duration
         started_at = time.monotonic()
         next_progress = time.monotonic()
+        recovered_sides = set()
         if progress:
             self.next_keepalive = None
         while time.monotonic() < deadline:
@@ -1212,6 +1225,34 @@ class DualKinventClient:
                     stream_silence_timeout
                 )
                 if silent:
+                    recoverable = [
+                        plate
+                        for plate in self.plates
+                        if (
+                            plate.side in silent
+                            and plate.side not in recovered_sides
+                            and plate.handle is not None
+                        )
+                    ]
+                    if (
+                        recover_silent_streams
+                        and len(silent) == 1
+                        and recoverable
+                        and not self.cmj_flight_observed
+                    ):
+                        plate = recoverable[0]
+                        recovered_sides.add(plate.side)
+                        print(
+                            f"Flux {plate.side} silencieux avant le "
+                            "décollage; réveil ciblé unique..."
+                        )
+                        if self.wake_measurement_stream(plate):
+                            print(
+                                f"Flux {plate.side} rétabli; "
+                                "acquisition CMJ poursuivie."
+                            )
+                            started_at = time.monotonic()
+                            continue
                     raise MeasurementStreamSilent(silent)
             if (
                 progress
@@ -1370,6 +1411,20 @@ class DualKinventClient:
             self.send_write_command(plate, b"\x11")
         self.pump(0.25)
         self.streams_parked_at = None
+
+    def wake_measurement_stream(self, plate):
+        """Réveille une seule plateforme silencieuse sans couper l'autre."""
+        if plate.handle is None:
+            return False
+        before = plate.measurements
+        self.send_write_command(plate, b"\x90")
+        self.pump(0.70)
+        self.send_write_command(plate, b"\x11")
+        self.pump(0.60)
+        return (
+            plate.measurements > before
+            and plate.side not in self.silent_plate_sides(1.0)
+        )
 
     def park_measurement_streams(self, commands=3):
         """Met les mesures au repos sans fermer les liaisons BLE."""
@@ -1887,6 +1942,9 @@ class DualKinventClient:
                             progress=True,
                             stream_silence_timeout=(
                                 1.0 if acquisition_mode == "cmj" else None
+                            ),
+                            recover_silent_streams=(
+                                acquisition_mode == "cmj"
                             ),
                             stop_requested=lambda: (
                                 read_command().get("action") == "stop"

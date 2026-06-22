@@ -239,6 +239,70 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(float(row["right_kg"]), 55.0)
         self.assertEqual(row["total_kg"], "")
 
+    def test_cmj_marks_support_then_flight(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "cmj-flight.csv"
+            client = self.module.DualKinventClient(
+                1,
+                "E8:EB:1B:6F:A7:5F",
+                "E8:EB:1B:79:B1:AB",
+                None,
+                0,
+                1,
+            )
+            client.open_csv(path, mode="cmj")
+            left, right = client.plates
+            base = time.monotonic()
+
+            for force, offset in ((50.0, 0.0), (0.0, 0.1)):
+                for plate in (left, right):
+                    plate.latest = {"force_kg": force, "t": 100}
+                    plate.samples.append(
+                        {
+                            "received_monotonic": base + offset,
+                            "sample_monotonic": base + offset,
+                            "received_utc": "2026-06-22T08:00:00+00:00",
+                            "sample": plate.latest,
+                            "distribution": None,
+                        }
+                    )
+                client.write_cmj_event(right)
+
+            self.assertTrue(client.cmj_support_observed)
+            self.assertTrue(client.cmj_flight_observed)
+            client.close_csv()
+
+        self.assertFalse(client.cmj_support_observed)
+        self.assertFalse(client.cmj_flight_observed)
+
+    def test_targeted_stream_wake_uses_official_sequence(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        left = client.plates[0]
+        left.handle = 0x10
+        sent = []
+        client.send_write_command = (
+            lambda plate, value: sent.append((plate.side, value))
+        )
+
+        def pump(duration):
+            left.measurements += 1
+            left.last_notification_at = self.module.time.monotonic()
+
+        client.pump = pump
+
+        self.assertTrue(client.wake_measurement_stream(left))
+        self.assertEqual(
+            sent,
+            [("gauche", b"\x90"), ("gauche", b"\x11")],
+        )
+
     def test_detects_silent_measurement_stream(self):
         client = self.module.DualKinventClient(
             1,
