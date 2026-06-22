@@ -60,6 +60,13 @@ class CMJAnalysisTest(unittest.TestCase):
         self.assertGreater(result["left_source_rate_hz"], 74)
         self.assertEqual(result["resampled_rate_hz"], 100)
         self.assertEqual(result["raw_event_count"], 452)
+        self.assertAlmostEqual(result["left_peak_force_kg"], 72.5)
+        self.assertAlmostEqual(result["right_peak_force_kg"], 72.5)
+        self.assertLess(result["takeoff_difference_ms"], 15)
+        self.assertFalse(result["takeoff_difference_reliable"])
+        self.assertLess(result["landing_difference_ms"], 15)
+        self.assertFalse(result["landing_difference_reliable"])
+        self.assertAlmostEqual(result["temporal_resolution_ms"], 13.3, places=1)
 
     def test_waits_for_stable_weight_after_patient_steps_on(self):
         with tempfile.TemporaryDirectory() as directory:

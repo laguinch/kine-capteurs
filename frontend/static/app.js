@@ -56,13 +56,26 @@ function updateStatus(data) {
     "hidden",
     !cmjMode || running || !data.finished_at
   );
+  $("cmjDetails").classList.toggle(
+    "hidden",
+    !cmjMode || running || !data.finished_at
+  );
 
   const elapsed = data.elapsed_seconds || 0;
   const minutes = Math.floor(elapsed / 60).toString().padStart(2, "0");
   const seconds = Math.floor(elapsed % 60).toString().padStart(2, "0");
   $("timer").textContent = `${minutes}:${seconds}`;
 
-  if (data.last_error) {
+  if (
+    data.last_error
+    && cmjMode
+    && data.csv_path
+    && data.finished_at
+  ) {
+    setMessage(
+      "Test CMJ enregistré. Une plateforme s’est déconnectée après le test ; reconnectez-les avant le prochain essai."
+    );
+  } else if (data.last_error) {
     state.awaitingTare = false;
     state.awaitingReady = false;
     if (!running) resetMeasurement();
@@ -124,6 +137,27 @@ async function loadCmjResult() {
     );
     $("cmjSamples").textContent =
       `${result.raw_event_count} événements bruts conservés`;
+    $("leftPeakKg").textContent = format(result.left_peak_force_kg, 1);
+    $("rightPeakKg").textContent = format(result.right_peak_force_kg, 1);
+    $("forceDifference").textContent =
+      `G ${format(result.left_peak_force_n, 0)} N · ` +
+      `D ${format(result.right_peak_force_n, 0)} N · ` +
+      `différence ${format(result.peak_force_difference_kg, 1)} kg · ` +
+      `${format(result.peak_force_asymmetry_pct, 1)} %`;
+    $("takeoffFirst").textContent =
+      result.takeoff_difference_reliable
+        ? `Pied ${result.takeoff_first_side}`
+        : "Non discriminable";
+    $("takeoffDifference").textContent =
+      `Écart ${format(result.takeoff_difference_ms, 0)} ms · ` +
+      `résolution ≈ ${format(result.temporal_resolution_ms, 0)} ms`;
+    $("landingFirst").textContent =
+      result.landing_difference_reliable
+        ? `Pied ${result.landing_first_side}`
+        : "Non discriminable";
+    $("landingDifference").textContent =
+      `Écart ${format(result.landing_difference_ms, 0)} ms · ` +
+      `résolution ≈ ${format(result.temporal_resolution_ms, 0)} ms`;
   } catch (error) {
     setMessage(error.message, true);
   }
@@ -253,6 +287,7 @@ async function start() {
   $("balanceMetrics").classList.toggle("hidden", mode === "cmj");
   $("balanceVisuals").classList.toggle("hidden", mode === "cmj");
   $("cmjResults").classList.add("hidden");
+  $("cmjDetails").classList.add("hidden");
   const filename = $("filename").value.trim();
   const body = {
     adapter: "hci1",

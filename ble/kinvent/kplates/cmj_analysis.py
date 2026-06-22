@@ -147,6 +147,115 @@ def analyze_cmj_csv(path):
     preflight = rows[:takeoff_index]
     peak = max(preflight, key=lambda row: row["total_kg"])
     minimum = min(preflight, key=lambda row: row["total_kg"])
+    propulsion = [
+        row
+        for row in rows
+        if search_after <= row["t"] <= takeoff_time
+    ]
+    left_peak = max(row["left_kg"] for row in propulsion)
+    right_peak = max(row["right_kg"] for row in propulsion)
+    peak_difference_kg = abs(left_peak - right_peak)
+    peak_average = (left_peak + right_peak) / 2
+    peak_asymmetry_pct = (
+        peak_difference_kg / peak_average * 100
+        if peak_average > 0
+        else 0.0
+    )
+
+    stable_rows = [
+        row
+        for row in rows
+        if preparation["reference_start_s"]
+        <= row["t"]
+        <= preparation["reference_end_s"]
+    ]
+    left_reference_kg = median(row["left_kg"] for row in stable_rows)
+    right_reference_kg = median(row["right_kg"] for row in stable_rows)
+
+    def side_crossing_time(
+        field,
+        threshold,
+        start_index,
+        direction,
+        sustain_s=0.06,
+    ):
+        candidate = None
+        for index in range(max(1, start_index), len(rows)):
+            value = rows[index][field]
+            reached = (
+                value <= threshold
+                if direction == "down"
+                else value >= threshold
+            )
+            if reached:
+                candidate = index if candidate is None else candidate
+                if rows[index]["t"] - rows[candidate]["t"] >= sustain_s:
+                    before = rows[max(0, candidate - 1)]
+                    after = rows[candidate]
+                    force_delta = after[field] - before[field]
+                    if abs(force_delta) < 1e-9:
+                        return after["t"]
+                    ratio = (threshold - before[field]) / force_delta
+                    ratio = max(0.0, min(1.0, ratio))
+                    return before["t"] + (
+                        after["t"] - before["t"]
+                    ) * ratio
+            else:
+                candidate = None
+        raise ValueError(
+            "Impossible de distinguer les événements gauche et droite."
+        )
+
+    search_index = next(
+        index for index, row in enumerate(rows)
+        if row["t"] >= search_after
+    )
+    left_takeoff_time = side_crossing_time(
+        "left_kg",
+        max(2.0, left_reference_kg * 0.10),
+        search_index,
+        "down",
+    )
+    right_takeoff_time = side_crossing_time(
+        "right_kg",
+        max(2.0, right_reference_kg * 0.10),
+        search_index,
+        "down",
+    )
+    landing_search_index = next(
+        index for index, row in enumerate(rows)
+        if row["t"] >= max(left_takeoff_time, right_takeoff_time) + 0.05
+    )
+    left_landing_time = side_crossing_time(
+        "left_kg",
+        max(5.0, left_reference_kg * 0.20),
+        landing_search_index,
+        "up",
+        sustain_s=0.03,
+    )
+    right_landing_time = side_crossing_time(
+        "right_kg",
+        max(5.0, right_reference_kg * 0.20),
+        landing_search_index,
+        "up",
+        sustain_s=0.03,
+    )
+
+    def first_side(left_time, right_time):
+        if abs(left_time - right_time) < 1e-9:
+            return "simultané"
+        return "gauche" if left_time < right_time else "droite"
+
+    left_rate = len(streams["gauche"]) / max(end_time - start_time, 0.001)
+    right_rate = len(streams["droite"]) / max(end_time - start_time, 0.001)
+    effective_rate = min(left_rate, right_rate)
+    temporal_resolution_ms = 1000.0 / max(effective_rate, 0.001)
+    takeoff_difference_ms = abs(
+        left_takeoff_time - right_takeoff_time
+    ) * 1000
+    landing_difference_ms = abs(
+        left_landing_time - right_landing_time
+    ) * 1000
 
     return {
         "body_mass_kg": body_mass_kg,
@@ -158,14 +267,40 @@ def analyze_cmj_csv(path):
         "jump_height_cm": 9.81 * flight_time * flight_time / 8.0 * 100,
         "peak_force_kg": peak["total_kg"],
         "peak_force_n": peak["total_kg"] * 9.81,
+        "left_peak_force_kg": left_peak,
+        "right_peak_force_kg": right_peak,
+        "left_peak_force_n": left_peak * 9.81,
+        "right_peak_force_n": right_peak * 9.81,
+        "peak_force_difference_kg": peak_difference_kg,
+        "peak_force_difference_n": peak_difference_kg * 9.81,
+        "peak_force_asymmetry_pct": peak_asymmetry_pct,
         "minimum_force_kg": minimum["total_kg"],
         "left_takeoff_kg": rows[takeoff_index]["left_kg"],
         "right_takeoff_kg": rows[takeoff_index]["right_kg"],
+        "left_takeoff_time_s": left_takeoff_time,
+        "right_takeoff_time_s": right_takeoff_time,
+        "takeoff_first_side": first_side(
+            left_takeoff_time,
+            right_takeoff_time,
+        ),
+        "takeoff_difference_ms": takeoff_difference_ms,
+        "takeoff_difference_reliable": (
+            takeoff_difference_ms >= temporal_resolution_ms
+        ),
+        "left_landing_time_s": left_landing_time,
+        "right_landing_time_s": right_landing_time,
+        "landing_first_side": first_side(
+            left_landing_time,
+            right_landing_time,
+        ),
+        "landing_difference_ms": landing_difference_ms,
+        "landing_difference_reliable": (
+            landing_difference_ms >= temporal_resolution_ms
+        ),
         "sample_count": len(rows),
         "resampled_rate_hz": 100.0,
-        "left_source_rate_hz": len(streams["gauche"])
-        / max(end_time - start_time, 0.001),
-        "right_source_rate_hz": len(streams["droite"])
-        / max(end_time - start_time, 0.001),
+        "left_source_rate_hz": left_rate,
+        "right_source_rate_hz": right_rate,
+        "temporal_resolution_ms": temporal_resolution_ms,
         "raw_event_count": sum(len(values) for values in streams.values()),
     }
