@@ -16,7 +16,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from ble.common.devices import KPULL  # noqa: E402
 from ble.kinvent.kpull.protocol import (  # noqa: E402
     calibrate_sample,
-    compute_counts_per_kg,
+    compute_stable_calibration,
     parse_raw_frame,
 )
 from scripts.kinvent_raw_hci import (  # noqa: E402
@@ -56,6 +56,7 @@ class KPullHciClient(RawKinventClient):
         self.known_load_kg = known_load_kg
         self.maximum_raw_force = None
         self.maximum_delta = 0
+        self.force_deltas = []
         self.keepalive_interval = 10.0
         self.next_keepalive_at = None
         self.csv_path = Path(csv_path) if csv_path else None
@@ -127,6 +128,7 @@ class KPullHciClient(RawKinventClient):
             self.counts_per_kg,
         )
         delta = abs(sample["force_counts"])
+        self.force_deltas.append(sample["force_counts"])
         if delta > self.maximum_delta:
             self.maximum_delta = delta
             self.maximum_raw_force = raw_sample["raw_force"]
@@ -187,13 +189,11 @@ class KPullHciClient(RawKinventClient):
     def calibration_result(self):
         if (
             self.known_load_kg is None
-            or self.tare_offset is None
-            or self.maximum_raw_force is None
+            or not self.force_deltas
         ):
             return None
-        return compute_counts_per_kg(
-            self.tare_offset,
-            self.maximum_raw_force,
+        return compute_stable_calibration(
+            self.force_deltas,
             self.known_load_kg,
         )
 
@@ -234,9 +234,17 @@ def main():
         write_delay=args.write_delay,
     )
     print(f"Variation maximale: {client.maximum_delta} comptes.")
-    coefficient = client.calibration_result()
-    if coefficient is not None:
-        print(f"Calibration calculée: {coefficient:.6f} comptes/kg.")
+    calibration = client.calibration_result()
+    if calibration is not None:
+        print(
+            "Palier stable retenu: "
+            f"{calibration['stable_counts']:.0f} comptes "
+            f"sur {calibration['stable_samples']} mesures."
+        )
+        print(
+            "Calibration calculée: "
+            f"{calibration['counts_per_kg']:.6f} comptes/kg."
+        )
 
 
 if __name__ == "__main__":

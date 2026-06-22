@@ -3,6 +3,7 @@ import unittest
 from ble.kinvent.kpull.protocol import (
     calibrate_sample,
     compute_counts_per_kg,
+    compute_stable_calibration,
     parse_raw_frame,
 )
 
@@ -47,6 +48,34 @@ class KPullProtocolTest(unittest.TestCase):
         )
 
         self.assertEqual(coefficient, 3_000)
+
+    def test_uses_stable_plateau_instead_of_transient_peak(self):
+        values = (
+            [0] * 30
+            + [20_000, 60_000, 105_000, 133_000]
+            + [119_500, 120_000, 120_500, 121_000] * 30
+            + [95_000, 50_000, 0]
+        )
+
+        calibration = compute_stable_calibration(
+            values,
+            known_load_kg=12,
+        )
+
+        self.assertAlmostEqual(
+            calibration["counts_per_kg"],
+            10_041.666667,
+            places=5,
+        )
+        self.assertEqual(calibration["peak_counts"], 133_000)
+        self.assertGreater(calibration["stable_samples"], 80)
+
+    def test_rejects_calibration_without_sustained_load(self):
+        with self.assertRaisesRegex(ValueError, "palier chargé"):
+            compute_stable_calibration(
+                [0, 100, 5_000, 100, 0],
+                known_load_kg=12,
+            )
 
 
 if __name__ == "__main__":
