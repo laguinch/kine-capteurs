@@ -77,17 +77,29 @@ OCF_LE_CONN_UPDATE = 0x0013
 # les délais fixes trop courts laissaient certaines plateformes en mode
 # diagnostic 11 octets au lieu du mode force 17 octets.
 KPLATE_INIT_STEPS = [
-    (b"\x09", b"KINVENT FW", 0.50),
-    (b"\x76", b"F=75Hz", 0.50),
-    (b"\x11", None, 0.15),
-    (b"\x10", None, 0.05),
-    (b"\x10", None, 0.35),
-    (bytes.fromhex("60 00 19 00 4b 0d 0a"), None, 0.02),
-    (b"\x66", b"F=25Hz", 2.20),
-    (b"\x56", b"F=25Hz", 0.50),
-    (bytes.fromhex("ac 00 54 f8"), bytes.fromhex("ac 00 54"), 0.50),
-    (bytes.fromhex("ac 01 04 a9"), bytes.fromhex("ac 01 04"), 0.50),
-    (b"\x11", None, 0.20),
+    (b"\x09", b"KINVENT FW", 0.50, True),
+    # Un firmware déjà réglé à cette fréquence peut ne rien renvoyer.
+    (b"\x76", b"F=75Hz", 0.50, False),
+    (b"\x11", None, 0.15, False),
+    (b"\x10", None, 0.05, False),
+    (b"\x10", None, 0.35, False),
+    (bytes.fromhex("60 00 19 00 4b 0d 0a"), None, 0.02, False),
+    (b"\x66", b"F=25Hz", 2.20, True),
+    # Même comportement idempotent possible pour le rappel à 25 Hz.
+    (b"\x56", b"F=25Hz", 0.50, False),
+    (
+        bytes.fromhex("ac 00 54 f8"),
+        bytes.fromhex("ac 00 54"),
+        0.50,
+        True,
+    ),
+    (
+        bytes.fromhex("ac 01 04 a9"),
+        bytes.fromhex("ac 01 04"),
+        0.50,
+        True,
+    ),
+    (b"\x11", None, 0.20, False),
 ]
 CSV_FIELDS = [
     "timestamp_utc",
@@ -814,18 +826,27 @@ class DualKinventClient:
         for plate in connected:
             self.update_connection_interval(plate)
 
-        for command, expected, timeout in KPLATE_INIT_STEPS:
+        for command, expected, timeout, required in KPLATE_INIT_STEPS:
             if expected is None:
                 for plate in connected:
                     self.send_write_command(plate, command)
                 self.pump(timeout)
             else:
-                self.send_protocol_step(
-                    connected,
-                    command,
-                    expected,
-                    timeout,
-                )
+                try:
+                    self.send_protocol_step(
+                        connected,
+                        command,
+                        expected,
+                        timeout,
+                        attempts=3 if required else 1,
+                    )
+                except TimeoutError:
+                    if required:
+                        raise
+                    print(
+                        "Confirmation optionnelle absente pour la commande "
+                        f"{command.hex(' ')}; poursuite de l'initialisation."
+                    )
 
         for plate in connected:
             print(f"Flux {plate.side} démarré.")

@@ -889,7 +889,7 @@ class KPlateDualTest(unittest.TestCase):
             lambda plates, prefix, timeout: None
         )
         client.send_protocol_step = (
-            lambda plates, command, expected, timeout: [
+            lambda plates, command, expected, timeout, attempts=3: [
                 writes.append((plate.side, command))
                 for plate in plates
             ]
@@ -974,6 +974,38 @@ class KPlateDualTest(unittest.TestCase):
                 ("droite", b"\x09"),
             ],
         )
+
+    def test_optional_frequency_confirmation_does_not_abort(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        for index, plate in enumerate(client.plates, start=0x10):
+            plate.handle = index
+        client.send_write_command = lambda plate, command: None
+        client.send_att = lambda plate, value: None
+        client.wait_write_response = lambda plate: None
+        client.update_connection_interval = lambda plate: None
+        client.pump = lambda duration: None
+
+        def protocol_step(
+            plates,
+            command,
+            expected,
+            timeout,
+            attempts=3,
+        ):
+            del plates, expected, timeout, attempts
+            if command == b"\x76":
+                raise TimeoutError("confirmation silencieuse")
+
+        client.send_protocol_step = protocol_step
+
+        client.start_streams(client.plates)
 
     def test_connection_update_matches_official_final_radio_window(self):
         client = self.module.DualKinventClient(
