@@ -30,6 +30,12 @@ function updateStatus(data) {
   const connecting = ["connecting", "recovering"].includes(data.worker_phase);
   const degraded = data.worker_phase === "degraded";
   const cmjMode = data.mode === "cmj";
+  const cmjResultAvailable = Boolean(
+    cmjMode
+    && data.finished_at
+    && data.csv_path
+    && (!data.last_error || data.result_available)
+  );
   $("statusDot").className = `status-dot ${running || data.worker_ready ? "running" : data.last_error ? "error" : ""}`;
   $("statusText").textContent = running
     ? validating
@@ -39,7 +45,7 @@ function updateStatus(data) {
       ? "Connexion des capteurs"
       : degraded
         ? "Connexion partielle"
-      : cmjMode && data.finished_at && data.csv_path
+      : cmjMode && data.finished_at && data.csv_path && !data.last_error
         ? "CMJ enregistré"
       : data.last_error
         ? "Erreur"
@@ -56,11 +62,11 @@ function updateStatus(data) {
   $("balanceVisuals").classList.toggle("hidden", cmjMode);
   $("cmjResults").classList.toggle(
     "hidden",
-    !cmjMode || running || !data.finished_at
+    running || !cmjResultAvailable
   );
   $("cmjDetails").classList.toggle(
     "hidden",
-    !cmjMode || running || !data.finished_at
+    running || !cmjResultAvailable
   );
 
   const elapsed = data.elapsed_seconds || 0;
@@ -73,6 +79,7 @@ function updateStatus(data) {
     && cmjMode
     && data.csv_path
     && data.finished_at
+    && data.result_available
   ) {
     setMessage(
       "✓ CMJ enregistré et analysé. Reconnectez les plateformes avant le prochain essai.",
@@ -113,9 +120,7 @@ function updateStatus(data) {
   }
   if (
     !running
-    && data.mode === "cmj"
-    && data.csv_path
-    && data.finished_at
+    && cmjResultAvailable
     && !state.cmjResultLoaded
   ) {
     loadCmjResult();

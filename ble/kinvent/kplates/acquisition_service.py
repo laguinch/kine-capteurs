@@ -214,6 +214,8 @@ class DualPlateAcquisitionService:
                 "csv_path": str(self._csv_path) if self._csv_path else None,
                 "log_path": str(self._worker_log_path),
                 "last_error": last_error,
+                "result_available": bool(worker.get("result_available")),
+                "interrupted": bool(worker.get("interrupted")),
                 "elapsed_seconds": elapsed_seconds,
                 "tare_required": self._tare_required,
                 "calibration_available": self._calibration_path.exists(),

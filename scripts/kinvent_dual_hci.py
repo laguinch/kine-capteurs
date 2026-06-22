@@ -1261,15 +1261,12 @@ class DualKinventClient:
         print("Flux de mesure au repos; connexions Bluetooth conservées.")
 
     def finish_acquisition_streams(self, acquisition_mode):
-        """Conserve le flux CMJ actif pour éviter la déconnexion 0x08."""
-        if acquisition_mode == "cmj":
-            print(
-                "CMJ terminé; flux de mesure maintenus actifs pour préserver "
-                "les connexions Bluetooth."
-            )
-            return True
-        self.park_measurement_streams()
-        return False
+        """Conserve les flux actifs jusqu'à la déconnexion explicite."""
+        print(
+            "Test terminé; flux de mesure maintenus actifs pour préserver "
+            "les connexions Bluetooth."
+        )
+        return True
 
     def validate_live_streams(self, timeout=2.0, attempts=3):
         """Exige une nouvelle trame de mesure valide de chaque plateforme."""
@@ -1504,8 +1501,11 @@ class DualKinventClient:
                                 write_delay,
                                 attempts=1,
                             )
-                            self.park_measurement_streams()
-                            idle_streams_active = False
+                            # Les K-Force Plates ne redémarrent pas toujours
+                            # leur flux après une commande de mise au repos.
+                            # Tant que l'utilisateur garde les capteurs
+                            # connectés, on conserve donc le flux actif.
+                            idle_streams_active = True
                         except (
                             OSError,
                             PlateDisconnected,
@@ -1571,8 +1571,7 @@ class DualKinventClient:
                             write_delay,
                             attempts=1,
                         )
-                        self.park_measurement_streams()
-                        idle_streams_active = False
+                        idle_streams_active = True
                     except (
                         OSError,
                         PlateDisconnected,
