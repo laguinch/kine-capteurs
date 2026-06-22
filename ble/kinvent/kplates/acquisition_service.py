@@ -159,7 +159,7 @@ class DualPlateAcquisitionService:
             command_pending = (
                 worker_alive
                 and self._generation is not None
-                and phase == "idle"
+                and phase in {"idle", "degraded"}
                 and control.get("action") == "start"
                 and control.get("generation") == self._generation
                 and worker.get("generation") != self._generation

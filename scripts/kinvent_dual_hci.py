@@ -354,6 +354,7 @@ class DualKinventClient:
         self.cmj_started_monotonic = None
         self.cmj_samples = 0
         self.reconnect_not_before = 0.0
+        self.streams_parked_at = None
 
         if not recalibrate:
             self.load_calibration()
@@ -1237,6 +1238,23 @@ class DualKinventClient:
         """Relance la diffusion avec la séquence observée dans Kinvent."""
         if any(plate.handle is None for plate in self.plates):
             raise RuntimeError("Une plateforme est déconnectée.")
+        if self.streams_parked_at is not None:
+            idle_age = time.monotonic() - self.streams_parked_at
+            remaining = max(0.0, 9.0 - idle_age)
+            if remaining:
+                print(
+                    "Repos du flux pendant "
+                    f"{remaining:.1f} s avant le prochain test..."
+                )
+                # La capture officielle envoie un keepalive pendant cette
+                # période de repos, avant la commande de réveil 0x90.
+                first_wait = min(2.0, remaining)
+                self.pump(first_wait)
+                remaining -= first_wait
+                if remaining:
+                    for plate in self.connection_order():
+                        self.send_write_command(plate, b"\xff")
+                    self.pump(remaining)
         # Entre deux tests, l'application officielle conserve les liaisons,
         # envoie 0x90 aux deux plateformes, attend environ 700 ms, puis 0x11.
         for plate in self.connection_order():
@@ -1245,6 +1263,7 @@ class DualKinventClient:
         for plate in self.connection_order():
             self.send_write_command(plate, b"\x11")
         self.pump(0.25)
+        self.streams_parked_at = None
 
     def park_measurement_streams(self, commands=3):
         """Met les mesures au repos sans fermer les liaisons BLE."""
@@ -1260,6 +1279,7 @@ class DualKinventClient:
             for plate in connected:
                 self.send_write_command(plate, b"\x10")
             self.pump(0.05)
+        self.streams_parked_at = time.monotonic()
         print("Flux de mesure au repos; connexions Bluetooth conservées.")
 
     def finish_acquisition_streams(self, acquisition_mode):
@@ -1268,7 +1288,7 @@ class DualKinventClient:
         self.park_measurement_streams(commands=3)
         return False
 
-    def validate_live_streams(self, timeout=2.0, attempts=3):
+    def validate_live_streams(self, timeout=3.0, attempts=1):
         """Exige une nouvelle trame de mesure valide de chaque plateforme."""
         if any(plate.handle is None for plate in self.plates):
             raise RuntimeError("Une plateforme est déconnectée.")
@@ -1726,7 +1746,7 @@ class DualKinventClient:
                         idle_streams_active = False
                         self.write_worker_state(
                             state_file,
-                            phase="idle",
+                            phase="degraded",
                             generation=generation,
                             csv_path=command["csv_path"],
                             error=str(exc),
@@ -1744,7 +1764,7 @@ class DualKinventClient:
                         idle_streams_active = False
                         self.write_worker_state(
                             state_file,
-                            phase="idle",
+                            phase="degraded",
                             generation=generation,
                             csv_path=command["csv_path"],
                             paired_samples=0,

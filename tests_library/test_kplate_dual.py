@@ -556,7 +556,7 @@ class KPlateDualTest(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "Flux de mesure absent"):
             client.validate_live_streams()
-        self.assertEqual(wake_count, 3)
+        self.assertEqual(wake_count, 1)
 
     def test_wakes_both_measurement_streams_without_reconnecting(self):
         client = self.module.DualKinventClient(
@@ -585,6 +585,34 @@ class KPlateDualTest(unittest.TestCase):
                 ("droite", b"\x11"),
                 ("gauche", b"\x11"),
             ],
+        )
+
+    def test_wake_respects_official_idle_delay(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        for index, plate in enumerate(client.plates, start=0x10):
+            plate.handle = index
+        client.streams_parked_at = self.module.time.monotonic() - 4.0
+        pumped = []
+        sent = []
+        client.pump = pumped.append
+        client.send_write_command = (
+            lambda plate, value: sent.append((plate.side, value))
+        )
+
+        client.wake_measurement_streams()
+
+        self.assertAlmostEqual(pumped[0], 2.0, places=1)
+        self.assertAlmostEqual(pumped[1], 3.0, places=1)
+        self.assertEqual(
+            sent[:2],
+            [("droite", b"\xff"), ("gauche", b"\xff")],
         )
 
     def test_parks_measurement_streams_without_disconnecting(self):
