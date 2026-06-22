@@ -75,7 +75,9 @@ function updateStatus(data) {
     && data.finished_at
   ) {
     setMessage(
-      "Test CMJ enregistré. Une plateforme s’est déconnectée après le test ; reconnectez-les avant le prochain essai."
+      "✓ CMJ enregistré et analysé. Reconnectez les plateformes avant le prochain essai.",
+      false,
+      true
     );
   } else if (data.last_error) {
     state.awaitingTare = false;
