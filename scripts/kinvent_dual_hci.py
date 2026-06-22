@@ -1195,6 +1195,14 @@ class DualKinventClient:
                 self.scan_for(plate, scan_timeout)
                 self.connect(plate, connect_timeout)
                 self.pump(0.5)
+                # Première fenêtre observée immédiatement après chaque
+                # connexion dans l'application Kinvent: 7,5 ms.
+                self.update_connection_interval(
+                    plate,
+                    interval_min=0x0006,
+                    interval_max=0x0006,
+                    supervision_timeout=0x01F4,
+                )
                 return
             except (PlateDisconnected, TimeoutError, RuntimeError) as exc:
                 last_error = exc
@@ -1283,12 +1291,29 @@ class DualKinventClient:
         print("Flux de mesure au repos; connexions Bluetooth conservées.")
 
     def settle_initial_streams(self, duration=2.0):
-        """Laisse le mode mesure se stabiliser avant son premier repos."""
+        """Vérifie les données initiales avant toute commande de repos."""
         print(
             "Stabilisation initiale des flux pendant "
             f"{duration:.0f} secondes..."
         )
+        before = {
+            plate.side: (plate.notifications, plate.measurements)
+            for plate in self.plates
+        }
         self.pump(duration)
+        missing = []
+        for plate in self.plates:
+            previous_notifications, previous_measurements = before[plate.side]
+            notification_delta = plate.notifications - previous_notifications
+            measurement_delta = plate.measurements - previous_measurements
+            print(
+                f"Flux initial {plate.side}: "
+                f"{notification_delta} notification(s), "
+                f"{measurement_delta} mesure(s) valide(s)."
+            )
+            if measurement_delta == 0:
+                missing.append(plate.side)
+        return missing
 
     def finish_acquisition_streams(self, acquisition_mode):
         """Reproduit la fin de test Kinvent tout en restant connecté."""
@@ -1420,6 +1445,15 @@ class DualKinventClient:
                         scan_timeout,
                         connect_timeout,
                     )
+                # Une fois les deux liaisons établies, Kinvent les place
+                # temporairement à 45 ms avant d'activer les CCCD.
+                for plate in connection_order:
+                    self.update_connection_interval(
+                        plate,
+                        interval_min=0x0024,
+                        interval_max=0x0024,
+                        supervision_timeout=0x01F4,
+                    )
                 self.start_streams(connection_order, write_delay)
                 if require_measurements:
                     self.ensure_streams_ready()
@@ -1541,8 +1575,9 @@ class DualKinventClient:
                             # environ deux secondes après la fin de
                             # l'initialisation avant le premier 0x10. Un repos
                             # immédiat laisse ensuite les deux firmwares muets.
-                            self.settle_initial_streams()
-                            self.park_measurement_streams(commands=1)
+                            missing_streams = self.settle_initial_streams()
+                            if not missing_streams:
+                                self.park_measurement_streams(commands=1)
                             idle_streams_active = False
                         except (
                             OSError,
@@ -1566,11 +1601,24 @@ class DualKinventClient:
                             )
                         else:
                             next_idle_keepalive = time.monotonic() + 10.0
-                            self.write_worker_state(
-                                state_file,
-                                phase="idle",
-                                generation=generation,
-                            )
+                            if missing_streams:
+                                self.write_worker_state(
+                                    state_file,
+                                    phase="degraded",
+                                    generation=generation,
+                                    error=(
+                                        "Connexion Bluetooth établie, mais "
+                                        "aucune mesure initiale reçue pour : "
+                                        + ", ".join(missing_streams)
+                                        + "."
+                                    ),
+                                )
+                            else:
+                                self.write_worker_state(
+                                    state_file,
+                                    phase="idle",
+                                    generation=generation,
+                                )
                     else:
                         time.sleep(0.25)
                     continue
@@ -1610,8 +1658,9 @@ class DualKinventClient:
                             attempts=1,
                             require_measurements=False,
                         )
-                        self.settle_initial_streams()
-                        self.park_measurement_streams(commands=1)
+                        missing_streams = self.settle_initial_streams()
+                        if not missing_streams:
+                            self.park_measurement_streams(commands=1)
                         idle_streams_active = False
                     except (
                         OSError,
@@ -1633,11 +1682,24 @@ class DualKinventClient:
                         )
                     else:
                         next_idle_keepalive = time.monotonic() + 10.0
-                        self.write_worker_state(
-                            state_file,
-                            phase="degraded",
-                            generation=generation,
-                        )
+                        if missing_streams:
+                            self.write_worker_state(
+                                state_file,
+                                phase="degraded",
+                                generation=generation,
+                                error=(
+                                    "Connexion Bluetooth établie, mais "
+                                    "aucune mesure initiale reçue pour : "
+                                    + ", ".join(missing_streams)
+                                    + "."
+                                ),
+                            )
+                        else:
+                            self.write_worker_state(
+                                state_file,
+                                phase="idle",
+                                generation=generation,
+                            )
                     continue
 
                 if action == "disconnect":

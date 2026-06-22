@@ -680,6 +680,7 @@ class KPlateDualTest(unittest.TestCase):
             lambda plate, scan, connect: connections.append(plate.side)
         )
         client.start_streams = lambda plates, delay: None
+        client.update_connection_interval = lambda plate, **kwargs: None
 
         def ensure_ready():
             nonlocal readiness_checks
@@ -712,6 +713,11 @@ class KPlateDualTest(unittest.TestCase):
                 f"connected-{plate.side}"
             )
         )
+        client.update_connection_interval = (
+            lambda plate, **kwargs: events.append(
+                f"radio-{plate.side}-{kwargs['interval_min']:04x}"
+            )
+        )
         client.start_streams = (
             lambda plates, delay: events.append(
                 "streams-" + "-".join(plate.side for plate in plates)
@@ -727,6 +733,8 @@ class KPlateDualTest(unittest.TestCase):
                 "reset",
                 "connected-droite",
                 "connected-gauche",
+                "radio-droite-0024",
+                "radio-gauche-0024",
                 "streams-droite-gauche",
                 "ready",
             ],
@@ -748,6 +756,7 @@ class KPlateDualTest(unittest.TestCase):
                 f"connected-{plate.side}"
             )
         )
+        client.update_connection_interval = lambda plate, **kwargs: None
         client.start_streams = (
             lambda plates, delay: events.append("streams")
         )
@@ -766,6 +775,30 @@ class KPlateDualTest(unittest.TestCase):
             ["reset", "connected-droite", "connected-gauche", "streams"],
         )
 
+    def test_connect_plate_uses_official_initial_radio_window(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        plate = client.plates[0]
+        updates = []
+        client.scan_for = lambda target, timeout: None
+        client.connect = lambda target, timeout: setattr(target, "handle", 0x10)
+        client.pump = lambda duration: None
+        client.update_connection_interval = (
+            lambda target, **kwargs: updates.append(kwargs)
+        )
+
+        client.connect_plate_only(plate, 1, 1)
+
+        self.assertEqual(updates[0]["interval_min"], 0x0006)
+        self.assertEqual(updates[0]["interval_max"], 0x0006)
+        self.assertEqual(updates[0]["supervision_timeout"], 0x01F4)
+
     def test_initial_streams_can_settle_before_first_park(self):
         client = self.module.DualKinventClient(
             1,
@@ -778,9 +811,30 @@ class KPlateDualTest(unittest.TestCase):
         pumped = []
         client.pump = pumped.append
 
-        client.settle_initial_streams()
+        missing = client.settle_initial_streams()
 
         self.assertEqual(pumped, [2.0])
+        self.assertEqual(missing, ["gauche", "droite"])
+
+    def test_initial_settle_accepts_fresh_measurements(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+
+        def pump(duration):
+            del duration
+            for plate in client.plates:
+                plate.notifications += 10
+                plate.measurements += 8
+
+        client.pump = pump
+
+        self.assertEqual(client.settle_initial_streams(), [])
 
     def test_connects_right_plate_first_like_official_application(self):
         client = self.module.DualKinventClient(
