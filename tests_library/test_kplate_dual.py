@@ -385,7 +385,7 @@ class KPlateDualTest(unittest.TestCase):
         self.assertFalse(streams_active)
         self.assertEqual(parked, [3])
 
-    def test_balance_parks_streams_after_acquisition(self):
+    def test_balance_keeps_streams_active_after_acquisition(self):
         client = self.module.DualKinventClient(
             1,
             "E8:EB:1B:6F:A7:5F",
@@ -401,8 +401,8 @@ class KPlateDualTest(unittest.TestCase):
 
         streams_active = client.finish_acquisition_streams("balance")
 
-        self.assertFalse(streams_active)
-        self.assertEqual(parked, [3])
+        self.assertTrue(streams_active)
+        self.assertEqual(parked, [])
 
     def test_disconnect_identifies_plate_and_clears_handle(self):
         client = self.module.DualKinventClient(

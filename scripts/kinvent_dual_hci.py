@@ -1244,17 +1244,21 @@ class DualKinventClient:
                         and len(silent) == 1
                         and recoverable
                         and (
-                            not self.cmj_flight_observed
+                            self.acquisition_mode != "cmj"
+                            or not self.cmj_flight_observed
                             or self.cmj_landing_observed
                         )
                     ):
                         plate = recoverable[0]
                         recovered_sides.add(plate.side)
-                        phase = (
-                            "après l'atterrissage"
-                            if self.cmj_landing_observed
-                            else "avant le décollage"
-                        )
+                        if self.acquisition_mode == "cmj":
+                            phase = (
+                                "après l'atterrissage"
+                                if self.cmj_landing_observed
+                                else "avant le décollage"
+                            )
+                        else:
+                            phase = "pendant l'analyse bipodale"
                         print(
                             f"Flux {plate.side} silencieux {phase}; "
                             "réveil ciblé unique..."
@@ -1493,7 +1497,15 @@ class DualKinventClient:
 
     def finish_acquisition_streams(self, acquisition_mode):
         """Reproduit la fin de test Kinvent tout en restant connecté."""
-        del acquisition_mode
+        if acquisition_mode == "balance":
+            # L'analyse bipodale est un affichage temps réel. Conserver les
+            # notifications évite un cycle repos/réveil entre deux essais et
+            # permet à l'écran de continuer à suivre les plateformes.
+            print(
+                "Analyse bipodale terminée; flux de mesure conservé actif."
+            )
+            self.streams_parked_at = None
+            return True
         self.park_measurement_streams(commands=3)
         return False
 
@@ -1501,6 +1513,21 @@ class DualKinventClient:
         """Exige une nouvelle trame de mesure valide de chaque plateforme."""
         if any(plate.handle is None for plate in self.plates):
             raise RuntimeError("Une plateforme est déconnectée.")
+        # Si les flux produisent déjà des mesures, ne surtout pas leur envoyer
+        # une nouvelle séquence de réveil. C'est le cas entre deux analyses
+        # bipodales, dont le flux doit rester continu.
+        before_measurements = {
+            plate.side: plate.measurements for plate in self.plates
+        }
+        self.pump(min(0.5, timeout))
+        already_active = [
+            plate.side
+            for plate in self.plates
+            if plate.measurements <= before_measurements[plate.side]
+        ]
+        if not already_active:
+            print("Les deux flux de mesure sont déjà actifs.")
+            return
         silent = [plate.side for plate in self.plates]
         for attempt in range(1, attempts + 1):
             before_measurements = {
@@ -1954,11 +1981,9 @@ class DualKinventClient:
                             duration,
                             progress=True,
                             stream_silence_timeout=(
-                                1.0 if acquisition_mode == "cmj" else None
+                                1.0
                             ),
-                            recover_silent_streams=(
-                                acquisition_mode == "cmj"
-                            ),
+                            recover_silent_streams=True,
                             stop_requested=lambda: (
                                 read_command().get("action") == "stop"
                                 and read_command().get("generation")
@@ -1967,6 +1992,26 @@ class DualKinventClient:
                         )
                     except MeasurementStreamSilent as exc:
                         self.close_csv()
+                        if acquisition_mode == "balance":
+                            print(
+                                f"{exc} Arrêt anticipé de l'analyse "
+                                "bipodale."
+                            )
+                            idle_streams_active = False
+                            self.write_worker_state(
+                                state_file,
+                                phase="degraded",
+                                generation=generation,
+                                csv_path=command["csv_path"],
+                                mode=acquisition_mode,
+                                interrupted=True,
+                                error=(
+                                    "Un flux de plateforme ne répond plus. "
+                                    "Reconnectez les capteurs."
+                                ),
+                            )
+                            active_generation = None
+                            continue
                         print(f"{exc} Arrêt anticipé du CMJ.")
                         try:
                             analyze_cmj_csv(command["csv_path"])
