@@ -37,15 +37,15 @@ from scripts.kinvent_raw_hci import (  # noqa: E402
 
 
 INIT_COMMANDS = [
-    b"\x10",
-    b"\x09",
-    b"\x76",
-    b"\x11",
-    b"\x10",
-    b"\x10",
-    bytes.fromhex("ac 00 54 f8"),
-    b"\xb6",
-    b"\xb0",
+    (b"\x10", 0.30),
+    (b"\x09", 0.06),
+    (b"\x76", 0.29),
+    (b"\x11", 0.16),
+    (b"\x10", 0.01),
+    (b"\x10", 0.42),
+    (bytes.fromhex("ac 00 54 f8"), 0.05),
+    (b"\xb6", 0.06),
+    (b"\xb0", 0.20),
 ]
 
 
@@ -177,9 +177,9 @@ class KMoveHciClient(RawKinventClient):
         time.sleep(write_delay)
         print(f"Activation notification UART sur 0x{UART_CCCD_HANDLE:04x}...")
         self.send_write_request(UART_CCCD_HANDLE, b"\x01\x00")
-        for command in INIT_COMMANDS:
+        for command, delay in INIT_COMMANDS:
             self.send_write_command(command)
-            self.pump(write_delay)
+            self.pump(delay)
 
     def handle_att(self, att):
         opcode = att[0]

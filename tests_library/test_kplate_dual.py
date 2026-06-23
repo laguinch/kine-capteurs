@@ -239,76 +239,6 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(float(row["right_kg"]), 55.0)
         self.assertEqual(row["total_kg"], "")
 
-    def test_cmj_marks_support_flight_then_landing(self):
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "cmj-flight.csv"
-            client = self.module.DualKinventClient(
-                1,
-                "E8:EB:1B:6F:A7:5F",
-                "E8:EB:1B:79:B1:AB",
-                None,
-                0,
-                1,
-            )
-            client.open_csv(path, mode="cmj")
-            left, right = client.plates
-            base = time.monotonic()
-
-            for force, offset in (
-                (50.0, 0.0),
-                (0.0, 0.1),
-                (55.0, 0.2),
-            ):
-                for plate in (left, right):
-                    plate.latest = {"force_kg": force, "t": 100}
-                    plate.samples.append(
-                        {
-                            "received_monotonic": base + offset,
-                            "sample_monotonic": base + offset,
-                            "received_utc": "2026-06-22T08:00:00+00:00",
-                            "sample": plate.latest,
-                            "distribution": None,
-                        }
-                    )
-                client.write_cmj_event(right)
-
-            self.assertTrue(client.cmj_support_observed)
-            self.assertTrue(client.cmj_flight_observed)
-            self.assertTrue(client.cmj_landing_observed)
-            client.close_csv()
-
-        self.assertFalse(client.cmj_support_observed)
-        self.assertFalse(client.cmj_flight_observed)
-        self.assertFalse(client.cmj_landing_observed)
-
-    def test_targeted_stream_wake_uses_official_sequence(self):
-        client = self.module.DualKinventClient(
-            1,
-            "E8:EB:1B:6F:A7:5F",
-            "E8:EB:1B:79:B1:AB",
-            None,
-            0,
-            1,
-        )
-        left = client.plates[0]
-        left.handle = 0x10
-        sent = []
-        client.send_write_command = (
-            lambda plate, value: sent.append((plate.side, value))
-        )
-
-        def pump(duration):
-            left.measurements += 1
-            left.last_notification_at = self.module.time.monotonic()
-
-        client.pump = pump
-
-        self.assertTrue(client.wake_measurement_stream(left))
-        self.assertEqual(
-            sent,
-            [("gauche", b"\x90"), ("gauche", b"\x11")],
-        )
-
     def test_detects_silent_measurement_stream(self):
         client = self.module.DualKinventClient(
             1,
@@ -354,7 +284,7 @@ class KPlateDualTest(unittest.TestCase):
         self.assertAlmostEqual(reset, 51.000, places=6)
         self.assertAlmostEqual(following, 51.013, places=6)
 
-    def test_keepalive_is_disabled_during_measurements(self):
+    def test_keepalive_matches_official_ten_second_interval(self):
         client = self.module.DualKinventClient(
             1,
             "E8:EB:1B:6F:A7:5F",
@@ -364,7 +294,7 @@ class KPlateDualTest(unittest.TestCase):
             1,
         )
 
-        self.assertIsNone(client.keepalive_interval)
+        self.assertEqual(client.keepalive_interval, 10.0)
 
     def test_cmj_parks_streams_after_acquisition(self):
         client = self.module.DualKinventClient(
@@ -385,7 +315,7 @@ class KPlateDualTest(unittest.TestCase):
         self.assertFalse(streams_active)
         self.assertEqual(parked, [3])
 
-    def test_balance_keeps_streams_active_after_acquisition(self):
+    def test_balance_parks_streams_after_acquisition(self):
         client = self.module.DualKinventClient(
             1,
             "E8:EB:1B:6F:A7:5F",
@@ -401,8 +331,8 @@ class KPlateDualTest(unittest.TestCase):
 
         streams_active = client.finish_acquisition_streams("balance")
 
-        self.assertTrue(streams_active)
-        self.assertEqual(parked, [])
+        self.assertFalse(streams_active)
+        self.assertEqual(parked, [3])
 
     def test_disconnect_identifies_plate_and_clears_handle(self):
         client = self.module.DualKinventClient(
@@ -657,7 +587,7 @@ class KPlateDualTest(unittest.TestCase):
             ],
         )
 
-    def test_wake_respects_official_idle_delay(self):
+    def test_wake_uses_official_sequence_without_invented_delay(self):
         client = self.module.DualKinventClient(
             1,
             "E8:EB:1B:6F:A7:5F",
@@ -668,7 +598,6 @@ class KPlateDualTest(unittest.TestCase):
         )
         for index, plate in enumerate(client.plates, start=0x10):
             plate.handle = index
-        client.streams_parked_at = self.module.time.monotonic() - 4.0
         pumped = []
         sent = []
         client.pump = pumped.append
@@ -678,11 +607,15 @@ class KPlateDualTest(unittest.TestCase):
 
         client.wake_measurement_streams()
 
-        self.assertAlmostEqual(pumped[0], 2.0, places=1)
-        self.assertAlmostEqual(pumped[1], 3.0, places=1)
+        self.assertEqual(pumped, [0.70, 0.25])
         self.assertEqual(
-            sent[:2],
-            [("droite", b"\xff"), ("gauche", b"\xff")],
+            sent,
+            [
+                ("droite", b"\x90"),
+                ("gauche", b"\x90"),
+                ("droite", b"\x11"),
+                ("gauche", b"\x11"),
+            ],
         )
 
     def test_parks_measurement_streams_without_disconnecting(self):
@@ -955,15 +888,6 @@ class KPlateDualTest(unittest.TestCase):
         client.update_connection_interval = (
             lambda plate: updates.append(plate.side)
         )
-        client.wait_protocol_response = (
-            lambda plates, prefix, timeout: None
-        )
-        client.send_protocol_step = (
-            lambda plates, command, expected, timeout, attempts=3: [
-                writes.append((plate.side, command))
-                for plate in plates
-            ]
-        )
         client.pump = lambda duration: None
 
         client.start_streams(client.plates)
@@ -991,91 +915,6 @@ class KPlateDualTest(unittest.TestCase):
         )
         self.assertEqual(updates, ["gauche", "droite"])
         self.assertEqual(len(cccd), 2)
-
-    def test_waits_for_both_platform_mode_responses(self):
-        client = self.module.DualKinventClient(
-            1,
-            "E8:EB:1B:6F:A7:5F",
-            "E8:EB:1B:79:B1:AB",
-            None,
-            0,
-            1,
-        )
-        for plate in client.plates:
-            plate.protocol_messages.append(b"F=25Hz\x00\x00")
-
-        client.wait_protocol_response(
-            client.plates,
-            b"F=25Hz",
-            0.1,
-        )
-
-    def test_retries_protocol_command_only_for_missing_platform(self):
-        client = self.module.DualKinventClient(
-            1,
-            "E8:EB:1B:6F:A7:5F",
-            "E8:EB:1B:79:B1:AB",
-            None,
-            0,
-            1,
-        )
-        sent = []
-        responses = [["droite"], []]
-        client.send_write_command = (
-            lambda plate, command: sent.append((plate.side, command))
-        )
-        client.pump = lambda duration: None
-        client.wait_protocol_response = (
-            lambda plates, prefix, timeout: responses.pop(0)
-        )
-
-        client.send_protocol_step(
-            client.connection_order(),
-            b"\x09",
-            b"KINVENT FW",
-            0.1,
-        )
-
-        self.assertEqual(
-            sent,
-            [
-                ("droite", b"\x09"),
-                ("gauche", b"\x09"),
-                ("droite", b"\x09"),
-            ],
-        )
-
-    def test_optional_frequency_confirmation_does_not_abort(self):
-        client = self.module.DualKinventClient(
-            1,
-            "E8:EB:1B:6F:A7:5F",
-            "E8:EB:1B:79:B1:AB",
-            None,
-            0,
-            1,
-        )
-        for index, plate in enumerate(client.plates, start=0x10):
-            plate.handle = index
-        client.send_write_command = lambda plate, command: None
-        client.send_att = lambda plate, value: None
-        client.wait_write_response = lambda plate: None
-        client.update_connection_interval = lambda plate: None
-        client.pump = lambda duration: None
-
-        def protocol_step(
-            plates,
-            command,
-            expected,
-            timeout,
-            attempts=3,
-        ):
-            del plates, expected, timeout, attempts
-            if command == b"\x76":
-                raise TimeoutError("confirmation silencieuse")
-
-        client.send_protocol_step = protocol_step
-
-        client.start_streams(client.plates)
 
     def test_connection_update_matches_official_final_radio_window(self):
         client = self.module.DualKinventClient(

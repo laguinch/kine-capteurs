@@ -72,34 +72,21 @@ OGF_LINK_CTL = 0x01
 OCF_DISCONNECT = 0x0006
 OCF_LE_CONN_UPDATE = 0x0013
 
-# Séquence observée dans les captures HCI de l'application Kinvent avec deux
-# K-Force Plates. Les réponses du firmware sont attendues explicitement:
-# les délais fixes trop courts laissaient certaines plateformes en mode
-# diagnostic 11 octets au lieu du mode force 17 octets.
+# Séquence strictement observée dans les captures HCI de l'application Kinvent
+# avec deux K-Force Plates. Les commandes sont envoyées une seule fois, dans
+# cet ordre, sans relance conditionnelle non présente dans les captures.
 KPLATE_INIT_STEPS = [
-    (b"\x09", b"KINVENT FW", 0.50, True),
-    # Un firmware déjà réglé à cette fréquence peut ne rien renvoyer.
-    (b"\x76", b"F=75Hz", 0.50, False),
-    (b"\x11", None, 0.15, False),
-    (b"\x10", None, 0.05, False),
-    (b"\x10", None, 0.35, False),
-    (bytes.fromhex("60 00 19 00 4b 0d 0a"), None, 0.02, False),
-    (b"\x66", b"F=25Hz", 2.20, True),
-    # Même comportement idempotent possible pour le rappel à 25 Hz.
-    (b"\x56", b"F=25Hz", 0.50, False),
-    (
-        bytes.fromhex("ac 00 54 f8"),
-        bytes.fromhex("ac 00 54"),
-        0.50,
-        True,
-    ),
-    (
-        bytes.fromhex("ac 01 04 a9"),
-        bytes.fromhex("ac 01 04"),
-        0.50,
-        True,
-    ),
-    (b"\x11", None, 0.20, False),
+    (b"\x09", 0.05),
+    (b"\x76", 0.30),
+    (b"\x11", 0.16),
+    (b"\x10", 0.01),
+    (b"\x10", 0.38),
+    (bytes.fromhex("60 00 19 00 4b 0d 0a"), 0.01),
+    (b"\x66", 1.67),
+    (b"\x56", 0.06),
+    (bytes.fromhex("ac 00 54 f8"), 0.06),
+    (bytes.fromhex("ac 01 04 a9"), 0.06),
+    (b"\x11", 0.20),
 ]
 CSV_FIELDS = [
     "timestamp_utc",
@@ -363,10 +350,9 @@ class DualKinventClient:
         self.last_print = 0.0
         self.print_interval = print_interval
         self.sync_tolerance = sync_tolerance_ms / 1000.0
-        # Les notifications entretiennent naturellement la liaison. Les
-        # commandes envoyées pendant les mesures provoquent des déconnexions
-        # 0x08 sur ces plateformes.
-        self.keepalive_interval = None
+        # L'application officielle envoie 0xFF toutes les dix secondes,
+        # pendant le repos comme pendant les mesures.
+        self.keepalive_interval = 10.0
         self.next_keepalive = None
         self.paired_samples = 0
         self.dropped_samples = {"gauche": 0, "droite": 0}
@@ -375,9 +361,6 @@ class DualKinventClient:
         self.acquisition_mode = "balance"
         self.cmj_started_monotonic = None
         self.cmj_samples = 0
-        self.cmj_support_observed = False
-        self.cmj_flight_observed = False
-        self.cmj_landing_observed = False
         self.reconnect_not_before = 0.0
         self.streams_parked_at = None
 
@@ -396,9 +379,6 @@ class DualKinventClient:
         self.acquisition_mode = mode
         self.cmj_started_monotonic = None
         self.cmj_samples = 0
-        self.cmj_support_observed = False
-        self.cmj_flight_observed = False
-        self.cmj_landing_observed = False
         self.writer.writerow(CMJ_FIELDS if mode == "cmj" else CSV_FIELDS)
         self.csv_file.flush()
 
@@ -409,9 +389,6 @@ class DualKinventClient:
         self.writer = None
         self.acquisition_mode = "balance"
         self.cmj_started_monotonic = None
-        self.cmj_support_observed = False
-        self.cmj_flight_observed = False
-        self.cmj_landing_observed = False
 
     def wait_for_reconnect_cooldown(self):
         remaining = self.reconnect_not_before - time.monotonic()
@@ -747,65 +724,6 @@ class DualKinventClient:
             self.process(packet)
         raise TimeoutError(f"Réglage radio sans réponse pour {plate.side}")
 
-    def wait_protocol_response(self, plates, prefix, timeout):
-        """Attend la réponse de mode de chaque plateforme."""
-        deadline = time.monotonic() + timeout
-        pending = {plate.side for plate in plates}
-        while time.monotonic() < deadline:
-            for plate in plates:
-                if plate.side not in pending:
-                    continue
-                if any(
-                    message.startswith(prefix)
-                    for message in plate.protocol_messages
-                ):
-                    pending.remove(plate.side)
-            if not pending:
-                return []
-            packet = self.receive()
-            if packet is not None:
-                self.process(packet)
-        return sorted(pending)
-
-    def send_protocol_step(
-        self,
-        plates,
-        command,
-        expected,
-        timeout,
-        attempts=3,
-    ):
-        """Relance uniquement la plateforme qui n'a pas accusé réception."""
-        pending = list(plates)
-        for attempt in range(1, attempts + 1):
-            for plate in pending:
-                plate.protocol_messages.clear()
-            for plate in pending:
-                self.send_write_command(plate, command)
-                # L'application officielle espace légèrement les écritures
-                # destinées aux deux connexions.
-                self.pump(0.02)
-            missing_sides = (
-                self.wait_protocol_response(pending, expected, timeout) or []
-            )
-            if not missing_sides:
-                return
-            pending = [
-                plate for plate in pending
-                if plate.side in missing_sides
-            ]
-            print(
-                "Commande "
-                f"{command.hex(' ')} sans réponse pour "
-                + ", ".join(missing_sides)
-                + f" (essai {attempt}/{attempts})."
-            )
-        raise TimeoutError(
-            "Réponse de configuration absente pour "
-            + ", ".join(plate.side for plate in pending)
-            + f" (commande attendue: {expected.hex(' ')})."
-        )
-
     def start_streams(self, plates, write_delay=0.1):
         """Initialise un ou plusieurs flux selon la séquence Kinvent."""
         connected = [plate for plate in plates if plate.handle is not None]
@@ -835,27 +753,10 @@ class DualKinventClient:
         for plate in connected:
             self.update_connection_interval(plate)
 
-        for command, expected, timeout, required in KPLATE_INIT_STEPS:
-            if expected is None:
-                for plate in connected:
-                    self.send_write_command(plate, command)
-                self.pump(timeout)
-            else:
-                try:
-                    self.send_protocol_step(
-                        connected,
-                        command,
-                        expected,
-                        timeout,
-                        attempts=3 if required else 1,
-                    )
-                except TimeoutError:
-                    if required:
-                        raise
-                    print(
-                        "Confirmation optionnelle absente pour la commande "
-                        f"{command.hex(' ')}; poursuite de l'initialisation."
-                    )
+        for command, delay in KPLATE_INIT_STEPS:
+            for plate in connected:
+                self.send_write_command(plate, command)
+            self.pump(delay)
 
         for plate in connected:
             print(f"Flux {plate.side} démarré.")
@@ -1129,16 +1030,9 @@ class DualKinventClient:
             if left_current != "" and right_current != ""
             else ""
         )
-        if total_current != "":
-            if total_current >= 20.0:
-                self.cmj_support_observed = True
-            elif self.cmj_support_observed and total_current <= 10.0:
-                self.cmj_flight_observed = True
         source_sample = source_plate.latest
         source_distribution = source_plate.distribution or {}
         source_kg = max(0.0, source_sample["force_kg"])
-        if self.cmj_flight_observed and source_kg >= 20.0:
-            self.cmj_landing_observed = True
         self.writer.writerow(
             [
                 source_entry["received_utc"],
@@ -1200,14 +1094,12 @@ class DualKinventClient:
         show_progress=True,
         stop_requested=None,
         stream_silence_timeout=None,
-        recover_silent_streams=False,
     ):
         deadline = time.monotonic() + duration
         started_at = time.monotonic()
         next_progress = time.monotonic()
-        recovered_sides = set()
         if progress:
-            self.next_keepalive = None
+            self.next_keepalive = time.monotonic() + self.keepalive_interval
         while time.monotonic() < deadline:
             if stop_requested is not None and stop_requested():
                 return False
@@ -1230,50 +1122,9 @@ class DualKinventClient:
                     stream_silence_timeout
                 )
                 if silent:
-                    recoverable = [
-                        plate
-                        for plate in self.plates
-                        if (
-                            plate.side in silent
-                            and plate.side not in recovered_sides
-                            and plate.handle is not None
-                        )
-                    ]
-                    if (
-                        recover_silent_streams
-                        and len(silent) == 1
-                        and recoverable
-                        and (
-                            self.acquisition_mode != "cmj"
-                            or not self.cmj_flight_observed
-                            or self.cmj_landing_observed
-                        )
-                    ):
-                        plate = recoverable[0]
-                        recovered_sides.add(plate.side)
-                        if self.acquisition_mode == "cmj":
-                            phase = (
-                                "après l'atterrissage"
-                                if self.cmj_landing_observed
-                                else "avant le décollage"
-                            )
-                        else:
-                            phase = "pendant l'analyse bipodale"
-                        print(
-                            f"Flux {plate.side} silencieux {phase}; "
-                            "réveil ciblé unique..."
-                        )
-                        if self.wake_measurement_stream(plate):
-                            print(
-                                f"Flux {plate.side} rétabli; "
-                                "acquisition CMJ poursuivie."
-                            )
-                            started_at = time.monotonic()
-                            continue
                     raise MeasurementStreamSilent(silent)
             if (
                 progress
-                and self.keepalive_interval is not None
                 and self.next_keepalive is not None
                 and time.monotonic() >= self.next_keepalive
             ):
@@ -1402,25 +1253,8 @@ class DualKinventClient:
         """Relance la diffusion avec la séquence observée dans Kinvent."""
         if any(plate.handle is None for plate in self.plates):
             raise RuntimeError("Une plateforme est déconnectée.")
-        if self.streams_parked_at is not None:
-            idle_age = time.monotonic() - self.streams_parked_at
-            remaining = max(0.0, 9.0 - idle_age)
-            if remaining:
-                print(
-                    "Repos du flux pendant "
-                    f"{remaining:.1f} s avant le prochain test..."
-                )
-                # La capture officielle envoie un keepalive pendant cette
-                # période de repos, avant la commande de réveil 0x90.
-                first_wait = min(2.0, remaining)
-                self.pump(first_wait)
-                remaining -= first_wait
-                if remaining:
-                    for plate in self.connection_order():
-                        self.send_write_command(plate, b"\xff")
-                    self.pump(remaining)
-        # Entre deux tests, l'application officielle conserve les liaisons,
-        # envoie 0x90 aux deux plateformes, attend environ 700 ms, puis 0x11.
+        # Au démarrage d'un test, Kinvent envoie 0x90 aux deux plateformes,
+        # attend environ 700 ms, puis envoie 0x11.
         for plate in self.connection_order():
             self.send_write_command(plate, b"\x90")
         self.pump(0.70)
@@ -1428,20 +1262,6 @@ class DualKinventClient:
             self.send_write_command(plate, b"\x11")
         self.pump(0.25)
         self.streams_parked_at = None
-
-    def wake_measurement_stream(self, plate):
-        """Réveille une seule plateforme silencieuse sans couper l'autre."""
-        if plate.handle is None:
-            return False
-        before = plate.measurements
-        self.send_write_command(plate, b"\x90")
-        self.pump(0.70)
-        self.send_write_command(plate, b"\x11")
-        self.pump(0.60)
-        return (
-            plate.measurements > before
-            and plate.side not in self.silent_plate_sides(1.0)
-        )
 
     def park_measurement_streams(self, commands=3):
         """Met les mesures au repos sans fermer les liaisons BLE."""
@@ -1497,15 +1317,8 @@ class DualKinventClient:
 
     def finish_acquisition_streams(self, acquisition_mode):
         """Reproduit la fin de test Kinvent tout en restant connecté."""
-        if acquisition_mode == "balance":
-            # L'analyse bipodale est un affichage temps réel. Conserver les
-            # notifications évite un cycle repos/réveil entre deux essais et
-            # permet à l'écran de continuer à suivre les plateformes.
-            print(
-                "Analyse bipodale terminée; flux de mesure conservé actif."
-            )
-            self.streams_parked_at = None
-            return True
+        del acquisition_mode
+        # La capture officielle termine chaque test par trois commandes 0x10.
         self.park_measurement_streams(commands=3)
         return False
 
@@ -1513,40 +1326,19 @@ class DualKinventClient:
         """Exige une nouvelle trame de mesure valide de chaque plateforme."""
         if any(plate.handle is None for plate in self.plates):
             raise RuntimeError("Une plateforme est déconnectée.")
-        # Si les flux produisent déjà des mesures, ne surtout pas leur envoyer
-        # une nouvelle séquence de réveil. C'est le cas entre deux analyses
-        # bipodales, dont le flux doit rester continu.
+        del attempts
         before_measurements = {
             plate.side: plate.measurements for plate in self.plates
         }
-        self.pump(min(0.5, timeout))
-        already_active = [
+        self.wake_measurement_streams()
+        self.pump(timeout)
+        silent = [
             plate.side
             for plate in self.plates
             if plate.measurements <= before_measurements[plate.side]
         ]
-        if not already_active:
-            print("Les deux flux de mesure sont déjà actifs.")
+        if not silent:
             return
-        silent = [plate.side for plate in self.plates]
-        for attempt in range(1, attempts + 1):
-            before_measurements = {
-                plate.side: plate.measurements for plate in self.plates
-            }
-            self.wake_measurement_streams()
-            self.pump(timeout)
-            silent = [
-                plate.side
-                for plate in self.plates
-                if plate.measurements <= before_measurements[plate.side]
-            ]
-            if not silent:
-                return
-            print(
-                "Flux de mesure encore silencieux: "
-                + ", ".join(silent)
-                + f" (réveil {attempt}/{attempts})."
-            )
         raise RuntimeError(
             "Flux de mesure absent: " + ", ".join(silent) + "."
         )
@@ -1983,7 +1775,6 @@ class DualKinventClient:
                             stream_silence_timeout=(
                                 1.0
                             ),
-                            recover_silent_streams=True,
                             stop_requested=lambda: (
                                 read_command().get("action") == "stop"
                                 and read_command().get("generation")

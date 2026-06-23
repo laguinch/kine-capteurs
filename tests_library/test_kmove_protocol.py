@@ -10,8 +10,24 @@ from ble.kinvent.kmove.protocol import (
 
 
 class KMoveProtocolTest(unittest.TestCase):
+    def test_initialization_matches_official_capture(self):
+        self.assertEqual(
+            [command for command, _ in INIT_COMMANDS],
+            [
+                b"\x10",
+                b"\x09",
+                b"\x76",
+                b"\x11",
+                b"\x10",
+                b"\x10",
+                bytes.fromhex("ac 00 54 f8"),
+                b"\xb6",
+                b"\xb0",
+            ],
+        )
+
     def test_quaternion_mode_waits_for_explicit_test_start(self):
-        self.assertEqual(INIT_COMMANDS[-3:], [
+        self.assertEqual([command for command, _ in INIT_COMMANDS[-3:]], [
             bytes.fromhex("ac 00 54 f8"),
             b"\xb6",
             b"\xb0",
