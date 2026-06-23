@@ -322,6 +322,7 @@ def build_parser():
     parser.add_argument("--print-interval", type=float, default=0.1)
     parser.add_argument("--csv")
     parser.add_argument("--control-file")
+    parser.add_argument("--hci-fd", type=int)
     return parser
 
 
@@ -334,6 +335,8 @@ def main():
         reference_duration=args.reference_duration,
         print_interval=args.print_interval,
     )
+    if args.hci_fd is not None:
+        client.attach_hci_fd(args.hci_fd)
     if args.control_file:
         client.run_persistent(
             scan_timeout=args.scan_timeout,

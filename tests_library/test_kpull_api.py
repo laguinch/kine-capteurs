@@ -44,7 +44,7 @@ class KPullApiTest(unittest.TestCase):
                 ["2026-06-22T07:00:02+00:00", 2, 2, 0, 2, 12, 117.72]
             )
 
-    def test_connect_uses_privileged_kpull_helper(self):
+    def test_connect_requests_kpull_from_unique_manager(self):
         service = KPullAcquisitionService()
         process = mock.Mock(pid=123)
         process.poll.return_value = None
@@ -54,15 +54,14 @@ class KPullApiTest(unittest.TestCase):
             service._log_path = root / "worker.log"
             service._control_path = root / "control.json"
             with mock.patch(
-                "ble.kinvent.kpull.acquisition_service.subprocess.Popen",
+                "ble.kinvent.kpull.acquisition_service.request_sensor"
+            ) as request, mock.patch(
+                "ble.kinvent.kpull.acquisition_service.ManagedSensorProcess",
                 return_value=process,
-            ) as popen:
+            ):
                 status = service.connect()
 
-        command = popen.call_args.args[0]
-        self.assertEqual(command[:2], ["sudo", "-n"])
-        self.assertTrue(command[2].endswith("run_kpull_session.sh"))
-        self.assertEqual(command[3], "0")
+        request.assert_called_once_with("kpull")
         self.assertTrue(status["connected"])
 
     def test_reports_tare_then_ready(self):

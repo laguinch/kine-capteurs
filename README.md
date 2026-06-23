@@ -100,14 +100,19 @@ réaliser le saut.
 Le serveur installe deux services distincts :
 
 - `kine-capteurs.service` pour l'interface et l'API ;
-- `kine-capteurs-bluetooth.service` pour la connexion permanente aux capteurs.
+- `kine-capteurs-bluetooth.service` pour le gestionnaire Bluetooth Kinvent
+  unique.
 
-Le service Bluetooth démarre avec le serveur en mode déconnecté. Le bouton
-« Connecter les capteurs » ouvre les liaisons au début d'une séance et les
-conserve entre les tests. Démarrer ou arrêter un test ne coupe donc plus les
-plateformes : seule la création du fichier CSV est pilotée par l'interface.
-Le bouton « Déconnecter les capteurs » ferme les liaisons en fin de séance pour
-préserver les batteries, sans arrêter le service système.
+Ce gestionnaire ouvre le dongle une seule fois et reste son unique
+propriétaire. Il effectue l'unique réinitialisation HCI au démarrage du
+service. Les pilotes K-Force Plates, K-Push, K-Pull et K-Move reçoivent ensuite
+ce canal déjà ouvert. Changer de capteur déconnecte proprement le capteur
+actuel, puis connecte le suivant sans redémarrer ni réinitialiser le dongle.
+
+Le bouton « Déconnecter » ferme uniquement la liaison avec le capteur actif
+afin de préserver sa batterie. Le gestionnaire système et le contrôleur
+Bluetooth restent disponibles pour sélectionner immédiatement un autre
+capteur.
 
 Le processus HCI nécessite les droits d'accès au contrôleur Bluetooth brut.
 La variable `KINE_HCI_COMMAND_PREFIX` permet de définir un préfixe de lancement

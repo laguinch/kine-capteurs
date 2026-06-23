@@ -56,7 +56,7 @@ class KMoveApiTest(unittest.TestCase):
                 ]
             )
 
-    def test_connect_uses_privileged_kmove_helper(self):
+    def test_connect_requests_kmove_from_unique_manager(self):
         service = KMoveAcquisitionService()
         process = mock.Mock(pid=123)
         process.poll.return_value = None
@@ -66,15 +66,14 @@ class KMoveApiTest(unittest.TestCase):
             service._log_path = root / "worker.log"
             service._control_path = root / "control.json"
             with mock.patch(
-                "ble.kinvent.kmove.acquisition_service.subprocess.Popen",
+                "ble.kinvent.kmove.acquisition_service.request_sensor"
+            ) as request, mock.patch(
+                "ble.kinvent.kmove.acquisition_service.ManagedSensorProcess",
                 return_value=process,
-            ) as popen:
+            ):
                 status = service.connect()
 
-        command = popen.call_args.args[0]
-        self.assertEqual(command[:2], ["sudo", "-n"])
-        self.assertTrue(command[2].endswith("run_kmove_session.sh"))
-        self.assertEqual(command[3], "0")
+        request.assert_called_once_with("kmove")
         self.assertTrue(status["connected"])
 
     def test_reports_reference_then_ready(self):

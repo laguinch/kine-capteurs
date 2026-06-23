@@ -44,7 +44,7 @@ class KPushApiTest(unittest.TestCase):
                 ["2026-06-19T15:00:02+00:00", 2, 2, 0, 2, 20, 196.2]
             )
 
-    def test_connect_uses_privileged_switching_helper(self):
+    def test_connect_requests_kpush_from_unique_manager(self):
         service = KPushAcquisitionService()
         process = mock.Mock(pid=123)
         process.poll.return_value = None
@@ -54,15 +54,14 @@ class KPushApiTest(unittest.TestCase):
             service._log_path = root / "worker.log"
             service._control_path = root / "control.json"
             with mock.patch(
-                "ble.kinvent.kpush.acquisition_service.subprocess.Popen",
+                "ble.kinvent.kpush.acquisition_service.request_sensor"
+            ) as request, mock.patch(
+                "ble.kinvent.kpush.acquisition_service.ManagedSensorProcess",
                 return_value=process,
-            ) as popen:
+            ):
                 status = service.connect()
 
-        command = popen.call_args.args[0]
-        self.assertEqual(command[:2], ["sudo", "-n"])
-        self.assertTrue(command[2].endswith("run_kpush_session.sh"))
-        self.assertEqual(command[3], "0")
+        request.assert_called_once_with("kpush")
         self.assertTrue(status["connected"])
         self.assertFalse(status["running"])
 

@@ -56,9 +56,11 @@ EVT_LE_ENHANCED_CONN_COMPLETE = 0x0A
 
 OGF_HOST_CTL = 0x03
 OGF_LE_CTL = 0x08
+OGF_LINK_CTL = 0x01
 
 OCF_SET_EVENT_MASK = 0x0001
 OCF_RESET = 0x0003
+OCF_DISCONNECT = 0x0006
 OCF_LE_SET_EVENT_MASK = 0x0001
 OCF_LE_SET_SCAN_PARAMETERS = 0x000B
 OCF_LE_SET_SCAN_ENABLE = 0x000C
@@ -239,6 +241,11 @@ class RawKinventClient:
         if self.csv_file is not None:
             self.csv_file.close()
             self.csv_file = None
+
+    def attach_hci_fd(self, descriptor):
+        self.sock = socket.socket(fileno=descriptor)
+        self.sock.settimeout(0.2)
+        print(f"Canal HCI partagé reçu sur hci{self.adapter}.")
 
     def send_command(self, ogf, ocf, parameters=b""):
         opcode = hci_opcode(ogf, ocf)
@@ -435,6 +442,47 @@ class RawKinventClient:
             if att[0] == ATT_OP_ERROR_RESPONSE:
                 raise RuntimeError(f"Écriture ATT refusée: {att.hex(' ')}")
         raise TimeoutError(f"Pas de réponse à l'écriture ATT handle 0x{handle:04x}")
+
+    def disconnect_link(self, timeout=3.0):
+        if self.connection_handle is None:
+            return
+        handle = self.connection_handle
+        opcode = self.send_command(
+            OGF_LINK_CTL,
+            OCF_DISCONNECT,
+            struct.pack("<HB", handle, 0x13),
+        )
+        deadline = time.monotonic() + timeout
+        command_done = False
+        while time.monotonic() < deadline:
+            packet = self.receive_packet()
+            if packet is None:
+                continue
+            packet_type, payload = packet
+            if packet_type != HCI_EVENT_PKT or len(payload) < 2:
+                continue
+            parameters = payload[2:]
+            if payload[0] == EVT_CMD_COMPLETE and len(parameters) >= 3:
+                completed = struct.unpack_from("<H", parameters, 1)[0]
+                if completed == opcode:
+                    command_done = True
+            elif payload[0] == EVT_CMD_STATUS and len(parameters) >= 4:
+                completed = struct.unpack_from("<H", parameters, 2)[0]
+                if completed == opcode:
+                    if parameters[0]:
+                        raise RuntimeError(
+                            f"Commande HCI 0x{opcode:04x}: "
+                            f"statut 0x{parameters[0]:02x}"
+                        )
+                    command_done = True
+            elif payload[0] == EVT_DISCONN_COMPLETE and len(payload) >= 6:
+                disconnected = struct.unpack_from("<H", payload, 3)[0] & 0x0FFF
+                if disconnected == handle:
+                    self.connection_handle = None
+                    return
+            if command_done and self.connection_handle is None:
+                return
+        raise TimeoutError("Déconnexion Bluetooth sans confirmation.")
 
     def receive_packet(self):
         try:
@@ -744,9 +792,12 @@ class RawKinventClient:
         control_file,
     ):
         """Conserve la liaison et reproduit les transitions de Kinvent."""
-        self.open()
+        shared_controller = self.sock is not None
+        if not shared_controller:
+            self.open()
         try:
-            self.reset()
+            if not shared_controller:
+                self.reset()
             self.wait_for_advertisement(scan_timeout)
             self.connect(connect_timeout)
             self.service_initial_handshake()
@@ -782,6 +833,11 @@ class RawKinventClient:
                         print(
                             "Flux de test arrêté; liaison Bluetooth conservée."
                         )
+                    elif action == "disconnect":
+                        self.stop_test_stream(commands=3)
+                        self.disconnect_link()
+                        print("Capteur déconnecté proprement.")
+                        return
                     last_command = current
                 self.pump(0.20)
         finally:
@@ -816,6 +872,7 @@ def build_parser():
         help="Intervalle entre deux mesures affichées; toutes restent dans le CSV.",
     )
     parser.add_argument("--csv")
+    parser.add_argument("--hci-fd", type=int)
     return parser
 
 

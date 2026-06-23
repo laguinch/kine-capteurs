@@ -225,6 +225,7 @@ def build_parser():
     parser.add_argument("--known-load-kg", type=float)
     parser.add_argument("--csv")
     parser.add_argument("--control-file")
+    parser.add_argument("--hci-fd", type=int)
     return parser
 
 
@@ -239,6 +240,8 @@ def main():
         counts_per_kg=args.counts_per_kg,
         known_load_kg=args.known_load_kg,
     )
+    if args.hci_fd is not None:
+        client.attach_hci_fd(args.hci_fd)
     if args.control_file:
         client.run_persistent(
             scan_timeout=args.scan_timeout,

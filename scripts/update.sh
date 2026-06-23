@@ -48,6 +48,7 @@ chmod 0755 scripts/run_kpull_diagnostic.sh
 chmod 0755 scripts/run_kpull_session.sh
 chmod 0755 scripts/run_kmove_diagnostic.sh
 chmod 0755 scripts/run_kmove_session.sh
+chmod 0755 scripts/kinvent_bluetooth_manager.py
 
 cat >"$TEMP_UNIT" <<EOF
 [Unit]
@@ -78,13 +79,13 @@ Before=$SERVICE_NAME.service
 Type=simple
 User=root
 WorkingDirectory=$PROJECT_DIR
-ExecStart=$PYTHON_BIN -u $PROJECT_DIR/scripts/kinvent_dual_hci.py --adapter hci1 --tare-duration 2 --calibration-file $PROJECT_DIR/storage/raw_data/kplates_calibration.json --sync-tolerance-ms 20 --control-file $PROJECT_DIR/storage/raw_data/kplates_worker_control.json --state-file $PROJECT_DIR/storage/raw_data/kplates_worker_state.json
+ExecStart=$PYTHON_BIN -u $PROJECT_DIR/scripts/kinvent_bluetooth_manager.py --adapter hci0
 Restart=always
 RestartSec=10
 KillMode=control-group
 TimeoutStopSec=5
-StandardOutput=append:$PROJECT_DIR/storage/raw_data/kplates_worker.log
-StandardError=append:$PROJECT_DIR/storage/raw_data/kplates_worker.log
+StandardOutput=append:$PROJECT_DIR/storage/raw_data/kinvent_bluetooth_manager.log
+StandardError=append:$PROJECT_DIR/storage/raw_data/kinvent_bluetooth_manager.log
 
 [Install]
 WantedBy=multi-user.target
@@ -132,9 +133,12 @@ sudo systemctl kill --kill-who=all --signal=SIGKILL \
   "$BLUETOOTH_SERVICE_NAME" 2>/dev/null || true
 sudo timeout 10s systemctl stop "$BLUETOOTH_SERVICE_NAME" 2>/dev/null || true
 sudo pkill -KILL -f "$PROJECT_DIR/scripts/[k]invent_dual_hci.py" || true
+sudo pkill -KILL -f "$PROJECT_DIR/scripts/[k]invent_bluetooth_manager.py" || true
 rm -f \
   storage/raw_data/kplates_worker_state.json \
-  storage/raw_data/kplates_worker_control.json
+  storage/raw_data/kplates_worker_control.json \
+  storage/raw_data/kinvent_bluetooth_state.json \
+  storage/raw_data/kinvent_bluetooth_control.json
 sudo systemctl enable "$BLUETOOTH_SERVICE_NAME"
 sudo systemctl enable "$SERVICE_NAME"
 sudo systemctl restart "$BLUETOOTH_SERVICE_NAME"

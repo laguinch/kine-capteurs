@@ -9,6 +9,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from app.config import BASE_DIR
+from ble.kinvent.bluetooth_manager import (
+    ManagedSensorProcess,
+    manager_state,
+    request_sensor,
+)
 
 
 def now_iso():
@@ -46,26 +51,9 @@ class KPushAcquisitionService:
                 except FileNotFoundError:
                     pass
             self._write_control("idle")
-            command = [
-                "sudo",
-                "-n",
-                str(BASE_DIR / "scripts" / "run_kpush_session.sh"),
-                "0",
-                self._live_path.name,
-                str(float(tare_duration)),
-                str(self._control_path),
-            ]
-            log_file = self._log_path.open("w", encoding="utf-8")
-            try:
-                self._process = subprocess.Popen(
-                    command,
-                    cwd=BASE_DIR,
-                    stdout=log_file,
-                    stderr=subprocess.STDOUT,
-                    start_new_session=True,
-                )
-            finally:
-                log_file.close()
+            del tare_duration
+            request_sensor("kpush")
+            self._process = ManagedSensorProcess("kpush")
             self._connected_at = now_iso()
             self._last_error = None
             self._stop_requested = False
@@ -79,10 +67,7 @@ class KPushAcquisitionService:
                 raise RuntimeError("Arrêtez le test avant de déconnecter le K-Push.")
             if self._process is not None:
                 self._stop_requested = True
-                try:
-                    os.killpg(self._process.pid, signal.SIGTERM)
-                except ProcessLookupError:
-                    pass
+                request_sensor(None)
             return self.status()
 
     def start(self, duration=30.0, filename=None, tare_duration=2.0):
@@ -200,6 +185,8 @@ class KPushAcquisitionService:
         return max(0.0, (end - start).total_seconds())
 
     def _refresh(self):
+        if self._process is None and manager_state().get("target") == "kpush":
+            self._process = ManagedSensorProcess("kpush")
         if self._process is None:
             return
         return_code = self._process.poll()

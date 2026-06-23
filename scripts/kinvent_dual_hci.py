@@ -474,6 +474,11 @@ class DualKinventClient:
             self.sock = None
         self.close_csv()
 
+    def attach_hci_fd(self, descriptor):
+        self.sock = socket.socket(fileno=descriptor)
+        self.sock.settimeout(0.2)
+        print(f"Canal HCI partagé reçu sur hci{self.adapter}.")
+
     def send_command(self, ogf, ocf, parameters=b""):
         opcode = hci_opcode(ogf, ocf)
         self.sock.sendall(
@@ -1422,16 +1427,18 @@ class DualKinventClient:
         write_delay,
         attempts=3,
         require_measurements=True,
+        reset_controller=True,
     ):
         last_error = None
         for attempt in range(1, attempts + 1):
             try:
                 if attempt > 1:
                     print(
-                        f"Réinitialisation complète de la session, "
+                        f"Nouvelle tentative de connexion, "
                         f"essai {attempt}/{attempts}..."
                     )
-                self.reset()
+                if reset_controller:
+                    self.reset()
                 self.clear_connection_state()
                 connection_order = self.connection_order()
                 for plate in connection_order:
@@ -1523,6 +1530,7 @@ class DualKinventClient:
         write_delay,
         control_file,
         state_file,
+        managed=False,
     ):
         control_path = Path(control_file)
         generation = None
@@ -1536,7 +1544,7 @@ class DualKinventClient:
             except (OSError, ValueError, json.JSONDecodeError):
                 return {}
 
-        generation = read_command().get("generation")
+        generation = None
         try:
             self.write_worker_state(state_file, phase="disconnected")
             while True:
@@ -1558,13 +1566,15 @@ class DualKinventClient:
                         )
                         try:
                             self.wait_for_reconnect_cooldown()
-                            self.open()
+                            if self.sock is None:
+                                self.open()
                             self.initialize_session(
                                 scan_timeout,
                                 connect_timeout,
                                 write_delay,
                                 attempts=1,
                                 require_measurements=False,
+                                reset_controller=not managed,
                             )
                             # Dans la capture officielle, les flux tournent
                             # environ deux secondes après la fin de
@@ -1643,15 +1653,20 @@ class DualKinventClient:
                         # Une reconnexion partielle fait alterner les deux
                         # plateformes. On repart toujours d'une session radio
                         # entièrement libérée.
-                        self.shutdown_session()
-                        self.wait_for_reconnect_cooldown()
-                        self.open()
+                        if managed:
+                            self.disconnect_all()
+                            self.clear_connection_state()
+                        else:
+                            self.shutdown_session()
+                            self.wait_for_reconnect_cooldown()
+                            self.open()
                         self.initialize_session(
                             scan_timeout,
                             connect_timeout,
                             write_delay,
                             attempts=1,
                             require_measurements=False,
+                            reset_controller=not managed,
                         )
                         missing_streams = self.settle_initial_streams()
                         if not missing_streams:
@@ -1700,7 +1715,6 @@ class DualKinventClient:
                 if action == "disconnect":
                     self.disconnect_all()
                     self.clear_connection_state()
-                    self.close()
                     idle_streams_active = False
                     self.reconnect_not_before = time.monotonic() + 10.0
                     generation = requested or generation
@@ -1709,6 +1723,9 @@ class DualKinventClient:
                         phase="disconnected",
                         generation=generation,
                     )
+                    if managed:
+                        return
+                    self.close()
                     continue
                 if (
                     action == "start"
@@ -1991,6 +2008,7 @@ def build_parser():
     parser.add_argument("--csv", default="storage/raw_data/kplates_dual.csv")
     parser.add_argument("--control-file")
     parser.add_argument("--state-file")
+    parser.add_argument("--hci-fd", type=int)
     return parser
 
 
@@ -2008,6 +2026,8 @@ def main():
         args.calibration_file,
         args.recalibrate,
     )
+    if args.hci_fd is not None:
+        client.attach_hci_fd(args.hci_fd)
     if args.control_file and args.state_file:
         client.run_persistent(
             args.scan_timeout,
@@ -2015,6 +2035,7 @@ def main():
             args.write_delay,
             args.control_file,
             args.state_file,
+            managed=args.hci_fd is not None,
         )
     else:
         client.run(

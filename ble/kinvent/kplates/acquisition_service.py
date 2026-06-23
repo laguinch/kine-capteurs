@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from app.config import BASE_DIR
+from ble.kinvent.bluetooth_manager import manager_state, request_sensor
 from ble.kinvent.kplates.cmj_analysis import detect_stable_body_mass
 
 
@@ -112,15 +113,12 @@ class DualPlateAcquisitionService:
     def connect(self):
         with self._lock:
             worker = self._read_worker_state()
-            if not self._worker_alive(worker.get("pid")):
-                raise RuntimeError(
-                    "Le service Bluetooth permanent n'est pas démarré."
-                )
             if worker.get("phase") == "active":
                 raise RuntimeError(
                     "Arrêtez le test avant de modifier la connexion."
                 )
             generation = uuid.uuid4().hex
+            request_sensor("kplates")
             self._write_json(
                 self._control_path,
                 {"action": "connect", "generation": generation},
@@ -137,10 +135,7 @@ class DualPlateAcquisitionService:
                 raise RuntimeError(
                     "Arrêtez le test avant de déconnecter les capteurs."
                 )
-            self._write_json(
-                self._control_path,
-                {"action": "disconnect"},
-            )
+            request_sensor(None)
             self._generation = None
             self._started_at = None
             self._finished_at = None
@@ -149,6 +144,7 @@ class DualPlateAcquisitionService:
     def status(self):
         with self._lock:
             worker = self._read_worker_state()
+            manager = manager_state()
             worker_alive = self._worker_alive(worker.get("pid"))
             phase = worker.get("phase", "offline")
             generation_matches = (
@@ -208,6 +204,7 @@ class DualPlateAcquisitionService:
                 and phase in {"idle", "active", "degraded"},
                 "connected_sides": worker.get("connected_sides", []),
                 "pid": worker.get("pid") if worker_alive else None,
+                "manager_pid": manager.get("pid"),
                 "started_at": self._started_at,
                 "finished_at": self._finished_at,
                 "return_code": None,

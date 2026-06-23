@@ -278,12 +278,12 @@ class KPlateApiTest(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            service.disconnect()
-            command = json.loads(
-                service._control_path.read_text(encoding="utf-8")
-            )
+            with mock.patch(
+                "ble.kinvent.kplates.acquisition_service.request_sensor"
+            ) as request:
+                service.disconnect()
 
-        self.assertEqual(command["action"], "disconnect")
+        request.assert_called_once_with(None)
 
     def test_connect_commands_disconnected_worker_to_reconnect(self):
         service = DualPlateAcquisitionService()
