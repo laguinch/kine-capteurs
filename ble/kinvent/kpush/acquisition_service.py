@@ -52,8 +52,11 @@ class KPushAcquisitionService:
                     pass
             self._write_control("idle")
             del tare_duration
-            request_sensor("kpush")
-            self._process = ManagedSensorProcess("kpush")
+            command = request_sensor("kpush")
+            self._process = ManagedSensorProcess(
+                "kpush",
+                command["generation"],
+            )
             self._connected_at = now_iso()
             self._last_error = None
             self._stop_requested = False
@@ -186,7 +189,11 @@ class KPushAcquisitionService:
 
     def _refresh(self):
         if self._process is None and manager_state().get("target") == "kpush":
-            self._process = ManagedSensorProcess("kpush")
+            state = manager_state()
+            self._process = ManagedSensorProcess(
+                "kpush",
+                state.get("generation"),
+            )
         if self._process is None:
             return
         return_code = self._process.poll()

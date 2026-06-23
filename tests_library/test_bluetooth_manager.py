@@ -33,3 +33,31 @@ class BluetoothManagerTest(unittest.TestCase):
         bluetooth.controller.open.assert_called_once_with()
         bluetooth.controller.reset.assert_called_once_with()
         bluetooth.state.assert_called_once_with("idle")
+
+    def test_process_waits_for_its_exact_manager_generation(self):
+        process = manager.ManagedSensorProcess("kmove", "request-2")
+        with mock.patch.object(
+            manager,
+            "manager_state",
+            return_value={
+                "pid": 123,
+                "generation": "request-1",
+                "target": None,
+                "phase": "idle",
+            },
+        ), mock.patch.object(manager.os, "kill"):
+            self.assertIsNone(process.poll())
+
+    def test_process_stays_alive_for_matching_active_target(self):
+        process = manager.ManagedSensorProcess("kmove", "request-2")
+        with mock.patch.object(
+            manager,
+            "manager_state",
+            return_value={
+                "pid": 123,
+                "generation": "request-2",
+                "target": "kmove",
+                "phase": "active",
+            },
+        ), mock.patch.object(manager.os, "kill"):
+            self.assertIsNone(process.poll())

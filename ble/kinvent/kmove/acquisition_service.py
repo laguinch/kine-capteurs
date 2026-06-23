@@ -52,8 +52,11 @@ class KMoveAcquisitionService:
                     pass
             self._write_control("idle")
             del reference_duration
-            request_sensor("kmove")
-            self._process = ManagedSensorProcess("kmove")
+            command = request_sensor("kmove")
+            self._process = ManagedSensorProcess(
+                "kmove",
+                command["generation"],
+            )
             self._connected_at = now_iso()
             self._last_error = None
             self._stop_requested = False
@@ -193,7 +196,11 @@ class KMoveAcquisitionService:
 
     def _refresh(self):
         if self._process is None and manager_state().get("target") == "kmove":
-            self._process = ManagedSensorProcess("kmove")
+            state = manager_state()
+            self._process = ManagedSensorProcess(
+                "kmove",
+                state.get("generation"),
+            )
         if self._process is None:
             return
         return_code = self._process.poll()

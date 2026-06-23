@@ -2,7 +2,6 @@
 
 import json
 import os
-import time
 import uuid
 from pathlib import Path
 
@@ -43,9 +42,9 @@ def request_sensor(target):
 class ManagedSensorProcess:
     """Vue compatible Popen sur le pilote enfant du gestionnaire."""
 
-    def __init__(self, target):
+    def __init__(self, target, generation=None):
         self.target = target
-        self.requested_at = time.monotonic()
+        self.generation = generation
 
     @property
     def pid(self):
@@ -55,14 +54,15 @@ class ManagedSensorProcess:
     def poll(self):
         state = manager_state()
         manager_pid = state.get("pid")
-        if time.monotonic() - self.requested_at < 3.0:
-            return None
         if not isinstance(manager_pid, int):
             return 1
         try:
             os.kill(manager_pid, 0)
         except (OSError, ProcessLookupError):
             return 1
+        if self.generation and state.get("generation") != self.generation:
+            # La commande est encore dans la file du gestionnaire.
+            return None
         if state.get("target") == self.target and state.get("phase") in {
             "switching",
             "active",
