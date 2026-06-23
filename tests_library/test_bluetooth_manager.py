@@ -61,3 +61,21 @@ class BluetoothManagerTest(unittest.TestCase):
             },
         ), mock.patch.object(manager.os, "kill"):
             self.assertIsNone(process.poll())
+
+    def test_root_manager_permission_error_still_means_alive(self):
+        process = manager.ManagedSensorProcess("kmove", "request-2")
+        with mock.patch.object(
+            manager,
+            "manager_state",
+            return_value={
+                "pid": 123,
+                "generation": "request-2",
+                "target": "kmove",
+                "phase": "active",
+            },
+        ), mock.patch.object(
+            manager.os,
+            "kill",
+            side_effect=PermissionError,
+        ):
+            self.assertIsNone(process.poll())

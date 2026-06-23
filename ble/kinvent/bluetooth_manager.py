@@ -58,7 +58,14 @@ class ManagedSensorProcess:
             return 1
         try:
             os.kill(manager_pid, 0)
-        except (OSError, ProcessLookupError):
+        except ProcessLookupError:
+            return 1
+        except PermissionError:
+            # Le gestionnaire Bluetooth tourne en root tandis que l'API
+            # tourne sous le compte du cabinet. EPERM confirme ici que le
+            # processus existe, mais qu'il n'est pas signalable par l'API.
+            pass
+        except OSError:
             return 1
         if self.generation and state.get("generation") != self.generation:
             # La commande est encore dans la file du gestionnaire.
