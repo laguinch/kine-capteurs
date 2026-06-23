@@ -768,6 +768,9 @@ class RawKinventClient:
     def ready_message(self):
         return "Capteur Kinvent prêt."
 
+    def prepare_session(self):
+        """Transition observée avant la tare ou référence, si nécessaire."""
+
     def start_test_stream(self):
         self.send_write_command(b"\x11")
         self.pump(0.20)
@@ -802,6 +805,7 @@ class RawKinventClient:
             self.connect(connect_timeout)
             self.service_initial_handshake()
             self.start_stream(write_delay)
+            self.prepare_session()
 
             ready_deadline = time.monotonic() + 30.0
             while not self.session_ready():

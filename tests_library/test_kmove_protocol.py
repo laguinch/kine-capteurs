@@ -33,6 +33,19 @@ class KMoveProtocolTest(unittest.TestCase):
             b"\xb0",
         ])
 
+    def test_reference_starts_with_official_stream_command(self):
+        client = KMoveHciClient(
+            adapter=0,
+            address="60:8A:10:4F:BD:12",
+        )
+        sent = []
+        client.send_write_command = sent.append
+        client.pump = lambda duration: None
+
+        client.prepare_session()
+
+        self.assertEqual(sent, [b"\x11"])
+
     def test_reads_kmove_name_from_advertising_data(self):
         advertising = bytes.fromhex(
             "02 01 06 10 09 4b 46 4f 52 43 45 53 65 6e 73 30 32 31 34 33"

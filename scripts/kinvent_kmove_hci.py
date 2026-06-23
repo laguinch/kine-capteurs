@@ -99,20 +99,6 @@ class KMoveHciClient(RawKinventClient):
                 ]
             )
 
-    def reset(self):
-        """Tolère une seule transition lente du dongle après les plateformes."""
-        try:
-            super().reset()
-        except TimeoutError as exc:
-            if "0x0c03" not in str(exc):
-                raise
-            print(
-                "Contrôleur encore en cours de libération; "
-                "nouvel essai HCI Reset..."
-            )
-            time.sleep(1.0)
-            super().reset()
-
     @staticmethod
     def _advertised_name(data):
         offset = 0
@@ -303,6 +289,11 @@ class KMoveHciClient(RawKinventClient):
 
     def session_ready(self):
         return self.reference_quaternion is not None
+
+    def prepare_session(self):
+        # Dans la capture officielle K-Move, 0x11 est envoyé après B0 pour
+        # ouvrir le flux utilisé par la prise de référence.
+        self.start_test_stream()
 
     def ready_message(self):
         return "K-Move prêt; liaison Bluetooth conservée."
