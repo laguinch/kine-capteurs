@@ -1,0 +1,19 @@
+@/cache/recovery/block.map
+1
+time_total: 625
+retry: 0
+source_build: A515FXXU7HWF1
+target_build: A515FXXU8HWI1
+bytes_written_dm-0: 4696911872
+bytes_stashed_dm-0: 798961664
+bytes_written_dm-1: 690098176
+bytes_stashed_dm-1: 585940992
+bytes_written_dm-2: 1260875776
+bytes_stashed_dm-2: 562409472
+bytes_written_dm-3: 4259840
+bytes_stashed_dm-3: 3305472
+bytes_written_prism: 668434432
+bytes_stashed_prism: 353189888
+bytes_written_optics: 8646656
+bytes_stashed_optics: 1142784
+uncrypt_time: 28

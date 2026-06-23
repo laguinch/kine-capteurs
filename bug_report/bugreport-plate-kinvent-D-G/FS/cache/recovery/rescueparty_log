@@ -1,0 +1,223 @@
+--------- beginning of crash
+FATAL EXCEPTION: FlashlightController
+Process: com.android.systemui, PID: 5589
+java.lang.SecurityException: Permission Denial: not allowed to send broadcast com.android.settings.flashlight.action.FLASHLIGHT_CHANGED from pid=5589, uid=10054
+	at android.os.Parcel.createExceptionOrNull(Parcel.java:3023)
+	at android.os.Parcel.createException(Parcel.java:3007)
+	at android.os.Parcel.readException(Parcel.java:2990)
+	at android.os.Parcel.readException(Parcel.java:2932)
+	at android.app.IActivityManager$Stub$Proxy.broadcastIntentWithFeature(IActivityManager.java:5995)
+	at android.app.ContextImpl.sendBroadcast(ContextImpl.java:1256)
+	at android.content.ContextWrapper.sendBroadcast(ContextWrapper.java:509)
+	at com.android.systemui.statusbar.policy.FlashlightControllerImpl$3.onTorchModeChanged(FlashlightControllerImpl.java:367)
+	at android.hardware.camera2.CameraManager$CameraManagerGlobal.lambda$postSingleTorchUpdate$0(CameraManager.java:2520)
+	at android.hardware.camera2.CameraManager$CameraManagerGlobal$$ExternalSyntheticLambda2.run(Unknown Source:6)
+	at android.os.Handler.handleCallback(Handler.java:942)
+	at android.os.Handler.dispatchMessage(Handler.java:99)
+	at android.os.Looper.loopOnce(Looper.java:226)
+	at android.os.Looper.loop(Looper.java:313)
+	at android.os.HandlerThread.run(HandlerThread.java:67)
+Caused by: android.os.RemoteException: Remote stack trace:
+	at com.android.server.am.ActivityManagerService.broadcastIntentLocked(ActivityManagerService.java:16140)
+	at com.android.server.am.ActivityManagerService.broadcastIntentLocked(ActivityManagerService.java:15974)
+	at com.android.server.am.ActivityManagerService.broadcastIntentWithFeature(ActivityManagerService.java:16949)
+	at android.app.IActivityManager$Stub.onTransact(IActivityManager.java:2721)
+	at com.android.server.am.ActivityManagerService.onTransact(ActivityManagerService.java:3077)
+
+FATAL EXCEPTION: FlashlightController
+Process: com.android.systemui, PID: 5805
+java.lang.SecurityException: Permission Denial: not allowed to send broadcast com.android.settings.flashlight.action.FLASHLIGHT_CHANGED from pid=5805, uid=10054
+	at android.os.Parcel.createExceptionOrNull(Parcel.java:3023)
+	at android.os.Parcel.createException(Parcel.java:3007)
+	at android.os.Parcel.readException(Parcel.java:2990)
+	at android.os.Parcel.readException(Parcel.java:2932)
+	at android.app.IActivityManager$Stub$Proxy.broadcastIntentWithFeature(IActivityManager.java:5995)
+	at android.app.ContextImpl.sendBroadcast(ContextImpl.java:1256)
+	at android.content.ContextWrapper.sendBroadcast(ContextWrapper.java:509)
+	at com.android.systemui.statusbar.policy.FlashlightControllerImpl$3.onTorchModeChanged(FlashlightControllerImpl.java:367)
+	at android.hardware.camera2.CameraManager$CameraManagerGlobal.lambda$postSingleTorchUpdate$0(CameraManager.java:2520)
+	at android.hardware.camera2.CameraManager$CameraManagerGlobal$$ExternalSyntheticLambda2.run(Unknown Source:6)
+	at android.os.Handler.handleCallback(Handler.java:942)
+	at android.os.Handler.dispatchMessage(Handler.java:99)
+	at android.os.Looper.loopOnce(Looper.java:226)
+	at android.os.Looper.loop(Looper.java:313)
+	at android.os.HandlerThread.run(HandlerThread.java:67)
+FATAL EXCEPTION: FlashlightController
+Process: com.android.systemui, PID: 6081
+java.lang.SecurityException: Permission Denial: not allowed to send broadcast com.android.settings.flashlight.action.FLASHLIGHT_CHANGED from pid=6081, uid=10054
+	at android.os.Parcel.createExceptionOrNull(Parcel.java:3023)
+	at android.os.Parcel.createException(Parcel.java:3007)
+	at android.os.Parcel.readException(Parcel.java:2990)
+	at android.os.Parcel.readException(Parcel.java:2932)
+	at android.app.IActivityManager$Stub$Proxy.broadcastIntentWithFeature(IActivityManager.java:5995)
+	at android.app.ContextImpl.sendBroadcast(ContextImpl.java:1256)
+	at android.content.ContextWrapper.sendBroadcast(ContextWrapper.java:509)
+	at com.android.systemui.statusbar.policy.FlashlightControllerImpl$3.onTorchModeChanged(FlashlightControllerImpl.java:367)
+	at android.hardware.camera2.CameraManager$CameraManagerGlobal.lambda$postSingleTorchUpdate$0(CameraManager.java:2520)
+	at android.hardware.camera2.CameraManager$CameraManagerGlobal$$ExternalSyntheticLambda2.run(Unknown Source:6)
+	at android.os.Handler.handleCallback(Handler.java:942)
+	at android.os.Handler.dispatchMessage(Handler.java:99)
+	at android.os.Looper.loopOnce(Looper.java:226)
+	at android.os.Looper.loop(Looper.java:313)
+	at android.os.HandlerThread.run(HandlerThread.java:67)
+Caused by: android.os.RemoteException: Remote stack trace:
+	at com.android.server.am.ActivityManagerService.broadcastIntentLocked(ActivityManagerService.java:16140)
+	at com.android.server.am.ActivityManagerService.broadcastIntentLocked(ActivityManagerService.java:15974)
+	at com.android.server.am.ActivityManagerService.broadcastIntentWithFeature(ActivityManagerService.java:16949)
+	at android.app.IActivityManager$Stub.onTransact(IActivityManager.java:2721)
+	at com.android.server.am.ActivityManagerService.onTransact(ActivityManagerService.java:3077)
+
+FATAL EXCEPTION: FlashlightController
+Process: com.android.systemui, PID: 6175
+java.lang.SecurityException: Permission Denial: not allowed to send broadcast com.android.settings.flashlight.action.FLASHLIGHT_CHANGED from pid=6175, uid=10054
+	at android.os.Parcel.createExceptionOrNull(Parcel.java:3023)
+	at android.os.Parcel.createException(Parcel.java:3007)
+	at android.os.Parcel.readException(Parcel.java:2990)
+	at android.os.Parcel.readException(Parcel.java:2932)
+	at android.app.IActivityManager$Stub$Proxy.broadcastIntentWithFeature(IActivityManager.java:5995)
+	at android.app.ContextImpl.sendBroadcast(ContextImpl.java:1256)
+	at android.content.ContextWrapper.sendBroadcast(ContextWrapper.java:509)
+	at com.android.systemui.statusbar.policy.FlashlightControllerImpl$3.onTorchModeChanged(FlashlightControllerImpl.java:367)
+	at android.hardware.camera2.CameraManager$CameraManagerGlobal.lambda$postSingleTorchUpdate$0(CameraManager.java:2520)
+	at android.hardware.camera2.CameraManager$CameraManagerGlobal$$ExternalSyntheticLambda2.run(Unknown Source:6)
+	at android.os.Handler.handleCallback(Handler.java:942)
+	at android.os.Handler.dispatchMessage(Handler.java:99)
+	at android.os.Looper.loopOnce(Looper.java:226)
+	at android.os.Looper.loop(Looper.java:313)
+	at android.os.HandlerThread.run(HandlerThread.java:67)
+FATAL EXCEPTION: FlashlightController
+Process: com.android.systemui, PID: 6280
+java.lang.SecurityException: Permission Denial: not allowed to send broadcast com.android.settings.flashlight.action.FLASHLIGHT_CHANGED from pid=6280, uid=10054
+	at android.os.Parcel.createExceptionOrNull(Parcel.java:3023)
+	at android.os.Parcel.createException(Parcel.java:3007)
+	at android.os.Parcel.readException(Parcel.java:2990)
+	at android.os.Parcel.readException(Parcel.java:2932)
+	at android.app.IActivityManager$Stub$Proxy.broadcastIntentWithFeature(IActivityManager.java:5995)
+	at android.app.ContextImpl.sendBroadcast(ContextImpl.java:1256)
+	at android.content.ContextWrapper.sendBroadcast(ContextWrapper.java:509)
+	at com.android.systemui.statusbar.policy.FlashlightControllerImpl$3.onTorchModeChanged(FlashlightControllerImpl.java:367)
+	at android.hardware.camera2.CameraManager$CameraManagerGlobal.lambda$postSingleTorchUpdate$0(CameraManager.java:2520)
+	at android.hardware.camera2.CameraManager$CameraManagerGlobal$$ExternalSyntheticLambda2.run(Unknown Source:6)
+	at android.os.Handler.handleCallback(Handler.java:942)
+	at android.os.Handler.dispatchMessage(Handler.java:99)
+	at android.os.Looper.loopOnce(Looper.java:226)
+	at android.os.Looper.loop(Looper.java:313)
+	at android.os.HandlerThread.run(HandlerThread.java:67)
+Caused by: android.os.RemoteException: Remote stack trace:
+	at com.android.server.am.ActivityManagerService.broadcastIntentLocked(ActivityManagerService.java:16140)
+	at com.android.server.am.ActivityManagerService.broadcastIntentLocked(ActivityManagerService.java:15974)
+	at com.android.server.am.ActivityManagerService.broadcastIntentWithFeature(ActivityManagerService.java:16949)
+	at android.app.IActivityManager$Stub.onTransact(IActivityManager.java:2721)
+	at com.android.server.am.ActivityManagerService.onTransact(ActivityManagerService.java:3077)
+
+FATAL EXCEPTION: FlashlightController
+Process: com.android.systemui, PID: 6380
+java.lang.SecurityException: Permission Denial: not allowed to send broadcast com.android.settings.flashlight.action.FLASHLIGHT_CHANGED from pid=6380, uid=10054
+	at android.os.Parcel.createExceptionOrNull(Parcel.java:3023)
+	at android.os.Parcel.createException(Parcel.java:3007)
+	at android.os.Parcel.readException(Parcel.java:2990)
+	at android.os.Parcel.readException(Parcel.java:2932)
+	at android.app.IActivityManager$Stub$Proxy.broadcastIntentWithFeature(IActivityManager.java:5995)
+	at android.app.ContextImpl.sendBroadcast(ContextImpl.java:1256)
+	at android.content.ContextWrapper.sendBroadcast(ContextWrapper.java:509)
+	at com.android.systemui.statusbar.policy.FlashlightControllerImpl$3.onTorchModeChanged(FlashlightControllerImpl.java:367)
+	at android.hardware.camera2.CameraManager$CameraManagerGlobal.lambda$postSingleTorchUpdate$0(CameraManager.java:2520)
+	at android.hardware.camera2.CameraManager$CameraManagerGlobal$$ExternalSyntheticLambda2.run(Unknown Source:6)
+	at android.os.Handler.handleCallback(Handler.java:942)
+	at android.os.Handler.dispatchMessage(Handler.java:99)
+	at android.os.Looper.loopOnce(Looper.java:226)
+	at android.os.Looper.loop(Looper.java:313)
+	at android.os.HandlerThread.run(HandlerThread.java:67)
+Caused by: android.os.RemoteException: Remote stack trace:
+	at com.android.server.am.ActivityManagerService.broadcastIntentLocked(ActivityManagerService.java:16140)
+	at com.android.server.am.ActivityManagerService.broadcastIntentLocked(ActivityManagerService.java:15974)
+	at com.android.server.am.ActivityManagerService.broadcastIntentWithFeature(ActivityManagerService.java:16949)
+	at android.app.IActivityManager$Stub.onTransact(IActivityManager.java:2721)
+	at com.android.server.am.ActivityManagerService.onTransact(ActivityManagerService.java:3077)
+
+FATAL EXCEPTION: FlashlightController
+Process: com.android.systemui, PID: 6766
+java.lang.SecurityException: Permission Denial: not allowed to send broadcast com.android.settings.flashlight.action.FLASHLIGHT_CHANGED from pid=6766, uid=10054
+	at android.os.Parcel.createExceptionOrNull(Parcel.java:3023)
+	at android.os.Parcel.createException(Parcel.java:3007)
+	at android.os.Parcel.readException(Parcel.java:2990)
+	at android.os.Parcel.readException(Parcel.java:2932)
+	at android.app.IActivityManager$Stub$Proxy.broadcastIntentWithFeature(IActivityManager.java:5995)
+	at android.app.ContextImpl.sendBroadcast(ContextImpl.java:1256)
+	at android.content.ContextWrapper.sendBroadcast(ContextWrapper.java:509)
+	at com.android.systemui.statusbar.policy.FlashlightControllerImpl$3.onTorchModeChanged(FlashlightControllerImpl.java:367)
+	at android.hardware.camera2.CameraManager$CameraManagerGlobal.lambda$postSingleTorchUpdate$0(CameraManager.java:2520)
+	at android.hardware.camera2.CameraManager$CameraManagerGlobal$$ExternalSyntheticLambda2.run(Unknown Source:6)
+	at android.os.Handler.handleCallback(Handler.java:942)
+	at android.os.Handler.dispatchMessage(Handler.java:99)
+	at android.os.Looper.loopOnce(Looper.java:226)
+	at android.os.Looper.loop(Looper.java:313)
+	at android.os.HandlerThread.run(HandlerThread.java:67)
+Caused by: android.os.RemoteException: Remote stack trace:
+	at com.android.server.am.ActivityManagerService.broadcastIntentLocked(ActivityManagerService.java:16140)
+	at com.android.server.am.ActivityManagerService.broadcastIntentLocked(ActivityManagerService.java:15974)
+	at com.android.server.am.ActivityManagerService.broadcastIntentWithFeature(ActivityManagerService.java:16949)
+	at android.app.IActivityManager$Stub.onTransact(IActivityManager.java:2721)
+	at com.android.server.am.ActivityManagerService.onTransact(ActivityManagerService.java:3077)
+
+FATAL EXCEPTION: FlashlightController
+Process: com.android.systemui, PID: 6856
+java.lang.SecurityException: Permission Denial: not allowed to send broadcast com.android.settings.flashlight.action.FLASHLIGHT_CHANGED from pid=6856, uid=10054
+	at android.os.Parcel.createExceptionOrNull(Parcel.java:3023)
+	at android.os.Parcel.createException(Parcel.java:3007)
+	at android.os.Parcel.readException(Parcel.java:2990)
+	at android.os.Parcel.readException(Parcel.java:2932)
+	at android.app.IActivityManager$Stub$Proxy.broadcastIntentWithFeature(IActivityManager.java:5995)
+	at android.app.ContextImpl.sendBroadcast(ContextImpl.java:1256)
+	at android.content.ContextWrapper.sendBroadcast(ContextWrapper.java:509)
+	at com.android.systemui.statusbar.policy.FlashlightControllerImpl$3.onTorchModeChanged(FlashlightControllerImpl.java:367)
+	at android.hardware.camera2.CameraManager$CameraManagerGlobal.lambda$postSingleTorchUpdate$0(CameraManager.java:2520)
+	at android.hardware.camera2.CameraManager$CameraManagerGlobal$$ExternalSyntheticLambda2.run(Unknown Source:6)
+	at android.os.Handler.handleCallback(Handler.java:942)
+	at android.os.Handler.dispatchMessage(Handler.java:99)
+	at android.os.Looper.loopOnce(Looper.java:226)
+	at android.os.Looper.loop(Looper.java:313)
+	at android.os.HandlerThread.run(HandlerThread.java:67)
+FATAL EXCEPTION: FlashlightController
+Process: com.android.systemui, PID: 6976
+java.lang.SecurityException: Permission Denial: not allowed to send broadcast com.android.settings.flashlight.action.FLASHLIGHT_CHANGED from pid=6976, uid=10054
+	at android.os.Parcel.createExceptionOrNull(Parcel.java:3023)
+	at android.os.Parcel.createException(Parcel.java:3007)
+	at android.os.Parcel.readException(Parcel.java:2990)
+	at android.os.Parcel.readException(Parcel.java:2932)
+	at android.app.IActivityManager$Stub$Proxy.broadcastIntentWithFeature(IActivityManager.java:5995)
+	at android.app.ContextImpl.sendBroadcast(ContextImpl.java:1256)
+	at android.content.ContextWrapper.sendBroadcast(ContextWrapper.java:509)
+	at com.android.systemui.statusbar.policy.FlashlightControllerImpl$3.onTorchModeChanged(FlashlightControllerImpl.java:367)
+	at android.hardware.camera2.CameraManager$CameraManagerGlobal.lambda$postSingleTorchUpdate$0(CameraManager.java:2520)
+	at android.hardware.camera2.CameraManager$CameraManagerGlobal$$ExternalSyntheticLambda2.run(Unknown Source:6)
+	at android.os.Handler.handleCallback(Handler.java:942)
+	at android.os.Handler.dispatchMessage(Handler.java:99)
+	at android.os.Looper.loopOnce(Looper.java:226)
+	at android.os.Looper.loop(Looper.java:313)
+	at android.os.HandlerThread.run(HandlerThread.java:67)
+Caused by: android.os.RemoteException: Remote stack trace:
+	at com.android.server.am.ActivityManagerService.broadcastIntentLocked(ActivityManagerService.java:16140)
+	at com.android.server.am.ActivityManagerService.broadcastIntentLocked(ActivityManagerService.java:15974)
+	at com.android.server.am.ActivityManagerService.broadcastIntentWithFeature(ActivityManagerService.java:16949)
+	at android.app.IActivityManager$Stub.onTransact(IActivityManager.java:2721)
+	at com.android.server.am.ActivityManagerService.onTransact(ActivityManagerService.java:3077)
+
+FATAL EXCEPTION: FlashlightController
+Process: com.android.systemui, PID: 7121
+java.lang.SecurityException: Permission Denial: not allowed to send broadcast com.android.settings.flashlight.action.FLASHLIGHT_CHANGED from pid=7121, uid=10054
+	at android.os.Parcel.createExceptionOrNull(Parcel.java:3023)
+	at android.os.Parcel.createException(Parcel.java:3007)
+	at android.os.Parcel.readException(Parcel.java:2990)
+	at android.os.Parcel.readException(Parcel.java:2932)
+	at android.app.IActivityManager$Stub$Proxy.broadcastIntentWithFeature(IActivityManager.java:5995)
+	at android.app.ContextImpl.sendBroadcast(ContextImpl.java:1256)
+	at android.content.ContextWrapper.sendBroadcast(ContextWrapper.java:509)
+	at com.android.systemui.statusbar.policy.FlashlightControllerImpl$3.onTorchModeChanged(FlashlightControllerImpl.java:367)
+	at android.hardware.camera2.CameraManager$CameraManagerGlobal.lambda$postSingleTorchUpdate$0(CameraManager.java:2520)
+	at android.hardware.camera2.CameraManager$CameraManagerGlobal$$ExternalSyntheticLambda2.run(Unknown Source:6)
+	at android.os.Handler.handleCallback(Handler.java:942)
+	at android.os.Handler.dispatchMessage(Handler.java:99)
+	at android.os.Looper.loopOnce(Looper.java:226)
+	at android.os.Looper.loop(Looper.java:313)
+	at android.os.HandlerThread.run(HandlerThread.java:67)

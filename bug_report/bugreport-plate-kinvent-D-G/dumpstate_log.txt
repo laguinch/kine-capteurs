@@ -1,0 +1,212 @@
+!@bugreport_mode BUGREPORT_DEFAULT, and dumpstate by default
+Module metadata package name: com.google.android.modulemetadata
+Calling IDumpstateDevice implementation using path /data/user_de/0/com.android.shell/files/bugreports/dumpstate_board.txt
+Calling IDumpstateDevice implementation using path /data/user_de/0/com.android.shell/files/bugreports/dumpstate_board.bin
+Using IDumpstateDevice AIDL HALIgnoring empty dumpstate_board.bin
+Duration of 'DUMP BOARD': 1.14s
+Duration of 'DUMPSYS CRITICAL': 1.83s
+*** command 'perfetto --save-for-bugreport' failed: exit code 1
+Error: Tracing is not supported on user builds.
+Duration of 'SYSTEM LOG': 4.15s
+Duration of 'EVENT LOG': 0.34s
+Duration of 'STATS LOG': 0.04s
+Duration of 'RADIO LOG': 0.30s
+Start thread pool:2
+Duration of 'Dmabuf dump': 1.01s
+Adding dir /cache/recovery (recursive: 1)
+Duration of '/cache/recovery': 5.22s
+Adding dir /data/misc/recovery (recursive: 1)
+Adding dir /data/misc/update_engine_log (recursive: 1)
+Adding dir /data/misc/logd (recursive: 0)
+Adding dir /data/misc/prereboot (recursive: 0)
+MOUNT INFO: 64 entries added to zip file
+Duration of 'LPDUMP': 1.07s
+Duration of 'DEVICE-MAPPER': 1.06s
+Adding dir /metadata/ota (recursive: 1)
+execvp on command 'iotop -n 1 -m 100' failed (error: No such file or directory)
+*** command 'iotop -n 1 -m 100' failed: exit code 1
+android.hardware.weaver@1.0::IWeaver/default does not exist, or no permission to connect.
+*** command 'lshal debug -E android.hardware.weaver@1.0::IWeaver' failed: exit code 128
+Duration of 'FILESYSTEM DEBUG INFO.': 0.93s
+Duration of 'DUMP TRACES': 19.83s
+Duration of 'Wait for ': 8.14s
+shutdown thread pool
+Start thread pool:3
+Calling IDumpstateDevice implementation using path /data/user_de/0/com.android.shell/files/bugreports/dumpstate_board.txt
+Calling IDumpstateDevice implementation using path /data/user_de/0/com.android.shell/files/bugreports/dumpstate_board.bin
+Using IDumpstateDevice AIDL HALIgnoring empty dumpstate_board.bin
+Warning: Skipping "android.frameworks.cameraservice.service@2.0::ICameraService/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.frameworks.cameraservice.service@2.1::ICameraService/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.frameworks.cameraservice.service@2.2::ICameraService/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.frameworks.displayservice@1.0::IDisplayService/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.frameworks.schedulerservice@1.0::ISchedulingPolicyService/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.frameworks.sensorservice@1.0::ISensorManager/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.frameworks.stats@1.0::IStats/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.audio.effect@5.0::IEffectsFactory/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.audio@5.0::IDevicesFactory/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.bluetooth@1.0::IBluetoothHci/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.camera.provider@2.4::ICameraProvider/legacy/0": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.camera.provider@2.5::ICameraProvider/legacy/0": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.camera.provider@2.6::ICameraProvider/legacy/0": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.configstore@1.0::ISurfaceFlingerConfigs/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.configstore@1.1::ISurfaceFlingerConfigs/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.gatekeeper@1.0::IGatekeeper/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.graphics.composer@2.1::IComposer/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.keymaster@4.0::IKeymasterDevice/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.media.c2@1.0::IComponentStore/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.media.c2@1.0::IComponentStore/software": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.media.c2@1.1::IComponentStore/software": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.media.c2@1.2::IComponentStore/software": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.media.omx@1.0::IOmx/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.media.omx@1.0::IOmxStore/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.memtrack@1.0::IMemtrack/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.radio.config@1.0::IRadioConfig/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.radio.config@1.1::IRadioConfig/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.radio@1.0::IRadio/slot1": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.radio@1.0::IRadio/slot2": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.radio@1.0::ISap/slot1": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.radio@1.0::ISap/slot2": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.radio@1.1::IRadio/slot1": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.radio@1.1::IRadio/slot2": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.radio@1.1::ISap/slot1": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.radio@1.1::ISap/slot2": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.radio@1.2::IRadio/slot1": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.radio@1.2::IRadio/slot2": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.radio@1.2::ISap/slot1": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.radio@1.2::ISap/slot2": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.radio@1.3::IRadio/slot1": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.radio@1.3::IRadio/slot2": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.radio@1.4::IRadio/slot1": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.radio@1.4::IRadio/slot2": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.sensors@2.0::ISensors/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.usb@1.0::IUsb/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.usb@1.1::IUsb/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.usb@1.2::IUsb/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hardware.usb@1.3::IUsb/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.hidl.allocator@1.0::IAllocator/ashmem": cannot be fetched from service manager (null)
+Warning: Skipping "android.hidl.base@1.0::IBase/ashmem": cannot be fetched from service manager (null)
+Warning: Skipping "android.hidl.base@1.0::IBase/clearkey": cannot be fetched from service manager (null)
+Warning: Skipping "android.hidl.base@1.0::IBase/epdgd": cannot be fetched from service manager (null)
+Warning: Skipping "android.hidl.base@1.0::IBase/epdgd2": cannot be fetched from service manager (null)
+Warning: Skipping "android.hidl.base@1.0::IBase/imsd": cannot be fetched from service manager (null)
+Warning: Skipping "android.hidl.base@1.0::IBase/imsd2": cannot be fetched from service manager (null)
+Warning: Skipping "android.hidl.base@1.0::IBase/legacy/0": cannot be fetched from service manager (null)
+Warning: Skipping "android.hidl.base@1.0::IBase/slot1": cannot be fetched from service manager (null)
+Warning: Skipping "android.hidl.base@1.0::IBase/slot2": cannot be fetched from service manager (null)
+Warning: Skipping "android.hidl.base@1.0::IBase/software": cannot be fetched from service manager (null)
+Warning: Skipping "android.hidl.base@1.0::IBase/widevine": cannot be fetched from service manager (null)
+Warning: Skipping "android.hidl.token@1.0::ITokenManager/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.system.net.netd@1.0::INetd/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.system.net.netd@1.1::INetd/default": cannot be fetched from service manager (null)
+Warning: Skipping "android.system.wifi.keystore@1.0::IKeystore/default": cannot be fetched from service manager (null)
+Warning: Skipping "com.dsi.ant@1.0::IAnt/default": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.frameworks.security.ucm.crypto@1.0::ISehUcmKeystore/default": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.audio@1.0::ISehDevicesFactory/default": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.bluetooth@2.0::ISehBluetooth/default": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.camera.provider@4.0::ISehCameraProvider/legacy/0": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.miscpower@2.0::ISehMiscPower/default": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.radio.bridge@2.0::ISehBridge/slot1": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.radio.bridge@2.0::ISehBridge/slot2": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.radio.channel@2.0::ISehChannel/epdgd": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.radio.channel@2.0::ISehChannel/epdgd2": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.radio.channel@2.0::ISehChannel/imsd": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.radio.channel@2.0::ISehChannel/imsd2": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.radio@2.0::ISehRadio/slot1": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.radio@2.0::ISehRadio/slot2": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.radio@2.1::ISehRadio/slot1": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.radio@2.1::ISehRadio/slot2": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.radio@2.2::ISehRadio/slot1": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.radio@2.2::ISehRadio/slot2": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.security.engmode@1.0::ISehEngmode/default": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.security.vaultkeeper@2.0::ISehVaultKeeper/default": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.sysinput@1.0::ISehSysInputDev/default": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.sysinput@1.1::ISehSysInputDev/default": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.sysinput@1.2::ISehSysInputDev/default": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung.hardware.sysinput@1.3::ISehSysInputDev/default": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung_slsi.hardware.ExynosHWCServiceTW@1.0::IExynosHWCServiceTW/default": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung_slsi.hardware.epic@1.0::IEpicRequest/default": cannot be fetched from service manager (null)
+Warning: Skipping "vendor.samsung_slsi.hardware.ofi@1.0::IOfiService/default": cannot be fetched from service manager (null)
+*** command 'lshal --all --types=all' failed: exit code 136
+Duration of 'HARDWARE HALS': 0.94s
+Duration of 'DUMP HALS': 1.03s
+section 1000 status 1
+section 1000 status 2
+section 1002 status 1
+section 1002 status 2
+section 1109 status 1
+section 1109 status 2
+section 1110 status 1
+section 1110 status 2
+section 1111 status 1
+section 1111 status 2
+section 1112 status 1
+section 1112 status 2
+section 1113 status 1
+section 1113 status 2
+section 1114 status 1
+section 1114 status 2
+section 1115 status 1
+section 1115 status 2
+section 2001 status 1
+section 2001 status 2
+section 2002 status 1
+section 2002 status 2
+section 2003 status 1
+Duration of 'CPU INFO': 2.87s
+section 2003 status 2
+section 2004 status 1
+section 2004 status 2
+section 2005 status 1
+Duration of 'PROCESSES AND THREADS': 1.90s
+ls: epdgcr: Permission denied
+ls: netstats: Permission denied
+ls: tcore: Permission denied
+ls: iwc: Permission denied
+ls: wmLog: Permission denied
+*** command 'ls -a -l -R /data/log/' failed: exit code 1
+AddAnrTraceDir(): dump_traces_file=/data/log/dumptrace_EExtVc, anr_traces_dir=/data/anr
+Dumping current ANR traces (/data/log/dumptrace_EExtVc) to the main bugreport entry
+section 2005 status 2
+section 2006 status 1
+section 2006 status 2
+section 2007 status 1
+section 2007 status 2
+done
+Duration of 'INCIDENT REPORT': 4.51s
+Duration of 'CHECKIN PROCSTATS': 0.64s
+Duration of 'DUMP CHECKINS': 1.80s
+Adjusting max progress from 5000 to 5502
+Adjusting max progress from 5502 to 6063
+Adjusting max progress from 6063 to 6679
+Adjusting max progress from 6679 to 7350
+Adjusting max progress from 7350 to 8087
+Adding dir /data/misc/nfc/logs (recursive: 1)
+Adding dir /data/misc/snapshotctl_log (recursive: 0)
+Adding dir /data/log/bt (recursive: 1)
+Can't find service: android.hardware.health.IHealth/default
+Duration of '/data/log/bt': 0.52s
+Duration of 'APP ACTIVITIES': 0.56s
+Duration of 'APP SERVICES PLATFORM': 1.07s
+Adjusting max progress from 8087 to 8950
+Duration of 'APP SERVICES NON-PLATFORM': 10.35s
+Duration of 'APP PROVIDERS PLATFORM': 3.00s
+Duration of 'DUMPSYS HIGH': 26.14s
+Duration of 'DUMPSYS HIGH': 26.15s
+Duration of 'APP PROVIDERS NON-PLATFORM': 7.08s
+Duration of 'APP PROVIDERS SEC_MEDIA': 1.52s
+*** command 'DUMPSYS NORMAL' timed out after 90012ms
+Duration of 'DUMPSYS NORMAL': 95.63s
+Duration of 'DUMPSYS NORMAL': 95.97s
+Duration of 'Wait for ': 60.55s
+Adding dir /linkerconfig (recursive: 1)
+Adding frozen processes from /sys/fs/cgroup
+Duration of 'DUMPSTATE': 96.61s
+Adjusting max progress from 8950 to 9867
+Duration of 'SYSTEM LOG AFTER DONE': 0.55s
+Duration of 'Total Dumpstate': 122.35s
+open(/data/user_de/0/com.android.shell/files/bugreports/dumpstate_board.txt): No such file or directory
+Failed to unlink file (/data/user_de/0/com.android.shell/files/bugreports/dumpstate_board.txt): No such file or directory
+Adding main entry (dumpstate-2026-06-15-15-05-55.txt) from /data/user_de/0/com.android.shell/files/bugreports/dumpstate-2026-06-15-15-05-55.tmp to .zip bugreport
+dumpstate id 4 finished around 2026/06/15 15:08:02 (127 s)
+Adding zip text entry main_entry.txt
+dumpstate_log.txt entry on zip file logged up to here

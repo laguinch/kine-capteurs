@@ -1,0 +1,276 @@
+Subject: Broadcast of Intent { act=com.samsung.android.mdx.windowslink.Tile.onUpdateTileState flg=0x10000010 cmp=com.microsoft.appmanager/com.samsung.android.sdk.mdx.windowslink.tileservice.WindowsLinkTileBroadcastReceiver }
+
+--- CriticalEventLog ---
+capacity: 20
+events <
+  timestamp_ms: 1781514691598
+  anr <
+    pid: 5831
+    process: "com.android.systemui"
+    process_class: 2
+    subject: "Broadcast of Intent { act=android.intent.action.SCREEN_OFF flg=0x50200010 (has extras) }"
+    uid: 10054
+  >
+>
+events <
+  timestamp_ms: 1781514718765
+  anr <
+    pid: 9111
+    process: "com.google.android.tts"
+    process_class: 2
+    subject: "executing service com.google.android.tts/com.google.android.apps.speech.tts.googletts.service.GoogleTtsService"
+    uid: 10234
+  >
+>
+timestamp_ms: 1781514727340
+window_ms: 300000
+
+libdebuggerd_client: failed to read status response from tombstoned: timeout reached?
+
+----- Waiting Channels: pid 12269 at 2026-06-15 11:12:07.354954528+0200 -----
+Cmd line: com.microsoft.appmanager
+
+sysTid=12269     SyS_epoll_wait
+sysTid=12279     do_sigtimedwait
+sysTid=12280     pipe_wait
+sysTid=12281     0
+sysTid=12282     0
+sysTid=12283     futex_wait_queue_me
+sysTid=12284     futex_wait_queue_me
+sysTid=12288     futex_wait_queue_me
+sysTid=12289     binder_ioctl_write_read
+sysTid=12290     binder_ioctl_write_read
+sysTid=12295     binder_ioctl_write_read
+sysTid=12360     futex_wait_queue_me
+sysTid=12395     futex_wait_queue_me
+sysTid=12427     futex_wait_queue_me
+sysTid=12428     futex_wait_queue_me
+sysTid=12436     futex_wait_queue_me
+sysTid=12437     futex_wait_queue_me
+sysTid=12448     futex_wait_queue_me
+sysTid=12550     futex_wait_queue_me
+sysTid=12591     f2fs_sync_fs
+sysTid=12670     futex_wait_queue_me
+sysTid=12671     futex_wait_queue_me
+sysTid=12678     futex_wait_queue_me
+sysTid=12691     futex_wait_queue_me
+sysTid=12692     futex_wait_queue_me
+sysTid=12693     futex_wait_queue_me
+sysTid=12695     futex_wait_queue_me
+sysTid=12696     futex_wait_queue_me
+sysTid=12703     futex_wait_queue_me
+sysTid=12704     futex_wait_queue_me
+sysTid=12705     futex_wait_queue_me
+sysTid=12706     futex_wait_queue_me
+sysTid=12711     futex_wait_queue_me
+sysTid=12712     futex_wait_queue_me
+sysTid=12713     futex_wait_queue_me
+sysTid=12714     futex_wait_queue_me
+sysTid=12715     futex_wait_queue_me
+sysTid=12716     futex_wait_queue_me
+sysTid=12717     futex_wait_queue_me
+sysTid=12718     futex_wait_queue_me
+sysTid=12719     futex_wait_queue_me
+sysTid=12723     futex_wait_queue_me
+sysTid=12728     wait_woken
+sysTid=12740     futex_wait_queue_me
+sysTid=12761     futex_wait_queue_me
+sysTid=12773     futex_wait_queue_me
+sysTid=12774     SyS_epoll_wait
+sysTid=12775     futex_wait_queue_me
+sysTid=12776     futex_wait_queue_me
+sysTid=12844     futex_wait_queue_me
+sysTid=12935     futex_wait_queue_me
+sysTid=12951     futex_wait_queue_me
+sysTid=12958     futex_wait_queue_me
+sysTid=12959     binder_ioctl_write_read
+sysTid=13012     futex_wait_queue_me
+sysTid=13015     futex_wait_queue_me
+sysTid=13022     SyS_epoll_wait
+sysTid=13068     futex_wait_queue_me
+sysTid=13069     futex_wait_queue_me
+sysTid=13072     futex_wait_queue_me
+sysTid=13074     futex_wait_queue_me
+sysTid=13075     futex_wait_queue_me
+sysTid=13077     futex_wait_queue_me
+sysTid=13085     futex_wait_queue_me
+sysTid=13087     futex_wait_queue_me
+sysTid=13099     futex_wait_queue_me
+sysTid=13117     futex_wait_queue_me
+sysTid=13120     futex_wait_queue_me
+sysTid=13121     futex_wait_queue_me
+sysTid=13122     futex_wait_queue_me
+sysTid=13123     futex_wait_queue_me
+sysTid=13127     futex_wait_queue_me
+sysTid=13135     futex_wait_queue_me
+sysTid=13136     futex_wait_queue_me
+sysTid=13160     futex_wait_queue_me
+sysTid=13162     futex_wait_queue_me
+sysTid=13163     futex_wait_queue_me
+sysTid=13172     futex_wait_queue_me
+sysTid=13194     0
+sysTid=13195     futex_wait_queue_me
+sysTid=13196     futex_wait_queue_me
+sysTid=13222     futex_wait_queue_me
+
+----- end 12269 -----
+
+libdebuggerd_client: failed to read status response from tombstoned: Try again
+
+----- Waiting Channels: pid 12269 at 2026-06-15 11:12:17.487707752+0200 -----
+Cmd line: com.microsoft.appmanager
+
+sysTid=12269     futex_wait_queue_me
+sysTid=12279     futex_wait_queue_me
+sysTid=12280     pipe_wait
+sysTid=12281     futex_wait_queue_me
+sysTid=12282     futex_wait_queue_me
+sysTid=12283     futex_wait_queue_me
+sysTid=12284     futex_wait_queue_me
+sysTid=12288     futex_wait_queue_me
+sysTid=12289     binder_ioctl_write_read
+sysTid=12290     binder_ioctl_write_read
+sysTid=12295     binder_ioctl_write_read
+sysTid=12360     futex_wait_queue_me
+sysTid=12395     futex_wait_queue_me
+sysTid=12427     futex_wait_queue_me
+sysTid=12428     futex_wait_queue_me
+sysTid=12436     futex_wait_queue_me
+sysTid=12437     futex_wait_queue_me
+sysTid=12448     futex_wait_queue_me
+sysTid=12591     f2fs_get_node_info
+sysTid=12670     futex_wait_queue_me
+sysTid=12671     futex_wait_queue_me
+sysTid=12678     futex_wait_queue_me
+sysTid=12691     futex_wait_queue_me
+sysTid=12692     futex_wait_queue_me
+sysTid=12693     futex_wait_queue_me
+sysTid=12695     futex_wait_queue_me
+sysTid=12696     futex_wait_queue_me
+sysTid=12703     futex_wait_queue_me
+sysTid=12704     futex_wait_queue_me
+sysTid=12705     futex_wait_queue_me
+sysTid=12706     futex_wait_queue_me
+sysTid=12711     futex_wait_queue_me
+sysTid=12712     futex_wait_queue_me
+sysTid=12713     futex_wait_queue_me
+sysTid=12714     futex_wait_queue_me
+sysTid=12715     futex_wait_queue_me
+sysTid=12716     futex_wait_queue_me
+sysTid=12717     futex_wait_queue_me
+sysTid=12718     futex_wait_queue_me
+sysTid=12719     futex_wait_queue_me
+sysTid=12723     futex_wait_queue_me
+sysTid=12728     wait_woken
+sysTid=12740     futex_wait_queue_me
+sysTid=12761     futex_wait_queue_me
+sysTid=12773     futex_wait_queue_me
+sysTid=12774     f2fs_sync_fs
+sysTid=12775     futex_wait_queue_me
+sysTid=12776     futex_wait_queue_me
+sysTid=12844     futex_wait_queue_me
+sysTid=12935     futex_wait_queue_me
+sysTid=12951     futex_wait_queue_me
+sysTid=12958     futex_wait_queue_me
+sysTid=12959     futex_wait_queue_me
+sysTid=13012     SyS_epoll_wait
+sysTid=13015     futex_wait_queue_me
+sysTid=13022     SyS_epoll_wait
+sysTid=13068     futex_wait_queue_me
+sysTid=13069     futex_wait_queue_me
+sysTid=13072     futex_wait_queue_me
+sysTid=13074     futex_wait_queue_me
+sysTid=13075     futex_wait_queue_me
+sysTid=13077     futex_wait_queue_me
+sysTid=13085     futex_wait_queue_me
+sysTid=13087     futex_wait_queue_me
+sysTid=13117     futex_wait_queue_me
+sysTid=13120     futex_wait_queue_me
+sysTid=13121     futex_wait_queue_me
+sysTid=13122     futex_wait_queue_me
+sysTid=13123     futex_wait_queue_me
+sysTid=13127     futex_wait_queue_me
+sysTid=13135     futex_wait_queue_me
+sysTid=13136     futex_wait_queue_me
+sysTid=13160     futex_wait_queue_me
+sysTid=13162     futex_wait_queue_me
+sysTid=13163     futex_wait_queue_me
+sysTid=13172     futex_wait_queue_me
+sysTid=13194     f2fs_sync_fs
+sysTid=13195     futex_wait_queue_me
+sysTid=13196     futex_wait_queue_me
+sysTid=13222     futex_wait_queue_me
+sysTid=13242     futex_wait_queue_me
+sysTid=13247     futex_wait_queue_me
+sysTid=13343     futex_wait_queue_me
+sysTid=13344     futex_wait_queue_me
+sysTid=13374     futex_wait_queue_me
+sysTid=13377     futex_wait_queue_me
+sysTid=13378     futex_wait_queue_me
+sysTid=13384     futex_wait_queue_me
+sysTid=13386     futex_wait_queue_me
+sysTid=13434     binder_ioctl_write_read
+sysTid=13440     poll_schedule_timeout
+sysTid=13458     futex_wait_queue_me
+sysTid=13482     futex_wait_queue_me
+sysTid=13535     futex_wait_queue_me
+sysTid=13536     futex_wait_queue_me
+sysTid=13537     futex_wait_queue_me
+sysTid=13538     binder_ioctl_write_read
+sysTid=13546     futex_wait_queue_me
+sysTid=13549     binder_ioctl_write_read
+sysTid=13582     futex_wait_queue_me
+sysTid=13585     futex_wait_queue_me
+sysTid=13587     futex_wait_queue_me
+sysTid=13588     binder_ioctl_write_read
+sysTid=13589     futex_wait_queue_me
+sysTid=13590     futex_wait_queue_me
+sysTid=13591     futex_wait_queue_me
+sysTid=13593     futex_wait_queue_me
+sysTid=13612     futex_wait_queue_me
+sysTid=13622     __fuse_request_send
+sysTid=13633     futex_wait_queue_me
+sysTid=13634     futex_wait_queue_me
+sysTid=13635     futex_wait_queue_me
+sysTid=13637     futex_wait_queue_me
+sysTid=13638     futex_wait_queue_me
+sysTid=13640     futex_wait_queue_me
+sysTid=13641     futex_wait_queue_me
+sysTid=13643     futex_wait_queue_me
+sysTid=13645     futex_wait_queue_me
+sysTid=13646     futex_wait_queue_me
+sysTid=13647     futex_wait_queue_me
+sysTid=13648     futex_wait_queue_me
+sysTid=13649     futex_wait_queue_me
+sysTid=13650     futex_wait_queue_me
+sysTid=13659     futex_wait_queue_me
+sysTid=13660     futex_wait_queue_me
+sysTid=13662     futex_wait_queue_me
+sysTid=13663     futex_wait_queue_me
+sysTid=13665     d_alloc_parallel
+sysTid=13666     binder_ioctl_write_read
+sysTid=13669     futex_wait_queue_me
+sysTid=13670     SyS_epoll_wait
+sysTid=13693     futex_wait_queue_me
+sysTid=13706     futex_wait_queue_me
+sysTid=13738     futex_wait_queue_me
+sysTid=13739     futex_wait_queue_me
+sysTid=13740     futex_wait_queue_me
+sysTid=13742     futex_wait_queue_me
+sysTid=13743     futex_wait_queue_me
+sysTid=13744     futex_wait_queue_me
+sysTid=13760     futex_wait_queue_me
+sysTid=13761     futex_wait_queue_me
+sysTid=13766     futex_wait_queue_me
+sysTid=13770     futex_wait_queue_me
+sysTid=13771     futex_wait_queue_me
+sysTid=13772     futex_wait_queue_me
+sysTid=13792     futex_wait_queue_me
+sysTid=13793     futex_wait_queue_me
+sysTid=13797     futex_wait_queue_me
+sysTid=13798     futex_wait_queue_me
+sysTid=13799     futex_wait_queue_me
+sysTid=13800     futex_wait_queue_me
+
+----- end 12269 -----
+

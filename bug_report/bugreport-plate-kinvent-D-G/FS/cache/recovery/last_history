@@ -1,0 +1,118 @@
++ [zh | 2020/03/21 23:25:21 | A515FXXU2ATB1]
+--data_resizing
+--delete_apn_changes
+RP | OFFSRC: - / ONSRC: - / RSTSTAT: -
+reboot_reason=UNKNOWN
+[S]    3.9G
+[E]  111.3G
+-
++ [DM | 2020/07/17 10:47:01 | A515FXXU2ATB1]
+--update_package=@/cache/recovery/block.map
+--locale=fr-FR
+--carry_out=open_fota
+--update_org_package=/data/fota/update.zip
+RP | OFFSRC: - / ONSRC: PWRON / RSTSTAT: SWRESET
+reboot_reason=Thread-8:14334 RecoverySystem installPackage: --update_package=@/cache/recovery/bloc
+[S]  111.3G
+[E]  111.3G
+-
++ [L[ | 2021/01/19 20:19:20 | A515FXXU3BTF4]
+--update_package=@/cache/recovery/block.map
+--locale=fr-FR
+--carry_out=open_fota
+--update_org_package=/data/fota/update.zip
+RP | OFFSRC: - / ONSRC: PWRON / RSTSTAT: SWRESET
+reboot_reason=Thread-8:25542 RecoverySystem installPackage: --update_package=@/cache/recovery/bloc
+[S]  111.3G
+[E]  111.3G
+-
++ [\u | 2022/01/27 12:49:23 | A515FXXU4CTJ1]
+--update_package=@/cache/recovery/block.map
+--locale=fr-FR
+--carry_out=open_fota
+--update_org_package=/data/fota/update.zip
+RP | OFFSRC: - / ONSRC: PWRON / RSTSTAT: SWRESET
+reboot_reason=Thread-8:18505 RecoverySystem installPackage: --update_package=@/cache/recovery/bloc
+[S]  111.3G
+[E]  111.3G
+-
++ [Ns | 2022/01/27 13:43:11 | A515FXXU4CUA1]
+--update_package=@/cache/recovery/block.map
+--locale=fr-FR
+--carry_out=open_fota
+--update_org_package=/data/fota/update.zip
+RP | OFFSRC: - / ONSRC: PWRON / RSTSTAT: SWRESET
+reboot_reason=Thread-15:30288 RecoverySystem installPackage: --update_package=@/cache/recovery/blo
+[S]  111.3G
+[E]  111.3G
+-
++ [Tt | 2022/01/28 23:06:22 | A515FXXU4DUB2]
+--update_package=@/cache/recovery/block.map
+--locale=fr-FR
+--carry_out=open_fota
+--update_org_package=/data/fota/update.zip
+RP | OFFSRC: - / ONSRC: PWRON / RSTSTAT: SWRESET
+reboot_reason=Thread-5:17196 RecoverySystem installPackage: --update_package=@/cache/recovery/bloc
++ [YF | 2022/02/15 01:01:09 | A515FXXU5EUJ4]
+--update_package=@/cache/recovery/block.map
+--locale=fr-FR
+--carry_out=open_fota
+--update_org_package=/data/fota/update.zip
+RP | OFFSRC: - / ONSRC: PWRON / RSTSTAT: SWRESET
+reboot_reason=Thread-6:28033 RecoverySystem installPackage: --update_package=@/cache/recovery/bloc
++ [pM | 2022/05/13 00:11:03 | A515FXXU5EUL3]
+--update_package=@/cache/recovery/block.map
+--locale=fr-FR
+--carry_out=open_fota
+--update_org_package=/data/fota/update.zip
+RP | OFFSRC: - / ONSRC: PWRON / RSTSTAT: SWRESET
+reboot_reason=Thread-5:31074 RecoverySystem installPackage: --update_package=@/cache/recovery/bloc
++ [sK | 2022/06/12 06:43:48 | A515FXXU5FVD2]
+--update_package=@/cache/recovery/block.map
+--locale=fr-FR
+--carry_out=open_fota
+--update_org_package=/data/fota/update.zip
+RP | OFFSRC: - / ONSRC: PWRON / RSTSTAT: SWRESET
+reboot_reason=UNKNOWN
++ [ii | 2022/09/20 00:09:15 | A515FXXU5FVE2]
+--update_package=@/cache/recovery/block.map
+--locale=fr-FR
+--carry_out=open_fota
+--update_org_package=/data/fota/update.zip
+RP | OFFSRC: - / ONSRC: JIGONB / RSTSTAT: SWRESET
+reboot_reason=UNKNOWN
++ [tn | 2022/10/19 06:01:09 | A515FXXU5FVG4]
+--update_package=@/cache/recovery/block.map
+--locale=fr-FR
+--carry_out=open_fota
+--update_org_package=/data/fota/update.zip
+RP | OFFSRC: - / ONSRC: JIGONB / RSTSTAT: SWRESET
+reboot_reason=UNKNOWN
++ [Vm | 2022/12/26 01:21:53 | A515FXXS5FVI2]
+--update_package=@/cache/recovery/block.map
+--locale=fr-FR
+--carry_out=open_fota
+--update_org_package=/data/fota/update.zip
+RP | OFFSRC: - / ONSRC: JIGONB / RSTSTAT: SWRESET
+reboot_reason=UNKNOWN
++ [nf | 2023/05/22 00:01:38 | A515FXXU5GVK6]
+--update_package=@/cache/recovery/block.map
+--locale=fr-FR
+--carry_out=open_fota
+--update_org_package=/data/fota/update.zip
+RP | OFFSRC: - / ONSRC: PWRON / RSTSTAT: SWRESET
+reboot_reason=UNKNOWN
++ [pG | 2023/07/02 01:17:18 | A515FXXU6HWC7]
+--update_package=@/cache/recovery/block.map
+--locale=fr-FR
+--carry_out=open_fota
+--update_org_package=/data/fota/update.zip
+RP | OFFSRC: - / ONSRC: PWRON / RSTSTAT: SWRESET
+reboot_reason=UNKNOWN
++ [GL | 2023/11/23 01:01:34 | A515FXXU7HWF1]
+--update_package=@/cache/recovery/block.map
+--locale=fr-FR
+--carry_out=open_fota
+--update_org_package=/data/fota/update.zip
+RP | OFFSRC: - / ONSRC: JIGONB / RSTSTAT: SWRESET
+reboot_reason=UNKNOWN

@@ -1,0 +1,1403 @@
+*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+Build fingerprint: 'samsung/a51nseea/a51:13/TP1A.220624.014/A515FXXU8HWI1:user/release-keys'
+Revision: '6'
+ABI: 'arm64'
+Processor: '6'
+Timestamp: 2025-01-02 13:27:39.781298152+0100
+Process uptime: 5s
+Cmdline: /data/app/~~UMi4L7cRFHODvoQ5X4Lk7g==/com.chess-bki1fQA4hjIJuY4p8Nnv8Q==/lib/arm64/libkt.so
+pid: 12051, tid: 12051, name: libkt.so  >>> /data/app/~~UMi4L7cRFHODvoQ5X4Lk7g==/com.chess-bki1fQA4hjIJuY4p8Nnv8Q==/lib/arm64/libkt.so <<<
+uid: 10393
+signal 6 (SIGABRT), code -1 (SI_QUEUE), fault addr --------
+Abort message: 'terminating with uncaught exception of type std::out_of_range: map::at:  key not found'
+    x0  0000000000000000  x1  0000000000002f13  x2  0000000000000006  x3  0000007ff2faef30
+    x4  736f646277641f73  x5  736f646277641f73  x6  736f646277641f73  x7  7f7f7f7f7f7f7f7f
+    x8  00000000000000f0  x9  0000007b4107db70  x10 0000000000000001  x11 0000007b410ef004
+    x12 5f666f5f74756f3a  x13 6d203a65676e6172  x14 0000007b4107da66  x15 000000000000000a
+    x16 0000007b41156a48  x17 0000007b41130f30  x18 0000007b53288000  x19 0000000000002f13
+    x20 0000000000002f13  x21 00000000ffffffff  x22 ffffff80ffffffc8  x23 0000007ff2faf180
+    x24 0000007ff2faf060  x25 0000007ff2faf0a0  x26 0000007a93818740  x27 0000007a93818758
+    x28 0000000000000001  x29 0000007ff2faefb0
+    lr  0000007b410e0bbc  sp  0000007ff2faef10  pc  0000007b410e0be8  pst 0000000000000000
+
+backtrace:
+      #00 pc 000000000008abe8  /apex/com.android.runtime/lib64/bionic/libc.so (abort+164) (BuildId: ae97b4676db8ce3f620ba6bf7932eba6)
+      #01 pc 00000000005c5e48  /data/app/~~UMi4L7cRFHODvoQ5X4Lk7g==/com.chess-bki1fQA4hjIJuY4p8Nnv8Q==/lib/arm64/libkt.so (BuildId: 1ca752a82b13a8aa0fa9192c7ab3cf99098de659)
+      #02 pc 00000000005c6018  /data/app/~~UMi4L7cRFHODvoQ5X4Lk7g==/com.chess-bki1fQA4hjIJuY4p8Nnv8Q==/lib/arm64/libkt.so (BuildId: 1ca752a82b13a8aa0fa9192c7ab3cf99098de659)
+      #03 pc 00000000005c5ed0  /data/app/~~UMi4L7cRFHODvoQ5X4Lk7g==/com.chess-bki1fQA4hjIJuY4p8Nnv8Q==/lib/arm64/libkt.so (BuildId: 1ca752a82b13a8aa0fa9192c7ab3cf99098de659)
+      #04 pc 00000000005c5e80  /data/app/~~UMi4L7cRFHODvoQ5X4Lk7g==/com.chess-bki1fQA4hjIJuY4p8Nnv8Q==/lib/arm64/libkt.so (BuildId: 1ca752a82b13a8aa0fa9192c7ab3cf99098de659)
+      #05 pc 00000000001f11e4  /data/app/~~UMi4L7cRFHODvoQ5X4Lk7g==/com.chess-bki1fQA4hjIJuY4p8Nnv8Q==/lib/arm64/libkt.so (BuildId: 1ca752a82b13a8aa0fa9192c7ab3cf99098de659)
+      #06 pc 00000000001f0b68  /data/app/~~UMi4L7cRFHODvoQ5X4Lk7g==/com.chess-bki1fQA4hjIJuY4p8Nnv8Q==/lib/arm64/libkt.so (BuildId: 1ca752a82b13a8aa0fa9192c7ab3cf99098de659)
+      #07 pc 0000000000083198  /apex/com.android.runtime/lib64/bionic/libc.so (__libc_init+96) (BuildId: ae97b4676db8ce3f620ba6bf7932eba6)
+
+memory near x3 ([stack]):
+    0000007ff2faef10 0000000000000000 0000000000000000  ................
+    0000007ff2faef20 0000000000000000 0000000000000000  ................
+    0000007ff2faef30 0000000000000000 00000000ffffffff  ................
+    0000007ff2faef40 0000289900002f13 0000000000000000  ./...(..........
+    0000007ff2faef50 0000000000000000 0000000000000000  ................
+    0000007ff2faef60 0000000000000000 0000000000000000  ................
+    0000007ff2faef70 0000000000000000 0000000000000000  ................
+    0000007ff2faef80 0000000000000000 0000000000000000  ................
+    0000007ff2faef90 0000000000000000 0000000000000000  ................
+    0000007ff2faefa0 0000000000000000 0000000000000000  ................
+    0000007ff2faefb0 0000007ff2faf130 0000005ce5145e4c  0.......L^..\...
+    0000007ff2faefc0 0000007ff2faf0c8 ffffffffffffffdf  ................
+    0000007ff2faefd0 0000007b41159d88 0000005ce4c76b09  ...A{....k..\...
+    0000007ff2faefe0 0000000000000000 0000000000000000  ................
+    0000007ff2faeff0 650a3a6b63617473 6e6f697470656378  stack:.exception
+    0000007ff2faf000 6f69747065637865 756f68746977206e  exception withou
+
+memory near x9 (/apex/com.android.runtime/lib64/bionic/libc.so):
+    0000007b4107db50 5f79747265706f72 6c61635f64616572  roperty_read_cal
+    0000007b4107db60 2029286b6361626c 0064616572206f74  lback() to read.
+    0000007b4107db70 0000000010000000 0000000000000000  ................
+    0000007b4107db80 0000000000000000 0000000000000000  ................
+    0000007b4107db90 0000000000000000 0000000000000001  ................
+    0000007b4107dba0 0000000000000000 0000000000000000  ................
+    0000007b4107dbb0 100d000c01414d4c 2825221f1c191613  LMA.........."%(
+    0000007b4107dbc0 00000010000000f8 0000008400000078  ........x.......
+    0000007b4107dbd0 000000c000000090 0000009c000000cc  ................
+    0000007b4107dbe0 000000a8000000d8 000000b4000000e4  ................
+    0000007b4107dbf0 00000010000000c4 0000005000000044  ........D...P...
+    0000007b4107dc00 0000008c0000005c 0000006800000098  \...........h...
+    0000007b4107dc10 00000074000000a4 00000080000000b0  ....t...........
+    0000007b4107dc20 00000010000002b0 0000023c00000230  ........0...<...
+    0000007b4107dc30 0000025400000248 0000026c00000260  H...T...`...l...
+    0000007b4107dc40 0000028400000278 0000029c00000290  x...............
+
+memory near x11 (/apex/com.android.runtime/lib64/bionic/libc.so):
+    0000007b410eefe0 14000005f9000009 528002c994017da2  .........}.....R
+    0000007b410eeff0 b900000912800008 a8c17bfd2a0803e0  ...........*.{..
+    0000007b410ef000 a9bf7bfdd65f03c0 b4000180910003fd  .._..{..........
+    0000007b410ef010 3101051f51010428 5100042854000129  (..Q...1)..T(..Q
+    0000007b410ef020 5280002af9400009 aa0801299ac82148  ..@.*..RH!..)...
+    0000007b410ef030 f90000092a1f03e8 94017d8d14000005  ...*.........}..
+    0000007b410ef040 12800008528002c9 2a0803e0b9000009  ...R...........*
+    0000007b410ef050 d65f03c0a8c17bfd a9027bfdd10103ff  .{...._......{..
+    0000007b410ef060 f9001bf3910083fd 910043e1d53bd053  ........S.;..C..
+    0000007b410ef070 910023e2f9401668 a900fffff81f83a8  h.@..#..........
+    0000007b410ef080 2a1f03e0b90013e0 b9400be894017f0a  .......*......@.
+    0000007b410ef090 f94016693100041f 5a9f1100f85f83aa  ...1i.@..._....Z
+    0000007b410ef0a0 540000a1eb0a013f f9401bf3a9427bfd  ?......T.{B...@.
+    0000007b410ef0b0 d65f03c0910103ff a9bf7bfd94017d66  ......_.f}...{..
+    0000007b410ef0c0 b4000080910003fd f900001f2a1f03e8  ...........*....
+    0000007b410ef0d0 94017d6714000005 12800008528002c9  ....g}.....R....
+
+memory near x14 (/apex/com.android.runtime/lib64/bionic/libc.so):
+    0000007b4107da40 0002000600060000 0006000600060006  ................
+    0000007b4107da50 0000000600060006 150d150400040006  ................
+    0000007b4107da60 2e00001515001515 2e2e2e2e2e2e2e2e  ................
+    0000007b4107da70 00232e2e0a2e2e14 005301da004a0000  ......#...J...S.
+    0000007b4107da80 005c01da01da01da 15150c151515150c  ......\.........
+    0000007b4107da90 1515151500151515 117225db15151515  .............%r.
+    0000007b4107daa0 511109134e4a4872 0000026900021553  rHJN...QS...i...
+    0000007b4107dab0 0d02070202000000 07695d0707005b59  ........Y[...]i.
+    0000007b4107dac0 690719190b1e0007 0f20050713696969  .......iiii... .
+    0000007b4107dad0 0200090961170909 0202000002020202  ...a............
+    0000007b4107dae0 65170b0b02020002 0202020209006715  .......e.g......
+    0000007b4107daf0 6969696969020000 5f221c6969696969  ...iiiiiiiiii."_
+    0000007b4107db00 0000000000000263 0202020d02020202  c...............
+    0000007b4107db10 020f000002020707 0000000200000002  ................
+    0000007b4107db20 0000000000000000 0505050500000707  ................
+    0000007b4107db30 0505050505050505 73754d7c45050505  ...........E|Mus
+
+memory near x16 (/apex/com.android.runtime/lib64/bionic/libc.so):
+    0000007b41156a20 0000007b41145114 0000007b411483a4  .Q.A{......A{...
+    0000007b41156a30 0000007b411456e8 0000007b410f3c60  .V.A{...`<.A{...
+    0000007b41156a40 0000007b41147348 0000007b41130f30  Hs.A{...0..A{...
+    0000007b41156a50 0000007b41146d98 0000007b410ee8e4  .m.A{......A{...
+    0000007b41156a60 0000007b4114627c 0000007b411462dc  |b.A{....b.A{...
+    0000007b41156a70 0000007b410e641c 0000007b41148240  .d.A{...@..A{...
+    0000007b41156a80 0000007b410f0d40 0000007b410da240  @..A{...@..A{...
+    0000007b41156a90 0000007b410d9b80 0000007b41132350  ...A{...P#.A{...
+    0000007b41156aa0 0000007b411464d8 0000007b410dc7a0  .d.A{......A{...
+    0000007b41156ab0 0000007b410dd0c0 0000007b410f09e0  ...A{......A{...
+    0000007b41156ac0 0000007b41120218 0000007b411463a8  ...A{....c.A{...
+    0000007b41156ad0 0000007b411463f0 0000007b411463b8  .c.A{....c.A{...
+    0000007b41156ae0 0000007b410dc090 0000007b41131b30  ...A{...0..A{...
+    0000007b41156af0 0000007b41131510 0000007b41131590  ...A{......A{...
+    0000007b41156b00 0000007b410dbe60 0000007b410ec09c  `..A{......A{...
+    0000007b41156b10 0000007b41146188 0000007b411408fc  .a.A{......A{...
+
+memory near x17 (/apex/com.android.runtime/lib64/bionic/libc.so):
+    0000007b41130f10 d4000001d2801ba8 da809400b140041f  ..........@.....
+    0000007b41130f20 d65f03c054fffe28 d503201fd503201f  (..T.._.. ... ..
+    0000007b41130f30 d4000001d28015c8 da809400b140041f  ..........@.....
+    0000007b41130f40 d65f03c054fffd28 d503201fd503201f  (..T.._.. ... ..
+    0000007b41130f50 d4000001d2801608 da809400b140041f  ..........@.....
+    0000007b41130f60 d65f03c054fffc28 d503201fd503201f  (..T.._.. ... ..
+    0000007b41130f70 d4000001d28015e8 da809400b140041f  ..........@.....
+    0000007b41130f80 d65f03c054fffb28 d503201fd503201f  (..T.._.. ... ..
+    0000007b41130f90 d4000001d2801628 da809400b140041f  (.........@.....
+    0000007b41130fa0 d65f03c054fffa28 d503201fd503201f  (..T.._.. ... ..
+    0000007b41130fb0 d4000001d2801288 da809400b140041f  ..........@.....
+    0000007b41130fc0 d65f03c054fff928 d503201fd503201f  (..T.._.. ... ..
+    0000007b41130fd0 d4000001d28012c8 da809400b140041f  ..........@.....
+    0000007b41130fe0 d65f03c054fff828 d503201fd503201f  (..T.._.. ... ..
+    0000007b41130ff0 d4000001d2801aa8 da809400b140041f  ..........@.....
+    0000007b41131000 d65f03c054fff728 d503201fd503201f  (..T.._.. ... ..
+
+memory near x18:
+    0000007b53288000 0000000000000000 0000000000000000  ................
+    0000007b53288010 0000000000000000 0000000000000000  ................
+    0000007b53288020 0000000000000000 0000000000000000  ................
+    0000007b53288030 0000000000000000 0000000000000000  ................
+    0000007b53288040 0000000000000000 0000000000000000  ................
+    0000007b53288050 0000000000000000 0000000000000000  ................
+    0000007b53288060 0000000000000000 0000000000000000  ................
+    0000007b53288070 0000000000000000 0000000000000000  ................
+    0000007b53288080 0000000000000000 0000000000000000  ................
+    0000007b53288090 0000000000000000 0000000000000000  ................
+    0000007b532880a0 0000000000000000 0000000000000000  ................
+    0000007b532880b0 0000000000000000 0000000000000000  ................
+    0000007b532880c0 0000000000000000 0000000000000000  ................
+    0000007b532880d0 0000000000000000 0000000000000000  ................
+    0000007b532880e0 0000000000000000 0000000000000000  ................
+    0000007b532880f0 0000000000000000 0000000000000000  ................
+
+memory near x23 ([stack]):
+    0000007ff2faf160 0000007a965ddcc0 0000007a9b7f6380  ..].z....c..z...
+    0000007ff2faf170 0000005ce4c7a487 0000007ff2faf18c  ....\...........
+    0000007ff2faf180 0000000000000012 3a64747300000000  ............std:
+    0000007ff2faf190 5f666f5f74756f3a 00000065676e6172  :out_of_range...
+    0000007ff2faf1a0 0000000000000000 0000000000000000  ................
+    0000007ff2faf1b0 0000000000000000 0000000000000000  ................
+    0000007ff2faf1c0 0000007ff2faf5f0 b1b03c0b88e61f1e  .............<..
+    0000007ff2faf1d0 0000007ff2faf210 0000007b4109e008  ...........A{...
+    0000007ff2faf1e0 0000007a9bcd8980 000000000000002f  ....z.../.......
+    0000007ff2faf1f0 0000000000000000 0000000000000000  ................
+    0000007ff2faf200 000000000000002f b1b03c0b88e61f1e  /............<..
+    0000007ff2faf210 0000007ff2faf250 0000005ce51426d8  P........&..\...
+    0000007ff2faf220 0000007a9bcd8980 000000000000002f  ....z.../.......
+    0000007ff2faf230 0000000000000000 0000000000000000  ................
+    0000007ff2faf240 000000000000002f 0000007ff2faf4c0  /...............
+    0000007ff2faf250 0000007ff2faf2b0 0000005ce5142d18  .........-..\...
+
+memory near x24 ([stack]):
+    0000007ff2faf040 0000000000000010 0000000000000010  ................
+    0000007ff2faf050 3faeff7dfa00e27e 0000000000000000  ~...}..?........
+    0000007ff2faf060 0000007b529ee010 0000005ce4c7a487  ...R{.......\...
+    0000007ff2faf070 0000007ff2faf18c 0000007a9b8692a8  ............z...
+    0000007ff2faf080 0000005ce515ae58 0000000000000000  X...\...........
+    0000007ff2faf090 725f666f5f74756f 65676e61725f666f  out_of_rof_range
+    0000007ff2faf0a0 0000007ff2faf180 0000007ff2faf0a0  ................
+    0000007ff2faf0b0 0000007ff2faf060 ffffff80ffffffc8  `...............
+    0000007ff2faf0c0 0000010100000000 0000007ff2faf180  ................
+    0000007ff2faf0d0 0000007ff2faf0a0 0000007ff2faf060  ........`.......
+    0000007ff2faf0e0 ffffff80ffffffc8 0000007a9b710580  ..........q.z...
+    0000007ff2faf0f0 0000007ff2faf180 0000007ff2faf0a0  ................
+    0000007ff2faf100 0000007ff2faf060 ffffff80ffffffc8  `...............
+    0000007ff2faf110 0000007ff2faf180 0000007ff2faf0a0  ................
+    0000007ff2faf120 0000007ff2faf060 ffffff80ffffffc8  `...............
+    0000007ff2faf130 0000007ff2faf590 0000005ce514601c  .........`..\...
+
+memory near x25 ([stack]):
+    0000007ff2faf080 0000005ce515ae58 0000000000000000  X...\...........
+    0000007ff2faf090 725f666f5f74756f 65676e61725f666f  out_of_rof_range
+    0000007ff2faf0a0 0000007ff2faf180 0000007ff2faf0a0  ................
+    0000007ff2faf0b0 0000007ff2faf060 ffffff80ffffffc8  `...............
+    0000007ff2faf0c0 0000010100000000 0000007ff2faf180  ................
+    0000007ff2faf0d0 0000007ff2faf0a0 0000007ff2faf060  ........`.......
+    0000007ff2faf0e0 ffffff80ffffffc8 0000007a9b710580  ..........q.z...
+    0000007ff2faf0f0 0000007ff2faf180 0000007ff2faf0a0  ................
+    0000007ff2faf100 0000007ff2faf060 ffffff80ffffffc8  `...............
+    0000007ff2faf110 0000007ff2faf180 0000007ff2faf0a0  ................
+    0000007ff2faf120 0000007ff2faf060 ffffff80ffffffc8  `...............
+    0000007ff2faf130 0000007ff2faf590 0000005ce514601c  .........`..\...
+    0000007ff2faf140 0000000000000001 0000005ce4c78a60  ........`...\...
+    0000007ff2faf150 0000007ff2faf638 0000005ce4c51b46  8.......F...\...
+    0000007ff2faf160 0000007a965ddcc0 0000007a9b7f6380  ..].z....c..z...
+    0000007ff2faf170 0000005ce4c7a487 0000007ff2faf18c  ....\...........
+
+memory near x26 ([anon:libc_malloc]):
+    0000007a93818720 0000000000656404 0000000000000000  .de.............
+    0000007a93818730 0000000000000000 0000000000312030  ........0 1.....
+    0000007a93818740 726e626b71626e72 707070707070702f  rnbqkbnr/ppppppp
+    0000007a93818750 2f382f382f382f70 5050505050502f38  p/8/8/8/8/PPPPPP
+    0000007a93818760 4b51424e522f5050 514b207720524e42  PP/RNBQKBNR w KQ
+    0000007a93818770 312030202d20716b 0000007b52692200  kq - 0 1."iR{...
+    0000007a93818780 0000007a965ddc48 0000007a938187c0  H.].z.......z...
+    0000007a93818790 0000007a9380a0a0 0000000000000031  ....z...1.......
+    0000007a938187a0 000000000000002e 0000007a9380b5d0  ............z...
+    0000007a938187b0 0000000000000000 0000000000000000  ................
+    0000007a938187c0 0000007a93818780 0000007a965ddc48  ....z...H.].z...
+    0000007a938187d0 0000007a9380a008 6777656e69637514  ....z....ucinewg
+    0000007a938187e0 0000000000656d61 0000000000000000  ame.............
+    0000007a938187f0 0000000000000000 0000000000000000  ................
+    0000007a93818800 0000000000000000 0000000000000000  ................
+    0000007a93818810 0000000000000000 0000000000000000  ................
+
+memory near x27 ([anon:libc_malloc]):
+    0000007a93818730 0000000000000000 0000000000312030  ........0 1.....
+    0000007a93818740 726e626b71626e72 707070707070702f  rnbqkbnr/ppppppp
+    0000007a93818750 2f382f382f382f70 5050505050502f38  p/8/8/8/8/PPPPPP
+    0000007a93818760 4b51424e522f5050 514b207720524e42  PP/RNBQKBNR w KQ
+    0000007a93818770 312030202d20716b 0000007b52692200  kq - 0 1."iR{...
+    0000007a93818780 0000007a965ddc48 0000007a938187c0  H.].z.......z...
+    0000007a93818790 0000007a9380a0a0 0000000000000031  ....z...1.......
+    0000007a938187a0 000000000000002e 0000007a9380b5d0  ............z...
+    0000007a938187b0 0000000000000000 0000000000000000  ................
+    0000007a938187c0 0000007a93818780 0000007a965ddc48  ....z...H.].z...
+    0000007a938187d0 0000007a9380a008 6777656e69637514  ....z....ucinewg
+    0000007a938187e0 0000000000656d61 0000000000000000  ame.............
+    0000007a938187f0 0000000000000000 0000000000000000  ................
+    0000007a93818800 0000000000000000 0000000000000000  ................
+    0000007a93818810 0000000000000000 0000000000000000  ................
+    0000007a93818820 0000000000000000 0000000000000000  ................
+
+memory near x29 ([stack]):
+    0000007ff2faef90 0000000000000000 0000000000000000  ................
+    0000007ff2faefa0 0000000000000000 0000000000000000  ................
+    0000007ff2faefb0 0000007ff2faf130 0000005ce5145e4c  0.......L^..\...
+    0000007ff2faefc0 0000007ff2faf0c8 ffffffffffffffdf  ................
+    0000007ff2faefd0 0000007b41159d88 0000005ce4c76b09  ...A{....k..\...
+    0000007ff2faefe0 0000000000000000 0000000000000000  ................
+    0000007ff2faeff0 650a3a6b63617473 6e6f697470656378  stack:.exception
+    0000007ff2faf000 6f69747065637865 756f68746977206e  exception withou
+    0000007ff2faf010 0000000700000002 0000000000000000  ................
+    0000007ff2faf020 0000000300000000 0000000000000000  ................
+    0000007ff2faf030 4010040140100401 4010040140100401  ...@...@...@...@
+    0000007ff2faf040 0000000000000010 0000000000000010  ................
+    0000007ff2faf050 3faeff7dfa00e27e 0000000000000000  ~...}..?........
+    0000007ff2faf060 0000007b529ee010 0000005ce4c7a487  ...R{.......\...
+    0000007ff2faf070 0000007ff2faf18c 0000007a9b8692a8  ............z...
+    0000007ff2faf080 0000005ce515ae58 0000000000000000  X...\...........
+
+memory near lr (/apex/com.android.runtime/lib64/bionic/libc.so):
+    0000007b410e0b90 6f00e4009401b7a4 aa0003f412800015  .......o........
+    0000007b410e0ba0 ad0403e0ad0103e0 ad0203e0ad0303e0  ................
+    0000007b410e0bb0 b90033f3b9002bf5 b0fffce99401b766  .+...3..f.......
+    0000007b410e0bc0 912dc12993407e68 b90037e0f9001fff  h~@.).-......7..
+    0000007b410e0bd0 93407e81aa0803e0 528000c2910083e3  .....~@........R
+    0000007b410e0be0 d400000152801e08 3dc005213dc00120  ...R.... ..=!..=
+    0000007b410e0bf0 528000c0910003e1 ad0007e0aa1f03e2  .......R........
+    0000007b410e0c00 910063a19401b898 aa1f03e252800040  .....c..@..R....
+    0000007b410e0c10 528015809401b890 aa0003f39401b782  .......R........
+    0000007b410e0c20 9401b77f52801640 aa0003f46f00e400  @..R.......o....
+    0000007b410e0c30 ad0403e0ad0103e0 ad0203e0ad0303e0  ................
+    0000007b410e0c40 b90033f3b9002bf5 93407e689401b742  .+...3..B...h~@.
+    0000007b410e0c50 b90037e0f9001fff 93407e81aa0803e0  .....7.......~@.
+    0000007b410e0c60 528000c2910083e3 d400000152801e08  .......R...R....
+    0000007b410e0c70 9401b87f52800fe0 1401b8512a1f03e3  ...R.......*Q...
+    0000007b410e0c80 2a0103e2aa0003e8 aa0803e112800c60  .......*`.......
+
+memory near sp ([stack]):
+    0000007ff2faeef0 ffffff80ffffffc8 0000007ff2faf0c8  ................
+    0000007ff2faef00 0000007b41159d88 0000005ce4c76b09  ...A{....k..\...
+    0000007ff2faef10 0000000000000000 0000000000000000  ................
+    0000007ff2faef20 0000000000000000 0000000000000000  ................
+    0000007ff2faef30 0000000000000000 00000000ffffffff  ................
+    0000007ff2faef40 0000289900002f13 0000000000000000  ./...(..........
+    0000007ff2faef50 0000000000000000 0000000000000000  ................
+    0000007ff2faef60 0000000000000000 0000000000000000  ................
+    0000007ff2faef70 0000000000000000 0000000000000000  ................
+    0000007ff2faef80 0000000000000000 0000000000000000  ................
+    0000007ff2faef90 0000000000000000 0000000000000000  ................
+    0000007ff2faefa0 0000000000000000 0000000000000000  ................
+    0000007ff2faefb0 0000007ff2faf130 0000005ce5145e4c  0.......L^..\...
+    0000007ff2faefc0 0000007ff2faf0c8 ffffffffffffffdf  ................
+    0000007ff2faefd0 0000007b41159d88 0000005ce4c76b09  ...A{....k..\...
+    0000007ff2faefe0 0000000000000000 0000000000000000  ................
+
+memory near pc (/apex/com.android.runtime/lib64/bionic/libc.so):
+    0000007b410e0bc0 912dc12993407e68 b90037e0f9001fff  h~@.).-......7..
+    0000007b410e0bd0 93407e81aa0803e0 528000c2910083e3  .....~@........R
+    0000007b410e0be0 d400000152801e08 3dc005213dc00120  ...R.... ..=!..=
+    0000007b410e0bf0 528000c0910003e1 ad0007e0aa1f03e2  .......R........
+    0000007b410e0c00 910063a19401b898 aa1f03e252800040  .....c..@..R....
+    0000007b410e0c10 528015809401b890 aa0003f39401b782  .......R........
+    0000007b410e0c20 9401b77f52801640 aa0003f46f00e400  @..R.......o....
+    0000007b410e0c30 ad0403e0ad0103e0 ad0203e0ad0303e0  ................
+    0000007b410e0c40 b90033f3b9002bf5 93407e689401b742  .+...3..B...h~@.
+    0000007b410e0c50 b90037e0f9001fff 93407e81aa0803e0  .....7.......~@.
+    0000007b410e0c60 528000c2910083e3 d400000152801e08  .......R...R....
+    0000007b410e0c70 9401b87f52800fe0 1401b8512a1f03e3  ...R.......*Q...
+    0000007b410e0c80 2a0103e2aa0003e8 aa0803e112800c60  .......*`.......
+    0000007b410e0c90 1401b87b2a1f03e3 a9017bfdd100c3ff  ...*{........{..
+    0000007b410e0ca0 f90013f3910043fd 910003e1d53bd053  .C......S.;.....
+    0000007b410e0cb0 f90007e8f9401668 9401b875b90003ff  h.@.........u...
+
+memory map (1025 entries):
+    0000005c'e4b80000-0000005c'e519dfff r-x         0    61e000  /data/app/~~UMi4L7cRFHODvoQ5X4Lk7g==/com.chess-bki1fQA4hjIJuY4p8Nnv8Q==/lib/arm64/libkt.so (BuildId: 1ca752a82b13a8aa0fa9192c7ab3cf99098de659)
+    0000005c'e519e000-0000005c'e51d2fff r--    61d000     35000  /data/app/~~UMi4L7cRFHODvoQ5X4Lk7g==/com.chess-bki1fQA4hjIJuY4p8Nnv8Q==/lib/arm64/libkt.so (BuildId: 1ca752a82b13a8aa0fa9192c7ab3cf99098de659)
+    0000005c'e51d3000-0000005c'e5686fff rw-    651000    4b4000  /data/app/~~UMi4L7cRFHODvoQ5X4Lk7g==/com.chess-bki1fQA4hjIJuY4p8Nnv8Q==/lib/arm64/libkt.so (BuildId: 1ca752a82b13a8aa0fa9192c7ab3cf99098de659)
+    0000005c'e5687000-0000005c'e5b7cfff rw-         0    4f6000  [anon:.bss]
+    0000007a'93800000-0000007a'93bfffff rw-         0    400000  [anon:libc_malloc]
+    0000007a'93c00000-0000007a'93cb5fff ---         0     b6000
+    0000007a'93cb6000-0000007a'93cb7fff rw-         0      2000
+    0000007a'93cb8000-0000007a'94bfffff ---         0    f48000
+    0000007a'94c00000-0000007a'9d9fffff rw-         0   8e00000  [anon:libc_malloc]
+    0000007a'9db94000-0000007a'9de7afff ---         0    2e7000  [anon:cfi shadow]
+    0000007a'9de7b000-0000007a'9de7bfff r--         0      1000  [anon:cfi shadow]
+    0000007a'9de7c000-0000007a'9df6bfff ---         0     f0000  [anon:cfi shadow]
+    0000007a'9df6c000-0000007a'9df6cfff r--         0      1000  [anon:cfi shadow]
+    0000007a'9df6d000-0000007a'9df6dfff r--         0      1000  [anon:cfi shadow]
+    0000007a'9df6e000-0000007a'9df6efff r--         0      1000  [anon:cfi shadow]
+    0000007a'9df6f000-0000007b'1db93fff ---         0  7fc25000  [anon:cfi shadow]
+    0000007b'1db94000-0000007b'1db95fff r--         0      2000  /system/lib64/libfmq.so (BuildId: c7fe6770cb67fcb47751fa68168d0e53)
+    0000007b'1db96000-0000007b'1db96fff r-x      2000      1000  /system/lib64/libfmq.so (BuildId: c7fe6770cb67fcb47751fa68168d0e53)
+    0000007b'1db97000-0000007b'1db97fff r--      3000      1000  /system/lib64/libfmq.so (BuildId: c7fe6770cb67fcb47751fa68168d0e53)
+    0000007b'1db98000-0000007b'1db98fff rw-      3000      1000  /system/lib64/libfmq.so (BuildId: c7fe6770cb67fcb47751fa68168d0e53)
+    0000007b'1dbc8000-0000007b'1dbccfff r--         0      5000  /system/lib64/vendor.samsung.hardware.hyper-V2-cpp.so (BuildId: ac744a9c9cc983b51d51c576a9a0ca10)
+    0000007b'1dbcd000-0000007b'1dbcffff r-x      5000      3000  /system/lib64/vendor.samsung.hardware.hyper-V2-cpp.so (BuildId: ac744a9c9cc983b51d51c576a9a0ca10)
+    0000007b'1dbd0000-0000007b'1dbd1fff r--      8000      2000  /system/lib64/vendor.samsung.hardware.hyper-V2-cpp.so (BuildId: ac744a9c9cc983b51d51c576a9a0ca10)
+    0000007b'1dbd2000-0000007b'1dbd2fff rw-      9000      1000  /system/lib64/vendor.samsung.hardware.hyper-V2-cpp.so (BuildId: ac744a9c9cc983b51d51c576a9a0ca10)
+    0000007b'1dc14000-0000007b'1dc1cfff r--         0      9000  /system/lib64/libimg_utils.so (BuildId: 122345f55b8007c938002e6778c7874d)
+    0000007b'1dc1d000-0000007b'1dc2dfff r-x      9000     11000  /system/lib64/libimg_utils.so (BuildId: 122345f55b8007c938002e6778c7874d)
+    0000007b'1dc2e000-0000007b'1dc2ffff r--     1a000      2000  /system/lib64/libimg_utils.so (BuildId: 122345f55b8007c938002e6778c7874d)
+    0000007b'1dc30000-0000007b'1dc30fff rw-     1b000      1000  /system/lib64/libimg_utils.so (BuildId: 122345f55b8007c938002e6778c7874d)
+    0000007b'1dc31000-0000007b'1dc31fff rw-         0      1000  [anon:.bss]
+    0000007b'1dc4d000-0000007b'1dc53fff r--         0      7000  /system/lib64/libgraphicsenv.so (BuildId: 69f9c1db75ac0667f79ece387fb0d37e)
+    0000007b'1dc54000-0000007b'1dc57fff r-x      7000      4000  /system/lib64/libgraphicsenv.so (BuildId: 69f9c1db75ac0667f79ece387fb0d37e)
+    0000007b'1dc58000-0000007b'1dc59fff r--      b000      2000  /system/lib64/libgraphicsenv.so (BuildId: 69f9c1db75ac0667f79ece387fb0d37e)
+    0000007b'1dc5a000-0000007b'1dc5afff rw-      c000      1000  /system/lib64/libgraphicsenv.so (BuildId: 69f9c1db75ac0667f79ece387fb0d37e)
+    0000007b'1dc8d000-0000007b'1dc99fff r--         0      d000  /system/lib64/libmedia_helper.so (BuildId: 2b361f0ab84d9f1b2c02a448660f64f4)
+    0000007b'1dc9a000-0000007b'1dca9fff r-x      d000     10000  /system/lib64/libmedia_helper.so (BuildId: 2b361f0ab84d9f1b2c02a448660f64f4)
+    0000007b'1dcaa000-0000007b'1dcaafff r--     1d000      1000  /system/lib64/libmedia_helper.so (BuildId: 2b361f0ab84d9f1b2c02a448660f64f4)
+    0000007b'1dcc2000-0000007b'1dcd3fff r--         0     12000  /system/lib64/libbase.so (BuildId: 5c556b163b3d64d14d8662d93a6f4cc7)
+    0000007b'1dcd4000-0000007b'1dcfcfff r-x     12000     29000  /system/lib64/libbase.so (BuildId: 5c556b163b3d64d14d8662d93a6f4cc7)
+    0000007b'1dcfd000-0000007b'1dcfdfff r--     3b000      1000  /system/lib64/libbase.so (BuildId: 5c556b163b3d64d14d8662d93a6f4cc7)
+    0000007b'1dcfe000-0000007b'1dcfefff rw-     3b000      1000  /system/lib64/libbase.so (BuildId: 5c556b163b3d64d14d8662d93a6f4cc7)
+    0000007b'1dd0b000-0000007b'1dd0cfff r--         0      2000  /system/lib64/android.hidl.token@1.0-utils.so (BuildId: 5d37ebde055c12e593e9aeee6d99bbf2)
+    0000007b'1dd0d000-0000007b'1dd0dfff r-x      2000      1000  /system/lib64/android.hidl.token@1.0-utils.so (BuildId: 5d37ebde055c12e593e9aeee6d99bbf2)
+    0000007b'1dd0e000-0000007b'1dd0efff r--      3000      1000  /system/lib64/android.hidl.token@1.0-utils.so (BuildId: 5d37ebde055c12e593e9aeee6d99bbf2)
+    0000007b'1dd0f000-0000007b'1dd0ffff rw-      3000      1000  /system/lib64/android.hidl.token@1.0-utils.so (BuildId: 5d37ebde055c12e593e9aeee6d99bbf2)
+    0000007b'1dd5f000-0000007b'1dd68fff r--         0      a000  /system/lib64/android.hardware.graphics.allocator@2.0.so (BuildId: 3f05a0fd7918043933c44842a9cdd096)
+    0000007b'1dd69000-0000007b'1dd6ffff r-x      a000      7000  /system/lib64/android.hardware.graphics.allocator@2.0.so (BuildId: 3f05a0fd7918043933c44842a9cdd096)
+    0000007b'1dd70000-0000007b'1dd71fff r--     11000      2000  /system/lib64/android.hardware.graphics.allocator@2.0.so (BuildId: 3f05a0fd7918043933c44842a9cdd096)
+    0000007b'1dd72000-0000007b'1dd72fff rw-     12000      1000  /system/lib64/android.hardware.graphics.allocator@2.0.so (BuildId: 3f05a0fd7918043933c44842a9cdd096)
+    0000007b'1dd87000-0000007b'1dd87fff r--         0      1000  /system/lib64/libhidlallocatorutils.so (BuildId: 1ad224e215a7100c48716331f0bce7c0)
+    0000007b'1dd88000-0000007b'1dd88fff r-x      1000      1000  /system/lib64/libhidlallocatorutils.so (BuildId: 1ad224e215a7100c48716331f0bce7c0)
+    0000007b'1dd89000-0000007b'1dd89fff r--      2000      1000  /system/lib64/libhidlallocatorutils.so (BuildId: 1ad224e215a7100c48716331f0bce7c0)
+    0000007b'1ddc5000-0000007b'1ddc6fff r--         0      2000  /system/lib64/android.hardware.common-V2-ndk.so (BuildId: b300f14bfbb08809ff97b2672d4dddf7)
+    0000007b'1ddc7000-0000007b'1ddc7fff r-x      2000      1000  /system/lib64/android.hardware.common-V2-ndk.so (BuildId: b300f14bfbb08809ff97b2672d4dddf7)
+    0000007b'1ddc8000-0000007b'1ddc8fff r--      3000      1000  /system/lib64/android.hardware.common-V2-ndk.so (BuildId: b300f14bfbb08809ff97b2672d4dddf7)
+    0000007b'1ddc9000-0000007b'1ddc9fff rw-      3000      1000  /system/lib64/android.hardware.common-V2-ndk.so (BuildId: b300f14bfbb08809ff97b2672d4dddf7)
+    0000007b'1de0c000-0000007b'1de54fff r--         0     49000  /system/lib64/libc++.so (BuildId: c43691f579c6316722d646cc6daa2e0e)
+    0000007b'1de55000-0000007b'1deaffff r-x     49000     5b000  /system/lib64/libc++.so (BuildId: c43691f579c6316722d646cc6daa2e0e)
+    0000007b'1deb0000-0000007b'1deb6fff r--     a4000      7000  /system/lib64/libc++.so (BuildId: c43691f579c6316722d646cc6daa2e0e)
+    0000007b'1deb7000-0000007b'1deb7fff rw-     aa000      1000  /system/lib64/libc++.so (BuildId: c43691f579c6316722d646cc6daa2e0e)
+    0000007b'1deb8000-0000007b'1debafff rw-         0      3000  [anon:.bss]
+    0000007b'1dec2000-0000007b'1ded7fff r--         0     16000  /system/lib64/libnblog.so (BuildId: a0e81f1487e11c715ab4323e6fa96f73)
+    0000007b'1ded8000-0000007b'1def9fff r-x     16000     22000  /system/lib64/libnblog.so (BuildId: a0e81f1487e11c715ab4323e6fa96f73)
+    0000007b'1defa000-0000007b'1defbfff r--     38000      2000  /system/lib64/libnblog.so (BuildId: a0e81f1487e11c715ab4323e6fa96f73)
+    0000007b'1defc000-0000007b'1defcfff rw-     39000      1000  /system/lib64/libnblog.so (BuildId: a0e81f1487e11c715ab4323e6fa96f73)
+    0000007b'1df03000-0000007b'1df0cfff r--         0      a000  /system/lib64/android.hidl.token@1.0.so (BuildId: 82a4d4158faeee60feb6678bd18c2268)
+    0000007b'1df0d000-0000007b'1df14fff r-x      a000      8000  /system/lib64/android.hidl.token@1.0.so (BuildId: 82a4d4158faeee60feb6678bd18c2268)
+    0000007b'1df15000-0000007b'1df16fff r--     12000      2000  /system/lib64/android.hidl.token@1.0.so (BuildId: 82a4d4158faeee60feb6678bd18c2268)
+    0000007b'1df17000-0000007b'1df17fff rw-     13000      1000  /system/lib64/android.hidl.token@1.0.so (BuildId: 82a4d4158faeee60feb6678bd18c2268)
+    0000007b'1df40000-0000007b'1df42fff r--         0      3000  /system/lib64/libutilscallstack.so (BuildId: 2239aeb9e00c0b38805e0bd11360d822)
+    0000007b'1df43000-0000007b'1df44fff r-x      3000      2000  /system/lib64/libutilscallstack.so (BuildId: 2239aeb9e00c0b38805e0bd11360d822)
+    0000007b'1df45000-0000007b'1df45fff r--      5000      1000  /system/lib64/libutilscallstack.so (BuildId: 2239aeb9e00c0b38805e0bd11360d822)
+    0000007b'1df87000-0000007b'1df88fff r--         0      2000  /system/lib64/libusbhost.so (BuildId: 2e9c7e9bd5a5eafa27eed08f89f3206c)
+    0000007b'1df89000-0000007b'1df8afff r-x      2000      2000  /system/lib64/libusbhost.so (BuildId: 2e9c7e9bd5a5eafa27eed08f89f3206c)
+    0000007b'1df8b000-0000007b'1df8bfff r--      4000      1000  /system/lib64/libusbhost.so (BuildId: 2e9c7e9bd5a5eafa27eed08f89f3206c)
+    0000007b'1dfc8000-0000007b'1dfc9fff r--         0      2000  /system/lib64/libbattery.so (BuildId: 05c18f4d422a65e133828f8ad66c8cba)
+    0000007b'1dfca000-0000007b'1dfcbfff r-x      2000      2000  /system/lib64/libbattery.so (BuildId: 05c18f4d422a65e133828f8ad66c8cba)
+    0000007b'1dfcc000-0000007b'1dfccfff r--      4000      1000  /system/lib64/libbattery.so (BuildId: 05c18f4d422a65e133828f8ad66c8cba)
+    0000007b'1e003000-0000007b'1e012fff r--         0     10000  /system/lib64/libaudiofoundation.so (BuildId: f548be08075aca952adac43904e33571)
+    0000007b'1e013000-0000007b'1e03cfff r-x     10000     2a000  /system/lib64/libaudiofoundation.so (BuildId: f548be08075aca952adac43904e33571)
+    0000007b'1e03d000-0000007b'1e03efff r--     3a000      2000  /system/lib64/libaudiofoundation.so (BuildId: f548be08075aca952adac43904e33571)
+    0000007b'1e03f000-0000007b'1e03ffff rw-     3b000      1000  /system/lib64/libaudiofoundation.so (BuildId: f548be08075aca952adac43904e33571)
+    0000007b'1e059000-0000007b'1e059fff r--         0      1000  /apex/com.android.runtime/lib64/bionic/libdl_android.so (BuildId: ea4eec3a2f5b9b12b546986afa3f4e90)
+    0000007b'1e05a000-0000007b'1e05afff r-x      1000      1000  /apex/com.android.runtime/lib64/bionic/libdl_android.so (BuildId: ea4eec3a2f5b9b12b546986afa3f4e90)
+    0000007b'1e05b000-0000007b'1e05bfff r--      2000      1000  /apex/com.android.runtime/lib64/bionic/libdl_android.so (BuildId: ea4eec3a2f5b9b12b546986afa3f4e90)
+    0000007b'1e09f000-0000007b'1e0d5fff r--         0     37000  /system/lib64/libandroidfw.so (BuildId: fc78117f56db15340da5e3fbbd295235)
+    0000007b'1e0d6000-0000007b'1e11ffff r-x     37000     4a000  /system/lib64/libandroidfw.so (BuildId: fc78117f56db15340da5e3fbbd295235)
+    0000007b'1e120000-0000007b'1e122fff r--     81000      3000  /system/lib64/libandroidfw.so (BuildId: fc78117f56db15340da5e3fbbd295235)
+    0000007b'1e123000-0000007b'1e123fff rw-     83000      1000  /system/lib64/libandroidfw.so (BuildId: fc78117f56db15340da5e3fbbd295235)
+    0000007b'1e157000-0000007b'1e15ffff r--         0      9000  /system/lib64/libnativedisplay.so (BuildId: 3f27cf34cd20b3cf8d584502c38812d8)
+    0000007b'1e160000-0000007b'1e168fff r-x      9000      9000  /system/lib64/libnativedisplay.so (BuildId: 3f27cf34cd20b3cf8d584502c38812d8)
+    0000007b'1e169000-0000007b'1e169fff r--     12000      1000  /system/lib64/libnativedisplay.so (BuildId: 3f27cf34cd20b3cf8d584502c38812d8)
+    0000007b'1e16a000-0000007b'1e16afff rw-     12000      1000  /system/lib64/libnativedisplay.so (BuildId: 3f27cf34cd20b3cf8d584502c38812d8)
+    0000007b'1e183000-0000007b'1e187fff r--         0      5000  /apex/com.android.i18n/lib64/libandroidicu.so (BuildId: 37575990eebe549c783343973d4c5f30)
+    0000007b'1e188000-0000007b'1e188fff r-x      5000      1000  /apex/com.android.i18n/lib64/libandroidicu.so (BuildId: 37575990eebe549c783343973d4c5f30)
+    0000007b'1e189000-0000007b'1e189fff r--      6000      1000  /apex/com.android.i18n/lib64/libandroidicu.so (BuildId: 37575990eebe549c783343973d4c5f30)
+    0000007b'1e1c6000-0000007b'1e1ddfff r--         0     18000  /system/lib64/libimageconverter.so (BuildId: 3eddebcd1e795a14a8284f03bcb9fd27)
+    0000007b'1e1de000-0000007b'1e1f3fff r-x     18000     16000  /system/lib64/libimageconverter.so (BuildId: 3eddebcd1e795a14a8284f03bcb9fd27)
+    0000007b'1e1f4000-0000007b'1e1f6fff r--     2e000      3000  /system/lib64/libimageconverter.so (BuildId: 3eddebcd1e795a14a8284f03bcb9fd27)
+    0000007b'1e1f7000-0000007b'1e1f7fff rw-     30000      1000  /system/lib64/libimageconverter.so (BuildId: 3eddebcd1e795a14a8284f03bcb9fd27)
+    0000007b'1e203000-0000007b'1e208fff r--         0      6000  /system/lib64/libbufferhub.so (BuildId: ebe2bbc651e10510057116a775adf3df)
+    0000007b'1e209000-0000007b'1e20ffff r-x      6000      7000  /system/lib64/libbufferhub.so (BuildId: ebe2bbc651e10510057116a775adf3df)
+    0000007b'1e210000-0000007b'1e210fff r--      d000      1000  /system/lib64/libbufferhub.so (BuildId: ebe2bbc651e10510057116a775adf3df)
+    0000007b'1e211000-0000007b'1e211fff rw-      d000      1000  /system/lib64/libbufferhub.so (BuildId: ebe2bbc651e10510057116a775adf3df)
+    0000007b'1e246000-0000007b'1e252fff r--         0      d000  /system/lib64/libcodec2_client.so (BuildId: 3957b3ab83b9f6a2d5cbe01b92974b22)
+    0000007b'1e253000-0000007b'1e26dfff r-x      d000     1b000  /system/lib64/libcodec2_client.so (BuildId: 3957b3ab83b9f6a2d5cbe01b92974b22)
+    0000007b'1e26e000-0000007b'1e26ffff r--     28000      2000  /system/lib64/libcodec2_client.so (BuildId: 3957b3ab83b9f6a2d5cbe01b92974b22)
+    0000007b'1e270000-0000007b'1e270fff rw-     29000      1000  /system/lib64/libcodec2_client.so (BuildId: 3957b3ab83b9f6a2d5cbe01b92974b22)
+    0000007b'1e2b9000-0000007b'1e2b9fff r--         0      1000  /system/lib64/libperflog.so (BuildId: 01f960e05605d37b463d243fd2829d39)
+    0000007b'1e2ba000-0000007b'1e2bafff r-x      1000      1000  /system/lib64/libperflog.so (BuildId: 01f960e05605d37b463d243fd2829d39)
+    0000007b'1e2bb000-0000007b'1e2bbfff r--      2000      1000  /system/lib64/libperflog.so (BuildId: 01f960e05605d37b463d243fd2829d39)
+    0000007b'1e2bc000-0000007b'1e2bcfff rw-      2000      1000  /system/lib64/libperflog.so (BuildId: 01f960e05605d37b463d243fd2829d39)
+    0000007b'1e2d8000-0000007b'1e2e4fff r--         0      d000  /system/lib64/android.hidl.memory@1.0.so (BuildId: 0322923c2156f158036e97762dd6e494)
+    0000007b'1e2e5000-0000007b'1e2f1fff r-x      d000      d000  /system/lib64/android.hidl.memory@1.0.so (BuildId: 0322923c2156f158036e97762dd6e494)
+    0000007b'1e2f2000-0000007b'1e2f4fff r--     1a000      3000  /system/lib64/android.hidl.memory@1.0.so (BuildId: 0322923c2156f158036e97762dd6e494)
+    0000007b'1e2f5000-0000007b'1e2f5fff rw-     1c000      1000  /system/lib64/android.hidl.memory@1.0.so (BuildId: 0322923c2156f158036e97762dd6e494)
+    0000007b'1e322000-0000007b'1e32afff r--         0      9000  /system/lib64/libtinyxml2.so (BuildId: fb33585c46fbd372353360b78397a1fd)
+    0000007b'1e32b000-0000007b'1e33cfff r-x      9000     12000  /system/lib64/libtinyxml2.so (BuildId: fb33585c46fbd372353360b78397a1fd)
+    0000007b'1e33d000-0000007b'1e33dfff r--     1b000      1000  /system/lib64/libtinyxml2.so (BuildId: fb33585c46fbd372353360b78397a1fd)
+    0000007b'1e33e000-0000007b'1e33efff rw-     1b000      1000  /system/lib64/libtinyxml2.so (BuildId: fb33585c46fbd372353360b78397a1fd)
+    0000007b'1e346000-0000007b'1e34bfff r--         0      6000  /system/lib64/libhidl-gen-utils.so (BuildId: 3c6084ba67030e864032462f7bb7efc3)
+    0000007b'1e34c000-0000007b'1e352fff r-x      6000      7000  /system/lib64/libhidl-gen-utils.so (BuildId: 3c6084ba67030e864032462f7bb7efc3)
+    0000007b'1e353000-0000007b'1e353fff r--      d000      1000  /system/lib64/libhidl-gen-utils.so (BuildId: 3c6084ba67030e864032462f7bb7efc3)
+    0000007b'1e389000-0000007b'1e392fff r--         0      a000  /system/lib64/android.hardware.power@1.0.so (BuildId: ee049947439cd60ae582a180867f093c)
+    0000007b'1e393000-0000007b'1e39afff r-x      a000      8000  /system/lib64/android.hardware.power@1.0.so (BuildId: ee049947439cd60ae582a180867f093c)
+    0000007b'1e39b000-0000007b'1e39cfff r--     12000      2000  /system/lib64/android.hardware.power@1.0.so (BuildId: ee049947439cd60ae582a180867f093c)
+    0000007b'1e39d000-0000007b'1e39dfff rw-     13000      1000  /system/lib64/android.hardware.power@1.0.so (BuildId: ee049947439cd60ae582a180867f093c)
+    0000007b'1e3e0000-0000007b'1e3e5fff r--         0      6000  /system/lib64/libpiex.so (BuildId: 1475ebf0b4b3e3ecdcc75e0fde8f1b28)
+    0000007b'1e3e6000-0000007b'1e3f8fff r-x      6000     13000  /system/lib64/libpiex.so (BuildId: 1475ebf0b4b3e3ecdcc75e0fde8f1b28)
+    0000007b'1e3f9000-0000007b'1e3f9fff r--     19000      1000  /system/lib64/libpiex.so (BuildId: 1475ebf0b4b3e3ecdcc75e0fde8f1b28)
+    0000007b'1e3fa000-0000007b'1e3fafff rw-     19000      1000  /system/lib64/libpiex.so (BuildId: 1475ebf0b4b3e3ecdcc75e0fde8f1b28)
+    0000007b'1e40f000-0000007b'1e416fff r--         0      8000  /system/lib64/spatializer-aidl-cpp.so (BuildId: a195586da71b776c3a8db15a7386f319)
+    0000007b'1e417000-0000007b'1e422fff r-x      8000      c000  /system/lib64/spatializer-aidl-cpp.so (BuildId: a195586da71b776c3a8db15a7386f319)
+    0000007b'1e423000-0000007b'1e425fff r--     14000      3000  /system/lib64/spatializer-aidl-cpp.so (BuildId: a195586da71b776c3a8db15a7386f319)
+    0000007b'1e426000-0000007b'1e426fff rw-     16000      1000  /system/lib64/spatializer-aidl-cpp.so (BuildId: a195586da71b776c3a8db15a7386f319)
+    0000007b'1e44e000-0000007b'1e46afff r--         0     1d000  /system/lib64/libstagefright_omx.so (BuildId: 2133daeb732bb7e73e400b265e92de66)
+    0000007b'1e46b000-0000007b'1e492fff r-x     1d000     28000  /system/lib64/libstagefright_omx.so (BuildId: 2133daeb732bb7e73e400b265e92de66)
+    0000007b'1e493000-0000007b'1e498fff r--     45000      6000  /system/lib64/libstagefright_omx.so (BuildId: 2133daeb732bb7e73e400b265e92de66)
+    0000007b'1e499000-0000007b'1e499fff rw-     4a000      1000  /system/lib64/libstagefright_omx.so (BuildId: 2133daeb732bb7e73e400b265e92de66)
+    0000007b'1e4fc000-0000007b'1e53dfff r--         0     42000  /system/lib64/libdng_sdk.so (BuildId: 341dfdaa5155e507bcb6821c5401f2ba)
+    0000007b'1e53e000-0000007b'1e5b5fff r-x     42000     78000  /system/lib64/libdng_sdk.so (BuildId: 341dfdaa5155e507bcb6821c5401f2ba)
+    0000007b'1e5b6000-0000007b'1e5bbfff r--     ba000      6000  /system/lib64/libdng_sdk.so (BuildId: 341dfdaa5155e507bcb6821c5401f2ba)
+    0000007b'1e5bc000-0000007b'1e5bcfff rw-     bf000      1000  /system/lib64/libdng_sdk.so (BuildId: 341dfdaa5155e507bcb6821c5401f2ba)
+    0000007b'1e600000-0000007b'209fffff ---         0   2400000
+    0000007b'20a42000-0000007b'20a52fff r--         0     11000  /system/lib64/android.hardware.drm@1.3.so (BuildId: f184c88518324319687562474f545fe9)
+    0000007b'20a53000-0000007b'20a5ffff r-x     11000      d000  /system/lib64/android.hardware.drm@1.3.so (BuildId: f184c88518324319687562474f545fe9)
+    0000007b'20a60000-0000007b'20a63fff r--     1e000      4000  /system/lib64/android.hardware.drm@1.3.so (BuildId: f184c88518324319687562474f545fe9)
+    0000007b'20a64000-0000007b'20a64fff rw-     21000      1000  /system/lib64/android.hardware.drm@1.3.so (BuildId: f184c88518324319687562474f545fe9)
+    0000007b'20a81000-0000007b'20a96fff r--         0     16000  /system/lib64/libvulkan.so (BuildId: 64601e4cd521bce7246520913ac5a936)
+    0000007b'20a97000-0000007b'20ab6fff r-x     16000     20000  /system/lib64/libvulkan.so (BuildId: 64601e4cd521bce7246520913ac5a936)
+    0000007b'20ab7000-0000007b'20ab8fff r--     36000      2000  /system/lib64/libvulkan.so (BuildId: 64601e4cd521bce7246520913ac5a936)
+    0000007b'20ab9000-0000007b'20ab9fff rw-     37000      1000  /system/lib64/libvulkan.so (BuildId: 64601e4cd521bce7246520913ac5a936)
+    0000007b'20ac9000-0000007b'20af1fff r--         0     29000  /system/lib64/libmediadrm.so (BuildId: 6f993215d960629de97890e3a9be8681)
+    0000007b'20af2000-0000007b'20b28fff r-x     29000     37000  /system/lib64/libmediadrm.so (BuildId: 6f993215d960629de97890e3a9be8681)
+    0000007b'20b29000-0000007b'20b2dfff r--     60000      5000  /system/lib64/libmediadrm.so (BuildId: 6f993215d960629de97890e3a9be8681)
+    0000007b'20b2e000-0000007b'20b2efff rw-     64000      1000  /system/lib64/libmediadrm.so (BuildId: 6f993215d960629de97890e3a9be8681)
+    0000007b'20b88000-0000007b'20b89fff r--         0      2000  /system/lib64/libfloatingfeature.so (BuildId: 21b571a7d48a88d2417b2fac875de400)
+    0000007b'20b8a000-0000007b'20b8bfff r-x      2000      2000  /system/lib64/libfloatingfeature.so (BuildId: 21b571a7d48a88d2417b2fac875de400)
+    0000007b'20b8c000-0000007b'20b8cfff r--      4000      1000  /system/lib64/libfloatingfeature.so (BuildId: 21b571a7d48a88d2417b2fac875de400)
+    0000007b'20b8d000-0000007b'20b8dfff rw-      4000      1000  /system/lib64/libfloatingfeature.so (BuildId: 21b571a7d48a88d2417b2fac875de400)
+    0000007b'20bd6000-0000007b'20bdefff r--         0      9000  /system/lib64/libdmabufheap.so (BuildId: 59a7877cdd38bd5b5aa6963cc4fe8435)
+    0000007b'20bdf000-0000007b'20be9fff r-x      9000      b000  /system/lib64/libdmabufheap.so (BuildId: 59a7877cdd38bd5b5aa6963cc4fe8435)
+    0000007b'20bea000-0000007b'20beafff r--     14000      1000  /system/lib64/libdmabufheap.so (BuildId: 59a7877cdd38bd5b5aa6963cc4fe8435)
+    0000007b'20beb000-0000007b'20bebfff rw-     14000      1000  /system/lib64/libdmabufheap.so (BuildId: 59a7877cdd38bd5b5aa6963cc4fe8435)
+    0000007b'20c00000-0000007b'223fffff ---         0   1800000
+    0000007b'22446000-0000007b'22457fff r--         0     12000  /apex/com.android.runtime/lib64/bionic/libm.so (BuildId: 2ceae82d605b5c535a45a66fb8271751)
+    0000007b'22458000-0000007b'2247bfff r-x     12000     24000  /apex/com.android.runtime/lib64/bionic/libm.so (BuildId: 2ceae82d605b5c535a45a66fb8271751)
+    0000007b'2247c000-0000007b'2247cfff r--     36000      1000  /apex/com.android.runtime/lib64/bionic/libm.so (BuildId: 2ceae82d605b5c535a45a66fb8271751)
+    0000007b'2247d000-0000007b'2247dfff rw-     36000      1000  /apex/com.android.runtime/lib64/bionic/libm.so (BuildId: 2ceae82d605b5c535a45a66fb8271751)
+    0000007b'224a6000-0000007b'224a6fff r--         0      1000  /system/lib64/libandroid_net.so (BuildId: bd2b40f4ee7e91748c671c24420cc1d4)
+    0000007b'224a7000-0000007b'224a7fff r-x      1000      1000  /system/lib64/libandroid_net.so (BuildId: bd2b40f4ee7e91748c671c24420cc1d4)
+    0000007b'224a8000-0000007b'224a8fff r--      2000      1000  /system/lib64/libandroid_net.so (BuildId: bd2b40f4ee7e91748c671c24420cc1d4)
+    0000007b'224da000-0000007b'224dafff r--         0      1000  /system/lib64/lib_soundaliveresampler.so (BuildId: ccec103e2af7ae22535281e42321ef21)
+    0000007b'224db000-0000007b'224dbfff r-x      1000      1000  /system/lib64/lib_soundaliveresampler.so (BuildId: ccec103e2af7ae22535281e42321ef21)
+    0000007b'224dc000-0000007b'224dcfff r--      2000      1000  /system/lib64/lib_soundaliveresampler.so (BuildId: ccec103e2af7ae22535281e42321ef21)
+    0000007b'22508000-0000007b'22510fff r--         0      9000  /system/lib64/android.hidl.memory.token@1.0.so (BuildId: a4fa6b05748ae82ac53d8e0710f584e1)
+    0000007b'22511000-0000007b'22517fff r-x      9000      7000  /system/lib64/android.hidl.memory.token@1.0.so (BuildId: a4fa6b05748ae82ac53d8e0710f584e1)
+    0000007b'22518000-0000007b'22519fff r--     10000      2000  /system/lib64/android.hidl.memory.token@1.0.so (BuildId: a4fa6b05748ae82ac53d8e0710f584e1)
+    0000007b'2251a000-0000007b'2251afff rw-     11000      1000  /system/lib64/android.hidl.memory.token@1.0.so (BuildId: a4fa6b05748ae82ac53d8e0710f584e1)
+    0000007b'22547000-0000007b'22548fff r--         0      2000  /system/lib64/libaudiomanager.so (BuildId: 8ead51819ff445c059c045ac12d4da52)
+    0000007b'22549000-0000007b'2254afff r-x      2000      2000  /system/lib64/libaudiomanager.so (BuildId: 8ead51819ff445c059c045ac12d4da52)
+    0000007b'2254b000-0000007b'2254bfff r--      4000      1000  /system/lib64/libaudiomanager.so (BuildId: 8ead51819ff445c059c045ac12d4da52)
+    0000007b'2254c000-0000007b'2254cfff rw-      4000      1000  /system/lib64/libaudiomanager.so (BuildId: 8ead51819ff445c059c045ac12d4da52)
+    0000007b'22585000-0000007b'22597fff r--         0     13000  /system/lib64/android.hardware.drm-V1-ndk.so (BuildId: e69cee8eaa32d158444bab263a733528)
+    0000007b'22598000-0000007b'225aefff r-x     13000     17000  /system/lib64/android.hardware.drm-V1-ndk.so (BuildId: e69cee8eaa32d158444bab263a733528)
+    0000007b'225af000-0000007b'225b0fff r--     2a000      2000  /system/lib64/android.hardware.drm-V1-ndk.so (BuildId: e69cee8eaa32d158444bab263a733528)
+    0000007b'225b1000-0000007b'225b1fff rw-     2b000      1000  /system/lib64/android.hardware.drm-V1-ndk.so (BuildId: e69cee8eaa32d158444bab263a733528)
+    0000007b'225fa000-0000007b'225fafff r--         0      1000  /system/lib64/libpackagelistparser.so (BuildId: 4adf2eaedc5c4d65f2deeff8eb0f111f)
+    0000007b'225fb000-0000007b'225fbfff r-x      1000      1000  /system/lib64/libpackagelistparser.so (BuildId: 4adf2eaedc5c4d65f2deeff8eb0f111f)
+    0000007b'225fc000-0000007b'225fcfff r--      2000      1000  /system/lib64/libpackagelistparser.so (BuildId: 4adf2eaedc5c4d65f2deeff8eb0f111f)
+    0000007b'2260b000-0000007b'2268dfff r--         0     83000  /system/lib64/libgui.so (BuildId: 9940c53437e15c6c603407879998da28)
+    0000007b'2268e000-0000007b'22731fff r-x     83000     a4000  /system/lib64/libgui.so (BuildId: 9940c53437e15c6c603407879998da28)
+    0000007b'22732000-0000007b'22758fff r--    127000     27000  /system/lib64/libgui.so (BuildId: 9940c53437e15c6c603407879998da28)
+    0000007b'22759000-0000007b'22759fff rw-    14d000      1000  /system/lib64/libgui.so (BuildId: 9940c53437e15c6c603407879998da28)
+    0000007b'2275a000-0000007b'2275afff rw-         0      1000  [anon:.bss]
+    0000007b'227c1000-0000007b'227d3fff r--         0     13000  /system/lib64/android.hardware.media.c2@1.1.so (BuildId: 96aafea7eee7b89f17430d48692166f6)
+    0000007b'227d4000-0000007b'227e5fff r-x     13000     12000  /system/lib64/android.hardware.media.c2@1.1.so (BuildId: 96aafea7eee7b89f17430d48692166f6)
+    0000007b'227e6000-0000007b'227e9fff r--     25000      4000  /system/lib64/android.hardware.media.c2@1.1.so (BuildId: 96aafea7eee7b89f17430d48692166f6)
+    0000007b'227ea000-0000007b'227eafff rw-     28000      1000  /system/lib64/android.hardware.media.c2@1.1.so (BuildId: 96aafea7eee7b89f17430d48692166f6)
+    0000007b'22800000-0000007b'243fffff ---         0   1c00000
+    0000007b'24451000-0000007b'24455fff r--         0      5000  /system/lib64/libsecaudioinfo.so (BuildId: 6b9b3efc197468b3330857e8ea7f9046)
+    0000007b'24456000-0000007b'24459fff r-x      5000      4000  /system/lib64/libsecaudioinfo.so (BuildId: 6b9b3efc197468b3330857e8ea7f9046)
+    0000007b'2445a000-0000007b'2445afff r--      9000      1000  /system/lib64/libsecaudioinfo.so (BuildId: 6b9b3efc197468b3330857e8ea7f9046)
+    0000007b'2445b000-0000007b'2445bfff rw-      9000      1000  /system/lib64/libsecaudioinfo.so (BuildId: 6b9b3efc197468b3330857e8ea7f9046)
+    0000007b'24495000-0000007b'244cefff r--         0     3a000  /system/lib64/libmedia.so (BuildId: e05b0851c124accaf403d9b24a2f33a8)
+    0000007b'244cf000-0000007b'24532fff r-x     3a000     64000  /system/lib64/libmedia.so (BuildId: e05b0851c124accaf403d9b24a2f33a8)
+    0000007b'24533000-0000007b'24544fff r--     9e000     12000  /system/lib64/libmedia.so (BuildId: e05b0851c124accaf403d9b24a2f33a8)
+    0000007b'24545000-0000007b'24545fff rw-     af000      1000  /system/lib64/libmedia.so (BuildId: e05b0851c124accaf403d9b24a2f33a8)
+    0000007b'245c1000-0000007b'245dafff r--         0     1a000  /system/lib64/android.hardware.drm@1.1.so (BuildId: 459319aa35330308fce6f62b468c5856)
+    0000007b'245db000-0000007b'245f4fff r-x     1a000     1a000  /system/lib64/android.hardware.drm@1.1.so (BuildId: 459319aa35330308fce6f62b468c5856)
+    0000007b'245f5000-0000007b'245f9fff r--     34000      5000  /system/lib64/android.hardware.drm@1.1.so (BuildId: 459319aa35330308fce6f62b468c5856)
+    0000007b'245fa000-0000007b'245fafff rw-     38000      1000  /system/lib64/android.hardware.drm@1.1.so (BuildId: 459319aa35330308fce6f62b468c5856)
+    0000007b'24600000-0000007b'277fffff ---         0   3200000
+    0000007b'2784d000-0000007b'27852fff r--         0      6000  /system/lib64/libdataloader.so (BuildId: b6e05fe1992246ab203c0ca73ffaae4d)
+    0000007b'27853000-0000007b'2785dfff r-x      6000      b000  /system/lib64/libdataloader.so (BuildId: b6e05fe1992246ab203c0ca73ffaae4d)
+    0000007b'2785e000-0000007b'2785efff r--     11000      1000  /system/lib64/libdataloader.so (BuildId: b6e05fe1992246ab203c0ca73ffaae4d)
+    0000007b'2785f000-0000007b'2785ffff rw-     11000      1000  /system/lib64/libdataloader.so (BuildId: b6e05fe1992246ab203c0ca73ffaae4d)
+    0000007b'2788b000-0000007b'278befff r--         0     34000  /system/lib64/libsqlite.so (BuildId: 3d7a1b0476642b26fb43cbcaaf26581b)
+    0000007b'278bf000-0000007b'279e4fff r-x     34000    126000  /system/lib64/libsqlite.so (BuildId: 3d7a1b0476642b26fb43cbcaaf26581b)
+    0000007b'279e5000-0000007b'279e7fff r--    15a000      3000  /system/lib64/libsqlite.so (BuildId: 3d7a1b0476642b26fb43cbcaaf26581b)
+    0000007b'279e8000-0000007b'279eafff rw-    15c000      3000  /system/lib64/libsqlite.so (BuildId: 3d7a1b0476642b26fb43cbcaaf26581b)
+    0000007b'27a00000-0000007b'2b5fffff ---         0   3c00000
+    0000007b'2b644000-0000007b'2b731fff r--         0     ee000  /apex/com.android.i18n/lib64/libicui18n.so (BuildId: cdd644fa9dfbce19ec4df433d2b5ba0b)
+    0000007b'2b732000-0000007b'2b8cbfff r-x     ee000    19a000  /apex/com.android.i18n/lib64/libicui18n.so (BuildId: cdd644fa9dfbce19ec4df433d2b5ba0b)
+    0000007b'2b8cc000-0000007b'2b8dffff r--    288000     14000  /apex/com.android.i18n/lib64/libicui18n.so (BuildId: cdd644fa9dfbce19ec4df433d2b5ba0b)
+    0000007b'2b8e0000-0000007b'2b8e0fff rw-    29b000      1000  /apex/com.android.i18n/lib64/libicui18n.so (BuildId: cdd644fa9dfbce19ec4df433d2b5ba0b)
+    0000007b'2b8e1000-0000007b'2b8e1fff rw-         0      1000  [anon:.bss]
+    0000007b'2b94b000-0000007b'2b951fff r--         0      7000  /system/lib64/libsqlite3_udr.so (BuildId: c08d54495a57b8a954a9a9e920516b7f)
+    0000007b'2b952000-0000007b'2b95bfff r-x      7000      a000  /system/lib64/libsqlite3_udr.so (BuildId: c08d54495a57b8a954a9a9e920516b7f)
+    0000007b'2b95c000-0000007b'2b95cfff r--     11000      1000  /system/lib64/libsqlite3_udr.so (BuildId: c08d54495a57b8a954a9a9e920516b7f)
+    0000007b'2b95d000-0000007b'2b95dfff rw-     11000      1000  /system/lib64/libsqlite3_udr.so (BuildId: c08d54495a57b8a954a9a9e920516b7f)
+    0000007b'2b982000-0000007b'2b996fff r--         0     15000  /system/lib64/android.hardware.graphics.composer3-V1-ndk.so (BuildId: cb0fe774f8d7569f930e08d4e53d3aa2)
+    0000007b'2b997000-0000007b'2b9aefff r-x     15000     18000  /system/lib64/android.hardware.graphics.composer3-V1-ndk.so (BuildId: cb0fe774f8d7569f930e08d4e53d3aa2)
+    0000007b'2b9af000-0000007b'2b9b0fff r--     2d000      2000  /system/lib64/android.hardware.graphics.composer3-V1-ndk.so (BuildId: cb0fe774f8d7569f930e08d4e53d3aa2)
+    0000007b'2b9b1000-0000007b'2b9b1fff rw-     2e000      1000  /system/lib64/android.hardware.graphics.composer3-V1-ndk.so (BuildId: cb0fe774f8d7569f930e08d4e53d3aa2)
+    0000007b'2b9d2000-0000007b'2b9d9fff r--         0      8000  /system/lib64/liblzma.so (BuildId: 01f62c32ceda8d423442312c3909259d)
+    0000007b'2b9da000-0000007b'2b9f7fff r-x      8000     1e000  /system/lib64/liblzma.so (BuildId: 01f62c32ceda8d423442312c3909259d)
+    0000007b'2b9f8000-0000007b'2b9f8fff r--     26000      1000  /system/lib64/liblzma.so (BuildId: 01f62c32ceda8d423442312c3909259d)
+    0000007b'2b9f9000-0000007b'2b9f9fff rw-     26000      1000  /system/lib64/liblzma.so (BuildId: 01f62c32ceda8d423442312c3909259d)
+    0000007b'2b9fa000-0000007b'2b9fffff rw-         0      6000  [anon:.bss]
+    0000007b'2ba00000-0000007b'2effffff ---         0   3600000
+    0000007b'2f041000-0000007b'2f055fff r--         0     15000  /system/lib64/android.hardware.media.c2@1.2.so (BuildId: 3b8d15a39fcc1bd2b56b0cb16d4c0ed9)
+    0000007b'2f056000-0000007b'2f068fff r-x     15000     13000  /system/lib64/android.hardware.media.c2@1.2.so (BuildId: 3b8d15a39fcc1bd2b56b0cb16d4c0ed9)
+    0000007b'2f069000-0000007b'2f06cfff r--     28000      4000  /system/lib64/android.hardware.media.c2@1.2.so (BuildId: 3b8d15a39fcc1bd2b56b0cb16d4c0ed9)
+    0000007b'2f06d000-0000007b'2f06dfff rw-     2b000      1000  /system/lib64/android.hardware.media.c2@1.2.so (BuildId: 3b8d15a39fcc1bd2b56b0cb16d4c0ed9)
+    0000007b'2f09b000-0000007b'2f09efff r--         0      4000  /system/lib64/audioclient-types-aidl-cpp.so (BuildId: f4611c26a669b7e9e9fed9c144b1b0cb)
+    0000007b'2f09f000-0000007b'2f0a5fff r-x      4000      7000  /system/lib64/audioclient-types-aidl-cpp.so (BuildId: f4611c26a669b7e9e9fed9c144b1b0cb)
+    0000007b'2f0a6000-0000007b'2f0a6fff r--      b000      1000  /system/lib64/audioclient-types-aidl-cpp.so (BuildId: f4611c26a669b7e9e9fed9c144b1b0cb)
+    0000007b'2f0df000-0000007b'2f0e3fff r--         0      5000  /system/lib64/liblog.so (BuildId: 28ea5154585a4fc544f1324fcd9ea010)
+    0000007b'2f0e4000-0000007b'2f0ecfff r-x      5000      9000  /system/lib64/liblog.so (BuildId: 28ea5154585a4fc544f1324fcd9ea010)
+    0000007b'2f0ed000-0000007b'2f0edfff r--      e000      1000  /system/lib64/liblog.so (BuildId: 28ea5154585a4fc544f1324fcd9ea010)
+    0000007b'2f0ee000-0000007b'2f0eefff rw-      e000      1000  /system/lib64/liblog.so (BuildId: 28ea5154585a4fc544f1324fcd9ea010)
+    0000007b'2f11f000-0000007b'2f131fff r--         0     13000  /system/lib64/libGLESv3.so (BuildId: 7592b3c05caeb17313d884023a409356)
+    0000007b'2f132000-0000007b'2f137fff r-x     13000      6000  /system/lib64/libGLESv3.so (BuildId: 7592b3c05caeb17313d884023a409356)
+    0000007b'2f138000-0000007b'2f138fff r--     19000      1000  /system/lib64/libGLESv3.so (BuildId: 7592b3c05caeb17313d884023a409356)
+    0000007b'2f14d000-0000007b'2f159fff r--         0      d000  /system/lib64/libjpeg.so (BuildId: 962fd25c1d798be0ce627b00997b2560)
+    0000007b'2f15a000-0000007b'2f1a6fff r-x      d000     4d000  /system/lib64/libjpeg.so (BuildId: 962fd25c1d798be0ce627b00997b2560)
+    0000007b'2f1a7000-0000007b'2f1a7fff r--     5a000      1000  /system/lib64/libjpeg.so (BuildId: 962fd25c1d798be0ce627b00997b2560)
+    0000007b'2f1a8000-0000007b'2f1a8fff rw-     5a000      1000  /system/lib64/libjpeg.so (BuildId: 962fd25c1d798be0ce627b00997b2560)
+    0000007b'2f1c2000-0000007b'2f1c9fff r--         0      8000  /system/lib64/libgralloctypes.so (BuildId: b300b0c4cadf6922d020c9d659456597)
+    0000007b'2f1ca000-0000007b'2f1d3fff r-x      8000      a000  /system/lib64/libgralloctypes.so (BuildId: b300b0c4cadf6922d020c9d659456597)
+    0000007b'2f1d4000-0000007b'2f1d4fff r--     12000      1000  /system/lib64/libgralloctypes.so (BuildId: b300b0c4cadf6922d020c9d659456597)
+    0000007b'2f1d5000-0000007b'2f1d5fff rw-     12000      1000  /system/lib64/libgralloctypes.so (BuildId: b300b0c4cadf6922d020c9d659456597)
+    0000007b'2f214000-0000007b'2f227fff r--         0     14000  /system/lib64/libRScpp.so (BuildId: 863a3c0dc20c30223a4b685b9885a43a)
+    0000007b'2f228000-0000007b'2f256fff r-x     14000     2f000  /system/lib64/libRScpp.so (BuildId: 863a3c0dc20c30223a4b685b9885a43a)
+    0000007b'2f257000-0000007b'2f257fff r--     43000      1000  /system/lib64/libRScpp.so (BuildId: 863a3c0dc20c30223a4b685b9885a43a)
+    0000007b'2f258000-0000007b'2f258fff rw-     43000      1000  /system/lib64/libRScpp.so (BuildId: 863a3c0dc20c30223a4b685b9885a43a)
+    0000007b'2f28b000-0000007b'2f28ffff r--         0      5000  /system/lib64/android.media.audio.common.types-V1-cpp.so (BuildId: 35d753d1ce519a81055d0a3f01235dea)
+    0000007b'2f290000-0000007b'2f296fff r-x      5000      7000  /system/lib64/android.media.audio.common.types-V1-cpp.so (BuildId: 35d753d1ce519a81055d0a3f01235dea)
+    0000007b'2f297000-0000007b'2f297fff r--      c000      1000  /system/lib64/android.media.audio.common.types-V1-cpp.so (BuildId: 35d753d1ce519a81055d0a3f01235dea)
+    0000007b'2f298000-0000007b'2f298fff rw-      c000      1000  /system/lib64/android.media.audio.common.types-V1-cpp.so (BuildId: 35d753d1ce519a81055d0a3f01235dea)
+    0000007b'2f2c1000-0000007b'2f2d0fff r--         0     10000  /system/lib64/libpng.so (BuildId: a154d1a71b38120e6eee53c6bb212220)
+    0000007b'2f2d1000-0000007b'2f2f8fff r-x     10000     28000  /system/lib64/libpng.so (BuildId: a154d1a71b38120e6eee53c6bb212220)
+    0000007b'2f2f9000-0000007b'2f2f9fff r--     38000      1000  /system/lib64/libpng.so (BuildId: a154d1a71b38120e6eee53c6bb212220)
+    0000007b'2f31b000-0000007b'2f31efff r--         0      4000  /system/lib64/libstagefright_codecbase.so (BuildId: c5177570897d3dfa2392322bbaf1ba93)
+    0000007b'2f31f000-0000007b'2f323fff r-x      4000      5000  /system/lib64/libstagefright_codecbase.so (BuildId: c5177570897d3dfa2392322bbaf1ba93)
+    0000007b'2f324000-0000007b'2f324fff r--      9000      1000  /system/lib64/libstagefright_codecbase.so (BuildId: c5177570897d3dfa2392322bbaf1ba93)
+    0000007b'2f325000-0000007b'2f325fff rw-      9000      1000  /system/lib64/libstagefright_codecbase.so (BuildId: c5177570897d3dfa2392322bbaf1ba93)
+    0000007b'2f344000-0000007b'2f393fff r--         0     50000  /system/lib64/libbinder.so (BuildId: cbbf3b564b42a54f13bca9e491d4c8da)
+    0000007b'2f394000-0000007b'2f3edfff r-x     50000     5a000  /system/lib64/libbinder.so (BuildId: cbbf3b564b42a54f13bca9e491d4c8da)
+    0000007b'2f3ee000-0000007b'2f3fbfff r--     aa000      e000  /system/lib64/libbinder.so (BuildId: cbbf3b564b42a54f13bca9e491d4c8da)
+    0000007b'2f3fc000-0000007b'2f3fcfff rw-     b7000      1000  /system/lib64/libbinder.so (BuildId: cbbf3b564b42a54f13bca9e491d4c8da)
+    0000007b'2f400000-0000007b'2f609fff r--         0    20a000  /system/lib64/libhwui.so (BuildId: bebb5d2e8f3568d3a8b1a9126e44ef09)
+    0000007b'2f60a000-0000007b'2f7fffff ---         0    1f6000
+    0000007b'2f800000-0000007b'2fdbffff r-x    400000    5c0000  /system/lib64/libhwui.so (BuildId: bebb5d2e8f3568d3a8b1a9126e44ef09)
+    0000007b'2fdc0000-0000007b'2fdfffff ---         0     40000
+    0000007b'2fe00000-0000007b'2fe28fff r--    a00000     29000  /system/lib64/libhwui.so (BuildId: bebb5d2e8f3568d3a8b1a9126e44ef09)
+    0000007b'2fe29000-0000007b'30027fff ---         0    1ff000
+    0000007b'30028000-0000007b'30034fff rw-    a28000      d000  /system/lib64/libhwui.so (BuildId: bebb5d2e8f3568d3a8b1a9126e44ef09)
+    0000007b'30035000-0000007b'3004bfff rw-         0     17000  [anon:.bss]
+    0000007b'30084000-0000007b'30099fff r--         0     16000  /system/lib64/libstagefright_foundation.so (BuildId: 0badc9d613bbff980dfc844daac1ed3e)
+    0000007b'3009a000-0000007b'300b9fff r-x     16000     20000  /system/lib64/libstagefright_foundation.so (BuildId: 0badc9d613bbff980dfc844daac1ed3e)
+    0000007b'300ba000-0000007b'300bbfff r--     36000      2000  /system/lib64/libstagefright_foundation.so (BuildId: 0badc9d613bbff980dfc844daac1ed3e)
+    0000007b'300bc000-0000007b'300bcfff rw-     37000      1000  /system/lib64/libstagefright_foundation.so (BuildId: 0badc9d613bbff980dfc844daac1ed3e)
+    0000007b'300d9000-0000007b'300defff r--         0      6000  /system/lib64/libmedia_codeclist.so (BuildId: 085a4edf0b172dfa6316129fdbbcdf51)
+    0000007b'300df000-0000007b'300e5fff r-x      6000      7000  /system/lib64/libmedia_codeclist.so (BuildId: 085a4edf0b172dfa6316129fdbbcdf51)
+    0000007b'300e6000-0000007b'300e7fff r--      d000      2000  /system/lib64/libmedia_codeclist.so (BuildId: 085a4edf0b172dfa6316129fdbbcdf51)
+    0000007b'300e8000-0000007b'300e8fff rw-      e000      1000  /system/lib64/libmedia_codeclist.so (BuildId: 085a4edf0b172dfa6316129fdbbcdf51)
+    0000007b'30113000-0000007b'3011efff r--         0      c000  /system/lib64/android.hardware.configstore@1.1.so (BuildId: 53504daf7e0c96752a6d8b3a61ad7775)
+    0000007b'3011f000-0000007b'30127fff r-x      c000      9000  /system/lib64/android.hardware.configstore@1.1.so (BuildId: 53504daf7e0c96752a6d8b3a61ad7775)
+    0000007b'30128000-0000007b'30129fff r--     15000      2000  /system/lib64/android.hardware.configstore@1.1.so (BuildId: 53504daf7e0c96752a6d8b3a61ad7775)
+    0000007b'3012a000-0000007b'3012afff rw-     16000      1000  /system/lib64/android.hardware.configstore@1.1.so (BuildId: 53504daf7e0c96752a6d8b3a61ad7775)
+    0000007b'30147000-0000007b'3014afff r--         0      4000  /system/lib64/libbpf_minimal.so (BuildId: 14837bb6f1e2d2349e42ccf4af0d5e9a)
+    0000007b'3014b000-0000007b'30151fff r-x      4000      7000  /system/lib64/libbpf_minimal.so (BuildId: 14837bb6f1e2d2349e42ccf4af0d5e9a)
+    0000007b'30152000-0000007b'30152fff r--      b000      1000  /system/lib64/libbpf_minimal.so (BuildId: 14837bb6f1e2d2349e42ccf4af0d5e9a)
+    0000007b'30153000-0000007b'30153fff rw-      b000      1000  /system/lib64/libbpf_minimal.so (BuildId: 14837bb6f1e2d2349e42ccf4af0d5e9a)
+    0000007b'301ab000-0000007b'301abfff r--         0      1000  /system/lib64/android.hardware.media@1.0.so (BuildId: 0a4adf8e7b8a9ca80ca54ddd094481d5)
+    0000007b'301ac000-0000007b'301acfff r-x      1000      1000  /system/lib64/android.hardware.media@1.0.so (BuildId: 0a4adf8e7b8a9ca80ca54ddd094481d5)
+    0000007b'301ad000-0000007b'301adfff r--      2000      1000  /system/lib64/android.hardware.media@1.0.so (BuildId: 0a4adf8e7b8a9ca80ca54ddd094481d5)
+    0000007b'301e8000-0000007b'301e8fff r--         0      1000  /system/lib64/libion.so (BuildId: 3fc46eca818353d9939e318f82a8bcff)
+    0000007b'301e9000-0000007b'301eafff r-x      1000      2000  /system/lib64/libion.so (BuildId: 3fc46eca818353d9939e318f82a8bcff)
+    0000007b'301eb000-0000007b'301ebfff r--      3000      1000  /system/lib64/libion.so (BuildId: 3fc46eca818353d9939e318f82a8bcff)
+    0000007b'301ec000-0000007b'301ecfff rw-      3000      1000  /system/lib64/libion.so (BuildId: 3fc46eca818353d9939e318f82a8bcff)
+    0000007b'30200000-0000007b'31dfffff ---         0   1c00000
+    0000007b'31e4c000-0000007b'31e55fff r--         0      a000  /system/lib64/android.hardware.graphics.allocator@3.0.so (BuildId: 857732fc4a5142fba6ea993fcaf16e59)
+    0000007b'31e56000-0000007b'31e5cfff r-x      a000      7000  /system/lib64/android.hardware.graphics.allocator@3.0.so (BuildId: 857732fc4a5142fba6ea993fcaf16e59)
+    0000007b'31e5d000-0000007b'31e5efff r--     11000      2000  /system/lib64/android.hardware.graphics.allocator@3.0.so (BuildId: 857732fc4a5142fba6ea993fcaf16e59)
+    0000007b'31e5f000-0000007b'31e5ffff rw-     12000      1000  /system/lib64/android.hardware.graphics.allocator@3.0.so (BuildId: 857732fc4a5142fba6ea993fcaf16e59)
+    0000007b'31e83000-0000007b'31e94fff r--         0     12000  /system/lib64/libbase.so (BuildId: 5c556b163b3d64d14d8662d93a6f4cc7)
+    0000007b'31e95000-0000007b'31ebdfff r-x     12000     29000  /system/lib64/libbase.so (BuildId: 5c556b163b3d64d14d8662d93a6f4cc7)
+    0000007b'31ebe000-0000007b'31ebefff r--     3b000      1000  /system/lib64/libbase.so (BuildId: 5c556b163b3d64d14d8662d93a6f4cc7)
+    0000007b'31ebf000-0000007b'31ebffff rw-     3b000      1000  /system/lib64/libbase.so (BuildId: 5c556b163b3d64d14d8662d93a6f4cc7)
+    0000007b'31ec8000-0000007b'31ecffff r--         0      8000  /system/lib64/libz.so (BuildId: 6fa3241d4beb1f0f1768d48b0bafe0cd)
+    0000007b'31ed0000-0000007b'31edffff r-x      8000     10000  /system/lib64/libz.so (BuildId: 6fa3241d4beb1f0f1768d48b0bafe0cd)
+    0000007b'31ee0000-0000007b'31ee0fff r--     18000      1000  /system/lib64/libz.so (BuildId: 6fa3241d4beb1f0f1768d48b0bafe0cd)
+    0000007b'31ee1000-0000007b'31ee1fff rw-     18000      1000  /system/lib64/libz.so (BuildId: 6fa3241d4beb1f0f1768d48b0bafe0cd)
+    0000007b'31f11000-0000007b'31f13fff r--         0      3000  /system/lib64/libhidlmemory.so (BuildId: 84e24941ab9c5f21d377a530c437e753)
+    0000007b'31f14000-0000007b'31f15fff r-x      3000      2000  /system/lib64/libhidlmemory.so (BuildId: 84e24941ab9c5f21d377a530c437e753)
+    0000007b'31f16000-0000007b'31f16fff r--      5000      1000  /system/lib64/libhidlmemory.so (BuildId: 84e24941ab9c5f21d377a530c437e753)
+    0000007b'31f17000-0000007b'31f17fff rw-      5000      1000  /system/lib64/libhidlmemory.so (BuildId: 84e24941ab9c5f21d377a530c437e753)
+    0000007b'31f56000-0000007b'31f5dfff r--         0      8000  /system/lib64/packagemanager_aidl-cpp.so (BuildId: b72ee86023bb4e098c547f2864724a9b)
+    0000007b'31f5e000-0000007b'31f64fff r-x      8000      7000  /system/lib64/packagemanager_aidl-cpp.so (BuildId: b72ee86023bb4e098c547f2864724a9b)
+    0000007b'31f65000-0000007b'31f67fff r--      f000      3000  /system/lib64/packagemanager_aidl-cpp.so (BuildId: b72ee86023bb4e098c547f2864724a9b)
+    0000007b'31f68000-0000007b'31f68fff rw-     11000      1000  /system/lib64/packagemanager_aidl-cpp.so (BuildId: b72ee86023bb4e098c547f2864724a9b)
+    0000007b'31f8d000-0000007b'31fa1fff r--         0     15000  /system/lib64/android.hardware.graphics.bufferqueue@1.0.so (BuildId: 07d806a1053c16ae542db95cf0a10240)
+    0000007b'31fa2000-0000007b'31fb8fff r-x     15000     17000  /system/lib64/android.hardware.graphics.bufferqueue@1.0.so (BuildId: 07d806a1053c16ae542db95cf0a10240)
+    0000007b'31fb9000-0000007b'31fbcfff r--     2c000      4000  /system/lib64/android.hardware.graphics.bufferqueue@1.0.so (BuildId: 07d806a1053c16ae542db95cf0a10240)
+    0000007b'31fbd000-0000007b'31fbdfff rw-     2f000      1000  /system/lib64/android.hardware.graphics.bufferqueue@1.0.so (BuildId: 07d806a1053c16ae542db95cf0a10240)
+    0000007b'31fe2000-0000007b'31fe2fff r--         0      1000  /system/lib64/libvndksupport.so (BuildId: 956c1daca86178339ecfce4331da5feb)
+    0000007b'31fe3000-0000007b'31fe3fff r-x      1000      1000  /system/lib64/libvndksupport.so (BuildId: 956c1daca86178339ecfce4331da5feb)
+    0000007b'31fe4000-0000007b'31fe4fff r--      2000      1000  /system/lib64/libvndksupport.so (BuildId: 956c1daca86178339ecfce4331da5feb)
+    0000007b'31fe5000-0000007b'31fe5fff rw-      2000      1000  /system/lib64/libvndksupport.so (BuildId: 956c1daca86178339ecfce4331da5feb)
+    0000007b'32005000-0000007b'3200ffff r--         0      b000  /system/lib64/android.hardware.cas.native@1.0.so (BuildId: 3773fe6d270a2b1038ba22e00709e9bc)
+    0000007b'32010000-0000007b'32017fff r-x      b000      8000  /system/lib64/android.hardware.cas.native@1.0.so (BuildId: 3773fe6d270a2b1038ba22e00709e9bc)
+    0000007b'32018000-0000007b'32019fff r--     13000      2000  /system/lib64/android.hardware.cas.native@1.0.so (BuildId: 3773fe6d270a2b1038ba22e00709e9bc)
+    0000007b'3201a000-0000007b'3201afff rw-     14000      1000  /system/lib64/android.hardware.cas.native@1.0.so (BuildId: 3773fe6d270a2b1038ba22e00709e9bc)
+    0000007b'32073000-0000007b'32073fff r--         0      1000  /system/lib64/libnativeloader_lazy.so (BuildId: 31982bf043bb3d09220969512c4c78c6)
+    0000007b'32074000-0000007b'32074fff r-x      1000      1000  /system/lib64/libnativeloader_lazy.so (BuildId: 31982bf043bb3d09220969512c4c78c6)
+    0000007b'32075000-0000007b'32075fff r--      2000      1000  /system/lib64/libnativeloader_lazy.so (BuildId: 31982bf043bb3d09220969512c4c78c6)
+    0000007b'32076000-0000007b'32076fff rw-      2000      1000  /system/lib64/libnativeloader_lazy.so (BuildId: 31982bf043bb3d09220969512c4c78c6)
+    0000007b'320a0000-0000007b'320a2fff r--         0      3000  /system/lib64/libhardware_legacy.so (BuildId: a350fbe4caf7b5c9e12584c543a93abf)
+    0000007b'320a3000-0000007b'320a5fff r-x      3000      3000  /system/lib64/libhardware_legacy.so (BuildId: a350fbe4caf7b5c9e12584c543a93abf)
+    0000007b'320a6000-0000007b'320a6fff r--      6000      1000  /system/lib64/libhardware_legacy.so (BuildId: a350fbe4caf7b5c9e12584c543a93abf)
+    0000007b'320a7000-0000007b'320a7fff rw-      6000      1000  /system/lib64/libhardware_legacy.so (BuildId: a350fbe4caf7b5c9e12584c543a93abf)
+    0000007b'320c0000-0000007b'320c4fff r--         0      5000  /system/lib64/libdatasource_local_cache.so (BuildId: bc98c2a14df38e2ecb0c939d81262b43)
+    0000007b'320c5000-0000007b'320cafff r-x      5000      6000  /system/lib64/libdatasource_local_cache.so (BuildId: bc98c2a14df38e2ecb0c939d81262b43)
+    0000007b'320cb000-0000007b'320cbfff r--      b000      1000  /system/lib64/libdatasource_local_cache.so (BuildId: bc98c2a14df38e2ecb0c939d81262b43)
+    0000007b'320cc000-0000007b'320ccfff rw-      b000      1000  /system/lib64/libdatasource_local_cache.so (BuildId: bc98c2a14df38e2ecb0c939d81262b43)
+    0000007b'32122000-0000007b'32125fff r--         0      4000  /system/lib64/libsecnativefeature.so (BuildId: da2deef8267236586c445b15c823a4b3)
+    0000007b'32126000-0000007b'32129fff r-x      4000      4000  /system/lib64/libsecnativefeature.so (BuildId: da2deef8267236586c445b15c823a4b3)
+    0000007b'3212a000-0000007b'3212afff r--      8000      1000  /system/lib64/libsecnativefeature.so (BuildId: da2deef8267236586c445b15c823a4b3)
+    0000007b'3212b000-0000007b'3212bfff rw-      8000      1000  /system/lib64/libsecnativefeature.so (BuildId: da2deef8267236586c445b15c823a4b3)
+    0000007b'3214c000-0000007b'32154fff r--         0      9000  /system/lib64/android.hardware.graphics.allocator@4.0.so (BuildId: 5fd4cbd792e8b45b1c6d9cf8a0cd86ec)
+    0000007b'32155000-0000007b'3215bfff r-x      9000      7000  /system/lib64/android.hardware.graphics.allocator@4.0.so (BuildId: 5fd4cbd792e8b45b1c6d9cf8a0cd86ec)
+    0000007b'3215c000-0000007b'3215dfff r--     10000      2000  /system/lib64/android.hardware.graphics.allocator@4.0.so (BuildId: 5fd4cbd792e8b45b1c6d9cf8a0cd86ec)
+    0000007b'3215e000-0000007b'3215efff rw-     11000      1000  /system/lib64/android.hardware.graphics.allocator@4.0.so (BuildId: 5fd4cbd792e8b45b1c6d9cf8a0cd86ec)
+    0000007b'32181000-0000007b'32188fff r--         0      8000  /system/lib64/libpermission.so (BuildId: d9f1c1a3f5a76e24e05c64231b06524f)
+    0000007b'32189000-0000007b'3218efff r-x      8000      6000  /system/lib64/libpermission.so (BuildId: d9f1c1a3f5a76e24e05c64231b06524f)
+    0000007b'3218f000-0000007b'32191fff r--      e000      3000  /system/lib64/libpermission.so (BuildId: d9f1c1a3f5a76e24e05c64231b06524f)
+    0000007b'32192000-0000007b'32192fff rw-     10000      1000  /system/lib64/libpermission.so (BuildId: d9f1c1a3f5a76e24e05c64231b06524f)
+    0000007b'321d5000-0000007b'321e1fff r--         0      d000  /system/lib64/libremotedisplay.so (BuildId: ed15116fae6ad260a1b00b8643351514)
+    0000007b'321e2000-0000007b'321f3fff r-x      d000     12000  /system/lib64/libremotedisplay.so (BuildId: ed15116fae6ad260a1b00b8643351514)
+    0000007b'321f4000-0000007b'321fbfff r--     1f000      8000  /system/lib64/libremotedisplay.so (BuildId: ed15116fae6ad260a1b00b8643351514)
+    0000007b'321fc000-0000007b'321fefff rw-     26000      3000  /system/lib64/libremotedisplay.so (BuildId: ed15116fae6ad260a1b00b8643351514)
+    0000007b'32218000-0000007b'32235fff r--         0     1e000  /system/lib64/libclang_rt.ubsan_standalone-aarch64-android.so (BuildId: 6e25873dd0d69a0b31220e264a15d6c52ca73687) (load bias 0x1000)
+    0000007b'32236000-0000007b'32268fff r-x     1d000     33000  /system/lib64/libclang_rt.ubsan_standalone-aarch64-android.so (BuildId: 6e25873dd0d69a0b31220e264a15d6c52ca73687) (load bias 0x1000)
+    0000007b'32269000-0000007b'3226cfff r--     4f000      4000  /system/lib64/libclang_rt.ubsan_standalone-aarch64-android.so (BuildId: 6e25873dd0d69a0b31220e264a15d6c52ca73687) (load bias 0x1000)
+    0000007b'3226d000-0000007b'3226ffff rw-     52000      3000  /system/lib64/libclang_rt.ubsan_standalone-aarch64-android.so (BuildId: 6e25873dd0d69a0b31220e264a15d6c52ca73687) (load bias 0x1000)
+    0000007b'32270000-0000007b'32491fff rw-         0    222000  [anon:.bss]
+    0000007b'3250b000-0000007b'32517fff r-x         0      d000  /system/lib64/lib_SoundAlive_SRC384_ver320.so
+    0000007b'32518000-0000007b'32527fff ---         0     10000
+    0000007b'32528000-0000007b'3252efff rw-      d000      7000  /system/lib64/lib_SoundAlive_SRC384_ver320.so
+    0000007b'3255c000-0000007b'32576fff r--         0     1b000  /system/lib64/libmediautils.so (BuildId: 573fba61a38501e45db7387bd5296af1)
+    0000007b'32577000-0000007b'325adfff r-x     1b000     37000  /system/lib64/libmediautils.so (BuildId: 573fba61a38501e45db7387bd5296af1)
+    0000007b'325ae000-0000007b'325b3fff r--     52000      6000  /system/lib64/libmediautils.so (BuildId: 573fba61a38501e45db7387bd5296af1)
+    0000007b'325b4000-0000007b'325b4fff rw-     57000      1000  /system/lib64/libmediautils.so (BuildId: 573fba61a38501e45db7387bd5296af1)
+    0000007b'325f3000-0000007b'325f8fff r--         0      6000  /system/lib64/libcodecsolutionhelper.so (BuildId: 961e9ab1d14e1a4252f7ef5901dacbe2)
+    0000007b'325f9000-0000007b'325fefff r-x      6000      6000  /system/lib64/libcodecsolutionhelper.so (BuildId: 961e9ab1d14e1a4252f7ef5901dacbe2)
+    0000007b'325ff000-0000007b'325fffff r--      c000      1000  /system/lib64/libcodecsolutionhelper.so (BuildId: 961e9ab1d14e1a4252f7ef5901dacbe2)
+    0000007b'32600000-0000007b'34ffffff ---         0   2a00000
+    0000007b'3505c000-0000007b'35062fff r--         0      7000  /system/lib64/libselinux.so (BuildId: 8c3ffc36c4da29da3e6568dc2cba4089)
+    0000007b'35063000-0000007b'35073fff r-x      7000     11000  /system/lib64/libselinux.so (BuildId: 8c3ffc36c4da29da3e6568dc2cba4089)
+    0000007b'35074000-0000007b'35074fff r--     18000      1000  /system/lib64/libselinux.so (BuildId: 8c3ffc36c4da29da3e6568dc2cba4089)
+    0000007b'35075000-0000007b'35075fff rw-     18000      1000  /system/lib64/libselinux.so (BuildId: 8c3ffc36c4da29da3e6568dc2cba4089)
+    0000007b'35076000-0000007b'35077fff rw-         0      2000  [anon:.bss]
+    0000007b'350a2000-0000007b'350a2fff r--         0      1000  /system/lib64/libprocinfo.so (BuildId: f743eec45baf0cdae627b35993c3a080)
+    0000007b'350a3000-0000007b'350a3fff r-x      1000      1000  /system/lib64/libprocinfo.so (BuildId: f743eec45baf0cdae627b35993c3a080)
+    0000007b'350a4000-0000007b'350a4fff r--      2000      1000  /system/lib64/libprocinfo.so (BuildId: f743eec45baf0cdae627b35993c3a080)
+    0000007b'350d9000-0000007b'350d9fff r--         0      1000  /system/lib64/android.hardware.graphics.common@1.1.so (BuildId: 3d8be1115a650fa810d8871f79f217a3)
+    0000007b'350da000-0000007b'350dafff r-x      1000      1000  /system/lib64/android.hardware.graphics.common@1.1.so (BuildId: 3d8be1115a650fa810d8871f79f217a3)
+    0000007b'350db000-0000007b'350dbfff r--      2000      1000  /system/lib64/android.hardware.graphics.common@1.1.so (BuildId: 3d8be1115a650fa810d8871f79f217a3)
+    0000007b'3512c000-0000007b'35130fff r--         0      5000  /system/lib64/libcamera_metadata.so (BuildId: 2cb6648f12a1904d6d2221a7a28e9d17)
+    0000007b'35131000-0000007b'35136fff r-x      5000      6000  /system/lib64/libcamera_metadata.so (BuildId: 2cb6648f12a1904d6d2221a7a28e9d17)
+    0000007b'35137000-0000007b'35137fff r--      b000      1000  /system/lib64/libcamera_metadata.so (BuildId: 2cb6648f12a1904d6d2221a7a28e9d17)
+    0000007b'35138000-0000007b'35139fff rw-      b000      2000  /system/lib64/libcamera_metadata.so (BuildId: 2cb6648f12a1904d6d2221a7a28e9d17)
+    0000007b'35151000-0000007b'35167fff r--         0     17000  /system/lib64/libsfplugin_ccodec_utils.so (BuildId: 08c1f4671d7f5b4549d5b0a0a1945daa)
+    0000007b'35168000-0000007b'3519cfff r-x     17000     35000  /system/lib64/libsfplugin_ccodec_utils.so (BuildId: 08c1f4671d7f5b4549d5b0a0a1945daa)
+    0000007b'3519d000-0000007b'3519efff r--     4c000      2000  /system/lib64/libsfplugin_ccodec_utils.so (BuildId: 08c1f4671d7f5b4549d5b0a0a1945daa)
+    0000007b'3519f000-0000007b'3519ffff rw-     4d000      1000  /system/lib64/libsfplugin_ccodec_utils.so (BuildId: 08c1f4671d7f5b4549d5b0a0a1945daa)
+    0000007b'351a0000-0000007b'351a0fff rw-         0      1000  [anon:.bss]
+    0000007b'35200000-0000007b'37bfffff ---         0   2a00000
+    0000007b'37c43000-0000007b'37c81fff r--         0     3f000  /system/lib64/libharfbuzz_ng.so (BuildId: 96524df68c1e2393408263a3b9801259)
+    0000007b'37c82000-0000007b'37d79fff r-x     3f000     f8000  /system/lib64/libharfbuzz_ng.so (BuildId: 96524df68c1e2393408263a3b9801259)
+    0000007b'37d7a000-0000007b'37d7afff r--    137000      1000  /system/lib64/libharfbuzz_ng.so (BuildId: 96524df68c1e2393408263a3b9801259)
+    0000007b'37d7b000-0000007b'37d7cfff rw-    137000      2000  /system/lib64/libharfbuzz_ng.so (BuildId: 96524df68c1e2393408263a3b9801259)
+    0000007b'37d9f000-0000007b'37dc4fff r--         0     26000  /system/lib64/android.hardware.media.omx@1.0.so (BuildId: 9c52656dd00a6728f6a96ed23f237c45)
+    0000007b'37dc5000-0000007b'37df4fff r-x     26000     30000  /system/lib64/android.hardware.media.omx@1.0.so (BuildId: 9c52656dd00a6728f6a96ed23f237c45)
+    0000007b'37df5000-0000007b'37dfcfff r--     56000      8000  /system/lib64/android.hardware.media.omx@1.0.so (BuildId: 9c52656dd00a6728f6a96ed23f237c45)
+    0000007b'37dfd000-0000007b'37dfdfff rw-     5d000      1000  /system/lib64/android.hardware.media.omx@1.0.so (BuildId: 9c52656dd00a6728f6a96ed23f237c45)
+    0000007b'37e35000-0000007b'37e80fff r--         0     4c000  /system/lib64/libxml2.so (BuildId: ecc3f05f2951de56c114a477dc813900)
+    0000007b'37e81000-0000007b'37f63fff r-x     4c000     e3000  /system/lib64/libxml2.so (BuildId: ecc3f05f2951de56c114a477dc813900)
+    0000007b'37f64000-0000007b'37f66fff r--    12f000      3000  /system/lib64/libxml2.so (BuildId: ecc3f05f2951de56c114a477dc813900)
+    0000007b'37f67000-0000007b'37f68fff rw-    131000      2000  /system/lib64/libxml2.so (BuildId: ecc3f05f2951de56c114a477dc813900)
+    0000007b'37f69000-0000007b'37f69fff rw-         0      1000  [anon:.bss]
+    0000007b'37fe4000-0000007b'37feefff r--         0      b000  /system/lib64/android.hardware.graphics.mapper@2.0.so (BuildId: a5c8b873422947bbaed50fe647c48307)
+    0000007b'37fef000-0000007b'37ff6fff r-x      b000      8000  /system/lib64/android.hardware.graphics.mapper@2.0.so (BuildId: a5c8b873422947bbaed50fe647c48307)
+    0000007b'37ff7000-0000007b'37ff8fff r--     13000      2000  /system/lib64/android.hardware.graphics.mapper@2.0.so (BuildId: a5c8b873422947bbaed50fe647c48307)
+    0000007b'37ff9000-0000007b'37ff9fff rw-     14000      1000  /system/lib64/android.hardware.graphics.mapper@2.0.so (BuildId: a5c8b873422947bbaed50fe647c48307)
+    0000007b'38000000-0000007b'3a1fffff ---         0   2200000
+    0000007b'3a259000-0000007b'3a25afff r--         0      2000  /system/lib64/server_configurable_flags.so (BuildId: 41511c22c4e60a032b1ee77db5c68b41)
+    0000007b'3a25b000-0000007b'3a25cfff r-x      2000      2000  /system/lib64/server_configurable_flags.so (BuildId: 41511c22c4e60a032b1ee77db5c68b41)
+    0000007b'3a25d000-0000007b'3a25dfff r--      4000      1000  /system/lib64/server_configurable_flags.so (BuildId: 41511c22c4e60a032b1ee77db5c68b41)
+    0000007b'3a293000-0000007b'3a299fff r--         0      7000  /system/lib64/libaudiopolicy.so (BuildId: b97b898afed6e8ae7750344420a97067)
+    0000007b'3a29a000-0000007b'3a2a6fff r-x      7000      d000  /system/lib64/libaudiopolicy.so (BuildId: b97b898afed6e8ae7750344420a97067)
+    0000007b'3a2a7000-0000007b'3a2a7fff r--     14000      1000  /system/lib64/libaudiopolicy.so (BuildId: b97b898afed6e8ae7750344420a97067)
+    0000007b'3a2e4000-0000007b'3a2effff r--         0      c000  /apex/com.android.i18n/lib64/libicu.so (BuildId: 2c7b314d0e50afa83fc4b432ca0f2192)
+    0000007b'3a2f0000-0000007b'3a2f1fff r-x      c000      2000  /apex/com.android.i18n/lib64/libicu.so (BuildId: 2c7b314d0e50afa83fc4b432ca0f2192)
+    0000007b'3a2f2000-0000007b'3a2f2fff r--      e000      1000  /apex/com.android.i18n/lib64/libicu.so (BuildId: 2c7b314d0e50afa83fc4b432ca0f2192)
+    0000007b'3a306000-0000007b'3a31bfff r--         0     16000  /system/lib64/libsavscmn.so (BuildId: bcbb74817d0bc0aaa08d7c6a6d8a7a34)
+    0000007b'3a31c000-0000007b'3a392fff r-x     16000     77000  /system/lib64/libsavscmn.so (BuildId: bcbb74817d0bc0aaa08d7c6a6d8a7a34)
+    0000007b'3a393000-0000007b'3a393fff r--     8d000      1000  /system/lib64/libsavscmn.so (BuildId: bcbb74817d0bc0aaa08d7c6a6d8a7a34)
+    0000007b'3a394000-0000007b'3a397fff rw-     8d000      4000  /system/lib64/libsavscmn.so (BuildId: bcbb74817d0bc0aaa08d7c6a6d8a7a34)
+    0000007b'3a3cd000-0000007b'3a3ddfff r--         0     11000  /system/lib64/libpdx_default_transport.so (BuildId: 03874305d6df3ddcdea0f74a5242117d)
+    0000007b'3a3de000-0000007b'3a3f0fff r-x     11000     13000  /system/lib64/libpdx_default_transport.so (BuildId: 03874305d6df3ddcdea0f74a5242117d)
+    0000007b'3a3f1000-0000007b'3a3f1fff r--     24000      1000  /system/lib64/libpdx_default_transport.so (BuildId: 03874305d6df3ddcdea0f74a5242117d)
+    0000007b'3a3f2000-0000007b'3a3f2fff rw-     24000      1000  /system/lib64/libpdx_default_transport.so (BuildId: 03874305d6df3ddcdea0f74a5242117d)
+    0000007b'3a429000-0000007b'3a42efff r--         0      6000  /system/lib64/android.hardware.power-V3-cpp.so (BuildId: d9c67477475f6c1ef7babecc05c98134)
+    0000007b'3a42f000-0000007b'3a433fff r-x      6000      5000  /system/lib64/android.hardware.power-V3-cpp.so (BuildId: d9c67477475f6c1ef7babecc05c98134)
+    0000007b'3a434000-0000007b'3a435fff r--      b000      2000  /system/lib64/android.hardware.power-V3-cpp.so (BuildId: d9c67477475f6c1ef7babecc05c98134)
+    0000007b'3a436000-0000007b'3a437fff rw-      c000      2000  /system/lib64/android.hardware.power-V3-cpp.so (BuildId: d9c67477475f6c1ef7babecc05c98134)
+    0000007b'3a469000-0000007b'3a469fff r--         0      1000  /system/lib64/android.hardware.configstore-utils.so (BuildId: 559f1be346b6d3fbbc2e377f6f946389)
+    0000007b'3a46a000-0000007b'3a46afff r-x      1000      1000  /system/lib64/android.hardware.configstore-utils.so (BuildId: 559f1be346b6d3fbbc2e377f6f946389)
+    0000007b'3a46b000-0000007b'3a46bfff r--      2000      1000  /system/lib64/android.hardware.configstore-utils.so (BuildId: 559f1be346b6d3fbbc2e377f6f946389)
+    0000007b'3a4aa000-0000007b'3a4dafff r--         0     31000  /system/lib64/libvintf.so (BuildId: cc0dd9eadca3c9c43aa6e137817ee1a7)
+    0000007b'3a4db000-0000007b'3a531fff r-x     31000     57000  /system/lib64/libvintf.so (BuildId: cc0dd9eadca3c9c43aa6e137817ee1a7)
+    0000007b'3a532000-0000007b'3a535fff r--     88000      4000  /system/lib64/libvintf.so (BuildId: cc0dd9eadca3c9c43aa6e137817ee1a7)
+    0000007b'3a536000-0000007b'3a536fff rw-     8b000      1000  /system/lib64/libvintf.so (BuildId: cc0dd9eadca3c9c43aa6e137817ee1a7)
+    0000007b'3a54a000-0000007b'3a557fff r--         0      e000  /system/lib64/libutils.so (BuildId: a5ca39eaeeeb017be4afa358811e69fb)
+    0000007b'3a558000-0000007b'3a564fff r-x      e000      d000  /system/lib64/libutils.so (BuildId: a5ca39eaeeeb017be4afa358811e69fb)
+    0000007b'3a565000-0000007b'3a565fff r--     1b000      1000  /system/lib64/libutils.so (BuildId: a5ca39eaeeeb017be4afa358811e69fb)
+    0000007b'3a566000-0000007b'3a566fff rw-     1b000      1000  /system/lib64/libutils.so (BuildId: a5ca39eaeeeb017be4afa358811e69fb)
+    0000007b'3a582000-0000007b'3a584fff r--         0      3000  /system/lib64/android.hardware.graphics.common-V3-ndk.so (BuildId: cb890c9a0321637f587de4626b02085a)
+    0000007b'3a585000-0000007b'3a586fff r-x      3000      2000  /system/lib64/android.hardware.graphics.common-V3-ndk.so (BuildId: cb890c9a0321637f587de4626b02085a)
+    0000007b'3a587000-0000007b'3a587fff r--      5000      1000  /system/lib64/android.hardware.graphics.common-V3-ndk.so (BuildId: cb890c9a0321637f587de4626b02085a)
+    0000007b'3a588000-0000007b'3a588fff rw-      5000      1000  /system/lib64/android.hardware.graphics.common-V3-ndk.so (BuildId: cb890c9a0321637f587de4626b02085a)
+    0000007b'3a5ec000-0000007b'3a5ecfff r--         0      1000  /system/lib64/libcodec2_hidl_client@1.1.so (BuildId: 1e9e6caeacbbeaf1bb4a5e1381f7aea2)
+    0000007b'3a5ed000-0000007b'3a5eefff r-x      1000      2000  /system/lib64/libcodec2_hidl_client@1.1.so (BuildId: 1e9e6caeacbbeaf1bb4a5e1381f7aea2)
+    0000007b'3a5ef000-0000007b'3a5effff r--      3000      1000  /system/lib64/libcodec2_hidl_client@1.1.so (BuildId: 1e9e6caeacbbeaf1bb4a5e1381f7aea2)
+    0000007b'3a605000-0000007b'3a617fff r--         0     13000  /system/lib64/libpowermanager.so (BuildId: 4f11a51f7003977f6fedefa5cae2503b)
+    0000007b'3a618000-0000007b'3a62ffff r-x     13000     18000  /system/lib64/libpowermanager.so (BuildId: 4f11a51f7003977f6fedefa5cae2503b)
+    0000007b'3a630000-0000007b'3a637fff r--     2b000      8000  /system/lib64/libpowermanager.so (BuildId: 4f11a51f7003977f6fedefa5cae2503b)
+    0000007b'3a638000-0000007b'3a638fff rw-     32000      1000  /system/lib64/libpowermanager.so (BuildId: 4f11a51f7003977f6fedefa5cae2503b)
+    0000007b'3a64b000-0000007b'3a657fff r--         0      d000  /system/lib64/android.hardware.configstore@1.0.so (BuildId: 3561d3899b59a6bb9534cb887f87ab64)
+    0000007b'3a658000-0000007b'3a663fff r-x      d000      c000  /system/lib64/android.hardware.configstore@1.0.so (BuildId: 3561d3899b59a6bb9534cb887f87ab64)
+    0000007b'3a664000-0000007b'3a665fff r--     19000      2000  /system/lib64/android.hardware.configstore@1.0.so (BuildId: 3561d3899b59a6bb9534cb887f87ab64)
+    0000007b'3a666000-0000007b'3a666fff rw-     1a000      1000  /system/lib64/android.hardware.configstore@1.0.so (BuildId: 3561d3899b59a6bb9534cb887f87ab64)
+    0000007b'3a684000-0000007b'3a688fff r--         0      5000  /system/lib64/android.hardware.memtrack-V1-ndk.so (BuildId: 83424cd20014efb2d9f83f31be955fa4)
+    0000007b'3a689000-0000007b'3a68bfff r-x      5000      3000  /system/lib64/android.hardware.memtrack-V1-ndk.so (BuildId: 83424cd20014efb2d9f83f31be955fa4)
+    0000007b'3a68c000-0000007b'3a68cfff r--      8000      1000  /system/lib64/android.hardware.memtrack-V1-ndk.so (BuildId: 83424cd20014efb2d9f83f31be955fa4)
+    0000007b'3a68d000-0000007b'3a68dfff rw-      8000      1000  /system/lib64/android.hardware.memtrack-V1-ndk.so (BuildId: 83424cd20014efb2d9f83f31be955fa4)
+    0000007b'3a6c4000-0000007b'3a6cafff r--         0      7000  /system/lib64/libstagefright_xmlparser.so (BuildId: 748f8252076f76bdbd21bfe99c16d794)
+    0000007b'3a6cb000-0000007b'3a6dafff r-x      7000     10000  /system/lib64/libstagefright_xmlparser.so (BuildId: 748f8252076f76bdbd21bfe99c16d794)
+    0000007b'3a6db000-0000007b'3a6dbfff r--     17000      1000  /system/lib64/libstagefright_xmlparser.so (BuildId: 748f8252076f76bdbd21bfe99c16d794)
+    0000007b'3a6dc000-0000007b'3a6dcfff rw-     17000      1000  /system/lib64/libstagefright_xmlparser.so (BuildId: 748f8252076f76bdbd21bfe99c16d794)
+    0000007b'3a710000-0000007b'3a740fff r--         0     31000  /system/lib64/android.hardware.media.c2@1.0.so (BuildId: b64fa5b8b5eb19441c9b18e509d3dafb)
+    0000007b'3a741000-0000007b'3a780fff r-x     31000     40000  /system/lib64/android.hardware.media.c2@1.0.so (BuildId: b64fa5b8b5eb19441c9b18e509d3dafb)
+    0000007b'3a781000-0000007b'3a78afff r--     71000      a000  /system/lib64/android.hardware.media.c2@1.0.so (BuildId: b64fa5b8b5eb19441c9b18e509d3dafb)
+    0000007b'3a78b000-0000007b'3a78bfff rw-     7a000      1000  /system/lib64/android.hardware.media.c2@1.0.so (BuildId: b64fa5b8b5eb19441c9b18e509d3dafb)
+    0000007b'3a800000-0000007b'3b1fffff ---         0    a00000
+    0000007b'3b255000-0000007b'3b25afff r--         0      6000  /system/lib64/effect-aidl-cpp.so (BuildId: e22831f9e8d9ab6bed047c656185b4d1)
+    0000007b'3b25b000-0000007b'3b260fff r-x      6000      6000  /system/lib64/effect-aidl-cpp.so (BuildId: e22831f9e8d9ab6bed047c656185b4d1)
+    0000007b'3b261000-0000007b'3b262fff r--      c000      2000  /system/lib64/effect-aidl-cpp.so (BuildId: e22831f9e8d9ab6bed047c656185b4d1)
+    0000007b'3b263000-0000007b'3b263fff rw-      d000      1000  /system/lib64/effect-aidl-cpp.so (BuildId: e22831f9e8d9ab6bed047c656185b4d1)
+    0000007b'3b2a4000-0000007b'3b2a4fff r--         0      1000  /system/lib64/libshmemutil.so (BuildId: 060b0e83ed2295bdff89c3427de60d1f)
+    0000007b'3b2a5000-0000007b'3b2a6fff r-x      1000      2000  /system/lib64/libshmemutil.so (BuildId: 060b0e83ed2295bdff89c3427de60d1f)
+    0000007b'3b2a7000-0000007b'3b2a7fff r--      3000      1000  /system/lib64/libshmemutil.so (BuildId: 060b0e83ed2295bdff89c3427de60d1f)
+    0000007b'3b2e7000-0000007b'3b2e7fff r--         0      1000  /system/lib64/android.hardware.graphics.common@1.0.so (BuildId: 3dbd257058b078550dfec7be887e7721)
+    0000007b'3b2e8000-0000007b'3b2e8fff r-x      1000      1000  /system/lib64/android.hardware.graphics.common@1.0.so (BuildId: 3dbd257058b078550dfec7be887e7721)
+    0000007b'3b2e9000-0000007b'3b2e9fff r--      2000      1000  /system/lib64/android.hardware.graphics.common@1.0.so (BuildId: 3dbd257058b078550dfec7be887e7721)
+    0000007b'3b32b000-0000007b'3b3bbfff r--         0     91000  /system/lib64/libstagefright.so (BuildId: 0394b77a3133f7d3e8c891682d141220)
+    0000007b'3b3bc000-0000007b'3b51cfff r-x     91000    161000  /system/lib64/libstagefright.so (BuildId: 0394b77a3133f7d3e8c891682d141220)
+    0000007b'3b51d000-0000007b'3b52dfff r--    1f2000     11000  /system/lib64/libstagefright.so (BuildId: 0394b77a3133f7d3e8c891682d141220)
+    0000007b'3b52e000-0000007b'3b52efff rw-    202000      1000  /system/lib64/libstagefright.so (BuildId: 0394b77a3133f7d3e8c891682d141220)
+    0000007b'3b52f000-0000007b'3b52ffff rw-         0      1000  [anon:.bss]
+    0000007b'3b5a4000-0000007b'3b5b6fff r--         0     13000  /system/lib64/libGLESv2.so (BuildId: c6a04db74ac667278dc875183790a38b)
+    0000007b'3b5b7000-0000007b'3b5bcfff r-x     13000      6000  /system/lib64/libGLESv2.so (BuildId: c6a04db74ac667278dc875183790a38b)
+    0000007b'3b5bd000-0000007b'3b5bdfff r--     19000      1000  /system/lib64/libGLESv2.so (BuildId: c6a04db74ac667278dc875183790a38b)
+    0000007b'3b5f6000-0000007b'3b5f6fff r--         0      1000  /system/lib64/android.hardware.graphics.common@1.2.so (BuildId: 25741e08d42dfc33f521392a00d4bddd)
+    0000007b'3b5f7000-0000007b'3b5f7fff r-x      1000      1000  /system/lib64/android.hardware.graphics.common@1.2.so (BuildId: 25741e08d42dfc33f521392a00d4bddd)
+    0000007b'3b5f8000-0000007b'3b5f8fff r--      2000      1000  /system/lib64/android.hardware.graphics.common@1.2.so (BuildId: 25741e08d42dfc33f521392a00d4bddd)
+    0000007b'3b600000-0000007b'3d3fffff ---         0   1e00000
+    0000007b'3d448000-0000007b'3d45cfff r--         0     15000  /system/lib64/android.hardware.media.bufferpool@2.0.so (BuildId: 06a16d458ebb9ef76110a984f03cdccc)
+    0000007b'3d45d000-0000007b'3d471fff r-x     15000     15000  /system/lib64/android.hardware.media.bufferpool@2.0.so (BuildId: 06a16d458ebb9ef76110a984f03cdccc)
+    0000007b'3d472000-0000007b'3d476fff r--     2a000      5000  /system/lib64/android.hardware.media.bufferpool@2.0.so (BuildId: 06a16d458ebb9ef76110a984f03cdccc)
+    0000007b'3d477000-0000007b'3d477fff rw-     2e000      1000  /system/lib64/android.hardware.media.bufferpool@2.0.so (BuildId: 06a16d458ebb9ef76110a984f03cdccc)
+    0000007b'3d48f000-0000007b'3d498fff r--         0      a000  /system/lib64/libmemunreachable.so (BuildId: fe53168b895ae4de9dc036738ee64568)
+    0000007b'3d499000-0000007b'3d4bafff r-x      a000     22000  /system/lib64/libmemunreachable.so (BuildId: fe53168b895ae4de9dc036738ee64568)
+    0000007b'3d4bb000-0000007b'3d4bdfff r--     2c000      3000  /system/lib64/libmemunreachable.so (BuildId: fe53168b895ae4de9dc036738ee64568)
+    0000007b'3d4be000-0000007b'3d4befff rw-     2e000      1000  /system/lib64/libmemunreachable.so (BuildId: fe53168b895ae4de9dc036738ee64568)
+    0000007b'3d4f3000-0000007b'3d4f7fff r--         0      5000  /system/lib64/libbpf_bcc.so (BuildId: a031ba1f55d6f76d8dff4f2ec1392dbd)
+    0000007b'3d4f8000-0000007b'3d4fbfff r-x      5000      4000  /system/lib64/libbpf_bcc.so (BuildId: a031ba1f55d6f76d8dff4f2ec1392dbd)
+    0000007b'3d4fc000-0000007b'3d4fdfff r--      9000      2000  /system/lib64/libbpf_bcc.so (BuildId: a031ba1f55d6f76d8dff4f2ec1392dbd)
+    0000007b'3d4fe000-0000007b'3d4fefff rw-      a000      1000  /system/lib64/libbpf_bcc.so (BuildId: a031ba1f55d6f76d8dff4f2ec1392dbd)
+    0000007b'3d520000-0000007b'3d545fff r--         0     26000  /system/lib64/libui.so (BuildId: a82fbddf85ed6b73fbeb9b273e69dd59)
+    0000007b'3d546000-0000007b'3d56bfff r-x     26000     26000  /system/lib64/libui.so (BuildId: a82fbddf85ed6b73fbeb9b273e69dd59)
+    0000007b'3d56c000-0000007b'3d56efff r--     4c000      3000  /system/lib64/libui.so (BuildId: a82fbddf85ed6b73fbeb9b273e69dd59)
+    0000007b'3d56f000-0000007b'3d56ffff rw-     4e000      1000  /system/lib64/libui.so (BuildId: a82fbddf85ed6b73fbeb9b273e69dd59)
+    0000007b'3d570000-0000007b'3d570fff rw-         0      1000  [anon:.bss]
+    0000007b'3d589000-0000007b'3d5aafff r--         0     22000  /system/lib64/android.hardware.drm@1.0.so (BuildId: 4263755d15d8c04d6d2ca4d30af494c1)
+    0000007b'3d5ab000-0000007b'3d5d7fff r-x     22000     2d000  /system/lib64/android.hardware.drm@1.0.so (BuildId: 4263755d15d8c04d6d2ca4d30af494c1)
+    0000007b'3d5d8000-0000007b'3d5defff r--     4f000      7000  /system/lib64/android.hardware.drm@1.0.so (BuildId: 4263755d15d8c04d6d2ca4d30af494c1)
+    0000007b'3d5df000-0000007b'3d5dffff rw-     55000      1000  /system/lib64/android.hardware.drm@1.0.so (BuildId: 4263755d15d8c04d6d2ca4d30af494c1)
+    0000007b'3d60f000-0000007b'3d610fff r--         0      2000  /system/lib64/libstagefright_omx_utils.so (BuildId: 2bfe1b2d6a6812f73e98fa2cdf909989)
+    0000007b'3d611000-0000007b'3d612fff r-x      2000      2000  /system/lib64/libstagefright_omx_utils.so (BuildId: 2bfe1b2d6a6812f73e98fa2cdf909989)
+    0000007b'3d613000-0000007b'3d613fff r--      4000      1000  /system/lib64/libstagefright_omx_utils.so (BuildId: 2bfe1b2d6a6812f73e98fa2cdf909989)
+    0000007b'3d614000-0000007b'3d614fff rw-      4000      1000  /system/lib64/libstagefright_omx_utils.so (BuildId: 2bfe1b2d6a6812f73e98fa2cdf909989)
+    0000007b'3d647000-0000007b'3d64ffff r--         0      9000  /system/lib64/android.hidl.allocator@1.0.so (BuildId: 27131d9395c6a0caa0c2377631cc5047)
+    0000007b'3d650000-0000007b'3d656fff r-x      9000      7000  /system/lib64/android.hidl.allocator@1.0.so (BuildId: 27131d9395c6a0caa0c2377631cc5047)
+    0000007b'3d657000-0000007b'3d658fff r--     10000      2000  /system/lib64/android.hidl.allocator@1.0.so (BuildId: 27131d9395c6a0caa0c2377631cc5047)
+    0000007b'3d659000-0000007b'3d659fff rw-     11000      1000  /system/lib64/android.hidl.allocator@1.0.so (BuildId: 27131d9395c6a0caa0c2377631cc5047)
+    0000007b'3d695000-0000007b'3d695fff r--         0      1000  /system/lib64/libcodec2.so (BuildId: 890c511ca4b81051323d0e43fca61d32)
+    0000007b'3d696000-0000007b'3d696fff r-x      1000      1000  /system/lib64/libcodec2.so (BuildId: 890c511ca4b81051323d0e43fca61d32)
+    0000007b'3d697000-0000007b'3d697fff r--      2000      1000  /system/lib64/libcodec2.so (BuildId: 890c511ca4b81051323d0e43fca61d32)
+    0000007b'3d6c0000-0000007b'3d6f3fff r--         0     34000  /system/lib64/libprotobuf-cpp-lite.so (BuildId: 9bf1728d423e9e0c1308d9eada90f064)
+    0000007b'3d6f4000-0000007b'3d732fff r-x     34000     3f000  /system/lib64/libprotobuf-cpp-lite.so (BuildId: 9bf1728d423e9e0c1308d9eada90f064)
+    0000007b'3d733000-0000007b'3d734fff r--     73000      2000  /system/lib64/libprotobuf-cpp-lite.so (BuildId: 9bf1728d423e9e0c1308d9eada90f064)
+    0000007b'3d735000-0000007b'3d735fff rw-     74000      1000  /system/lib64/libprotobuf-cpp-lite.so (BuildId: 9bf1728d423e9e0c1308d9eada90f064)
+    0000007b'3d740000-0000007b'3d74dfff r--         0      e000  /system/lib64/audiopolicy-aidl-cpp.so (BuildId: f7d0ab1b02e1433283129c1ca2facfcc)
+    0000007b'3d74e000-0000007b'3d779fff r-x      e000     2c000  /system/lib64/audiopolicy-aidl-cpp.so (BuildId: f7d0ab1b02e1433283129c1ca2facfcc)
+    0000007b'3d77a000-0000007b'3d77dfff r--     3a000      4000  /system/lib64/audiopolicy-aidl-cpp.so (BuildId: f7d0ab1b02e1433283129c1ca2facfcc)
+    0000007b'3d77e000-0000007b'3d77efff rw-     3d000      1000  /system/lib64/audiopolicy-aidl-cpp.so (BuildId: f7d0ab1b02e1433283129c1ca2facfcc)
+    0000007b'3d7b8000-0000007b'3d7b8fff r--         0      1000  /system/lib64/libmediandk_utils.so (BuildId: 26d405c25964068d54db38dcebc5792b)
+    0000007b'3d7b9000-0000007b'3d7bafff r-x      1000      2000  /system/lib64/libmediandk_utils.so (BuildId: 26d405c25964068d54db38dcebc5792b)
+    0000007b'3d7bb000-0000007b'3d7bbfff r--      3000      1000  /system/lib64/libmediandk_utils.so (BuildId: 26d405c25964068d54db38dcebc5792b)
+    0000007b'3d7ce000-0000007b'3d7d5fff r--         0      8000  /system/lib64/libstagefright_bufferqueue_helper.so (BuildId: 9ecb90e57fbe387a75087c7860fe3890)
+    0000007b'3d7d6000-0000007b'3d7e4fff r-x      8000      f000  /system/lib64/libstagefright_bufferqueue_helper.so (BuildId: 9ecb90e57fbe387a75087c7860fe3890)
+    0000007b'3d7e5000-0000007b'3d7e5fff r--     17000      1000  /system/lib64/libstagefright_bufferqueue_helper.so (BuildId: 9ecb90e57fbe387a75087c7860fe3890)
+    0000007b'3d7e6000-0000007b'3d7e6fff rw-     17000      1000  /system/lib64/libstagefright_bufferqueue_helper.so (BuildId: 9ecb90e57fbe387a75087c7860fe3890)
+    0000007b'3d807000-0000007b'3d819fff r--         0     13000  /system/lib64/android.hardware.graphics.bufferqueue@2.0.so (BuildId: f73fed061a117623c23abc51a790b9fa)
+    0000007b'3d81a000-0000007b'3d82dfff r-x     13000     14000  /system/lib64/android.hardware.graphics.bufferqueue@2.0.so (BuildId: f73fed061a117623c23abc51a790b9fa)
+    0000007b'3d82e000-0000007b'3d831fff r--     27000      4000  /system/lib64/android.hardware.graphics.bufferqueue@2.0.so (BuildId: f73fed061a117623c23abc51a790b9fa)
+    0000007b'3d832000-0000007b'3d832fff rw-     2a000      1000  /system/lib64/android.hardware.graphics.bufferqueue@2.0.so (BuildId: f73fed061a117623c23abc51a790b9fa)
+    0000007b'3d872000-0000007b'3d876fff r--         0      5000  /system/lib64/android.hardware.graphics.allocator-V1-ndk.so (BuildId: deb6175986f1f88538304e4e2b7c7862)
+    0000007b'3d877000-0000007b'3d879fff r-x      5000      3000  /system/lib64/android.hardware.graphics.allocator-V1-ndk.so (BuildId: deb6175986f1f88538304e4e2b7c7862)
+    0000007b'3d87a000-0000007b'3d87afff r--      8000      1000  /system/lib64/android.hardware.graphics.allocator-V1-ndk.so (BuildId: deb6175986f1f88538304e4e2b7c7862)
+    0000007b'3d87b000-0000007b'3d87bfff rw-      8000      1000  /system/lib64/android.hardware.graphics.allocator-V1-ndk.so (BuildId: deb6175986f1f88538304e4e2b7c7862)
+    0000007b'3d895000-0000007b'3d8b3fff r--         0     1f000  /system/lib64/libprocessgroup.so (BuildId: 17d3ec3544018397d6a09cc97bcab74a)
+    0000007b'3d8b4000-0000007b'3d8e6fff r-x     1f000     33000  /system/lib64/libprocessgroup.so (BuildId: 17d3ec3544018397d6a09cc97bcab74a)
+    0000007b'3d8e7000-0000007b'3d8e8fff r--     52000      2000  /system/lib64/libprocessgroup.so (BuildId: 17d3ec3544018397d6a09cc97bcab74a)
+    0000007b'3d8e9000-0000007b'3d8e9fff rw-     53000      1000  /system/lib64/libprocessgroup.so (BuildId: 17d3ec3544018397d6a09cc97bcab74a)
+    0000007b'3d910000-0000007b'3d9cdfff r--         0     be000  /system/lib64/libandroid_runtime.so (BuildId: 61087251da824c797df7f943e26bb750)
+    0000007b'3d9ce000-0000007b'3db19fff r-x     be000    14c000  /system/lib64/libandroid_runtime.so (BuildId: 61087251da824c797df7f943e26bb750)
+    0000007b'3db1a000-0000007b'3db37fff r--    20a000     1e000  /system/lib64/libandroid_runtime.so (BuildId: 61087251da824c797df7f943e26bb750)
+    0000007b'3db38000-0000007b'3db39fff rw-    227000      2000  /system/lib64/libandroid_runtime.so (BuildId: 61087251da824c797df7f943e26bb750)
+    0000007b'3db3a000-0000007b'3db3bfff rw-         0      2000  [anon:.bss]
+    0000007b'3db9b000-0000007b'3dbb9fff r--         0     1f000  /system/lib64/libEGL.so (BuildId: 3e11d5ee9f036e30a6e0ae011fe1c71d)
+    0000007b'3dbba000-0000007b'3dbe3fff r-x     1f000     2a000  /system/lib64/libEGL.so (BuildId: 3e11d5ee9f036e30a6e0ae011fe1c71d)
+    0000007b'3dbe4000-0000007b'3dbe8fff r--     49000      5000  /system/lib64/libEGL.so (BuildId: 3e11d5ee9f036e30a6e0ae011fe1c71d)
+    0000007b'3dbe9000-0000007b'3dbecfff rw-     4d000      4000  /system/lib64/libEGL.so (BuildId: 3e11d5ee9f036e30a6e0ae011fe1c71d)
+    0000007b'3dbed000-0000007b'3dbf4fff rw-         0      8000  [anon:.bss]
+    0000007b'3dc00000-0000007b'3f1fffff ---         0   1600000
+    0000007b'3f266000-0000007b'3f26efff r--         0      9000  /system/lib64/libnativecfms.so (BuildId: cda5a4352684f7a6f7a2794f2795c992)
+    0000007b'3f26f000-0000007b'3f276fff r-x      9000      8000  /system/lib64/libnativecfms.so (BuildId: cda5a4352684f7a6f7a2794f2795c992)
+    0000007b'3f277000-0000007b'3f278fff r--     11000      2000  /system/lib64/libnativecfms.so (BuildId: cda5a4352684f7a6f7a2794f2795c992)
+    0000007b'3f279000-0000007b'3f279fff rw-     12000      1000  /system/lib64/libnativecfms.so (BuildId: cda5a4352684f7a6f7a2794f2795c992)
+    0000007b'3f2a8000-0000007b'3f2a8fff r--         0      1000  /system/lib64/libandroid_runtime_lazy.so (BuildId: 501ba5383ebf57836132bf3ae4f6fd44)
+    0000007b'3f2a9000-0000007b'3f2a9fff r-x      1000      1000  /system/lib64/libandroid_runtime_lazy.so (BuildId: 501ba5383ebf57836132bf3ae4f6fd44)
+    0000007b'3f2aa000-0000007b'3f2aafff r--      2000      1000  /system/lib64/libandroid_runtime_lazy.so (BuildId: 501ba5383ebf57836132bf3ae4f6fd44)
+    0000007b'3f2ab000-0000007b'3f2abfff rw-      2000      1000  /system/lib64/libandroid_runtime_lazy.so (BuildId: 501ba5383ebf57836132bf3ae4f6fd44)
+    0000007b'3f2d2000-0000007b'3f2d3fff r--         0      2000  /system/lib64/libmemtrack.so (BuildId: bbe09301e637940c8daeb7eb93b1e77d)
+    0000007b'3f2d4000-0000007b'3f2d5fff r-x      2000      2000  /system/lib64/libmemtrack.so (BuildId: bbe09301e637940c8daeb7eb93b1e77d)
+    0000007b'3f2d6000-0000007b'3f2d6fff r--      4000      1000  /system/lib64/libmemtrack.so (BuildId: bbe09301e637940c8daeb7eb93b1e77d)
+    0000007b'3f2d7000-0000007b'3f2d7fff rw-      4000      1000  /system/lib64/libmemtrack.so (BuildId: bbe09301e637940c8daeb7eb93b1e77d)
+    0000007b'3f300000-0000007b'3f327fff r--         0     28000  /system/lib64/libinput.so (BuildId: 8c3d1f1c7d0d822460e7f3eb3614b373)
+    0000007b'3f328000-0000007b'3f35dfff r-x     28000     36000  /system/lib64/libinput.so (BuildId: 8c3d1f1c7d0d822460e7f3eb3614b373)
+    0000007b'3f35e000-0000007b'3f363fff r--     5e000      6000  /system/lib64/libinput.so (BuildId: 8c3d1f1c7d0d822460e7f3eb3614b373)
+    0000007b'3f364000-0000007b'3f364fff rw-     63000      1000  /system/lib64/libinput.so (BuildId: 8c3d1f1c7d0d822460e7f3eb3614b373)
+    0000007b'3f390000-0000007b'3f399fff r--         0      a000  /system/lib64/libbacktrace.so (BuildId: 20828b12d7d20b48aa9522a28ff6298a)
+    0000007b'3f39a000-0000007b'3f3b3fff r-x      a000     1a000  /system/lib64/libbacktrace.so (BuildId: 20828b12d7d20b48aa9522a28ff6298a)
+    0000007b'3f3b4000-0000007b'3f3b6fff r--     24000      3000  /system/lib64/libbacktrace.so (BuildId: 20828b12d7d20b48aa9522a28ff6298a)
+    0000007b'3f3b7000-0000007b'3f3b7fff rw-     26000      1000  /system/lib64/libbacktrace.so (BuildId: 20828b12d7d20b48aa9522a28ff6298a)
+    0000007b'3f3cc000-0000007b'3f3ccfff r--         0      1000  /system/lib64/libsync.so (BuildId: 17604061a065a768ff86fea460b787fa)
+    0000007b'3f3cd000-0000007b'3f3cdfff r-x      1000      1000  /system/lib64/libsync.so (BuildId: 17604061a065a768ff86fea460b787fa)
+    0000007b'3f3ce000-0000007b'3f3cefff r--      2000      1000  /system/lib64/libsync.so (BuildId: 17604061a065a768ff86fea460b787fa)
+    0000007b'3f3cf000-0000007b'3f3cffff rw-      2000      1000  /system/lib64/libsync.so (BuildId: 17604061a065a768ff86fea460b787fa)
+    0000007b'3f402000-0000007b'3f406fff r--         0      5000  /system/lib64/libappfuse.so (BuildId: 6f4c6b5dbc05c6834abeb60fe26721b8)
+    0000007b'3f407000-0000007b'3f40cfff r-x      5000      6000  /system/lib64/libappfuse.so (BuildId: 6f4c6b5dbc05c6834abeb60fe26721b8)
+    0000007b'3f40d000-0000007b'3f40dfff r--      b000      1000  /system/lib64/libappfuse.so (BuildId: 6f4c6b5dbc05c6834abeb60fe26721b8)
+    0000007b'3f40e000-0000007b'3f40efff rw-      b000      1000  /system/lib64/libappfuse.so (BuildId: 6f4c6b5dbc05c6834abeb60fe26721b8)
+    0000007b'3f46f000-0000007b'3f46ffff r--         0      1000  /system/lib64/libsecaudiocoreutils.so (BuildId: b4dd5a406e69b0d6008df17048ce69bf)
+    0000007b'3f470000-0000007b'3f470fff r-x      1000      1000  /system/lib64/libsecaudiocoreutils.so (BuildId: b4dd5a406e69b0d6008df17048ce69bf)
+    0000007b'3f471000-0000007b'3f471fff r--      2000      1000  /system/lib64/libsecaudiocoreutils.so (BuildId: b4dd5a406e69b0d6008df17048ce69bf)
+    0000007b'3f487000-0000007b'3f487fff r--         0      1000  /system/lib64/libsecaudiotestutils.so (BuildId: e08b0c73e6d53c9cd0e3e9a3d47d1534)
+    0000007b'3f488000-0000007b'3f488fff r-x      1000      1000  /system/lib64/libsecaudiotestutils.so (BuildId: e08b0c73e6d53c9cd0e3e9a3d47d1534)
+    0000007b'3f489000-0000007b'3f489fff r--      2000      1000  /system/lib64/libsecaudiotestutils.so (BuildId: e08b0c73e6d53c9cd0e3e9a3d47d1534)
+    0000007b'3f48a000-0000007b'3f48afff rw-      2000      1000  /system/lib64/libsecaudiotestutils.so (BuildId: e08b0c73e6d53c9cd0e3e9a3d47d1534)
+    0000007b'3f4d4000-0000007b'3f4defff r--         0      b000  /system/lib64/libbufferhubqueue.so (BuildId: 5414da72df5a6179e7d938296a88f0e3)
+    0000007b'3f4df000-0000007b'3f4edfff r-x      b000      f000  /system/lib64/libbufferhubqueue.so (BuildId: 5414da72df5a6179e7d938296a88f0e3)
+    0000007b'3f4ee000-0000007b'3f4eefff r--     1a000      1000  /system/lib64/libbufferhubqueue.so (BuildId: 5414da72df5a6179e7d938296a88f0e3)
+    0000007b'3f4ef000-0000007b'3f4effff rw-     1a000      1000  /system/lib64/libbufferhubqueue.so (BuildId: 5414da72df5a6179e7d938296a88f0e3)
+    0000007b'3f513000-0000007b'3f53bfff r-x         0     29000  /system/lib64/libSEF.quram.so (BuildId: 422521a6f79b11b36ddc4125ad439d07)
+    0000007b'3f53c000-0000007b'3f551fff ---         0     16000
+    0000007b'3f552000-0000007b'3f552fff r--     2f000      1000  /system/lib64/libSEF.quram.so (BuildId: 422521a6f79b11b36ddc4125ad439d07)
+    0000007b'3f553000-0000007b'3f553fff rw-     30000      1000  /system/lib64/libSEF.quram.so (BuildId: 422521a6f79b11b36ddc4125ad439d07)
+    0000007b'3f59e000-0000007b'3f5a8fff r--         0      b000  /system/lib64/android.hardware.power@1.1.so (BuildId: b573a38c9d9b510e017d28e8bfd09c59)
+    0000007b'3f5a9000-0000007b'3f5b0fff r-x      b000      8000  /system/lib64/android.hardware.power@1.1.so (BuildId: b573a38c9d9b510e017d28e8bfd09c59)
+    0000007b'3f5b1000-0000007b'3f5b2fff r--     13000      2000  /system/lib64/android.hardware.power@1.1.so (BuildId: b573a38c9d9b510e017d28e8bfd09c59)
+    0000007b'3f5b3000-0000007b'3f5b3fff rw-     14000      1000  /system/lib64/android.hardware.power@1.1.so (BuildId: b573a38c9d9b510e017d28e8bfd09c59)
+    0000007b'3f5dd000-0000007b'3f5e7fff r--         0      b000  /system/lib64/android.hardware.graphics.mapper@2.1.so (BuildId: 0684beccde9d49ea17a832dcd251e297)
+    0000007b'3f5e8000-0000007b'3f5f0fff r-x      b000      9000  /system/lib64/android.hardware.graphics.mapper@2.1.so (BuildId: 0684beccde9d49ea17a832dcd251e297)
+    0000007b'3f5f1000-0000007b'3f5f2fff r--     14000      2000  /system/lib64/android.hardware.graphics.mapper@2.1.so (BuildId: 0684beccde9d49ea17a832dcd251e297)
+    0000007b'3f5f3000-0000007b'3f5f3fff rw-     15000      1000  /system/lib64/android.hardware.graphics.mapper@2.1.so (BuildId: 0684beccde9d49ea17a832dcd251e297)
+    0000007b'3f600000-0000007b'3f616fff r--         0     17000  /system/lib64/android.hardware.cas@1.0.so (BuildId: 33595cfa8669d73a86e62ed477ca8c2b)
+    0000007b'3f617000-0000007b'3f630fff r-x     17000     1a000  /system/lib64/android.hardware.cas@1.0.so (BuildId: 33595cfa8669d73a86e62ed477ca8c2b)
+    0000007b'3f631000-0000007b'3f635fff r--     31000      5000  /system/lib64/android.hardware.cas@1.0.so (BuildId: 33595cfa8669d73a86e62ed477ca8c2b)
+    0000007b'3f636000-0000007b'3f636fff rw-     35000      1000  /system/lib64/android.hardware.cas@1.0.so (BuildId: 33595cfa8669d73a86e62ed477ca8c2b)
+    0000007b'3f642000-0000007b'3f64dfff r--         0      c000  /system/lib64/libmediadrmmetrics_lite.so (BuildId: ff354e4c45cde6108907886ab5f7382b)
+    0000007b'3f64e000-0000007b'3f65bfff r-x      c000      e000  /system/lib64/libmediadrmmetrics_lite.so (BuildId: ff354e4c45cde6108907886ab5f7382b)
+    0000007b'3f65c000-0000007b'3f65cfff r--     1a000      1000  /system/lib64/libmediadrmmetrics_lite.so (BuildId: ff354e4c45cde6108907886ab5f7382b)
+    0000007b'3f65d000-0000007b'3f65efff rw-     1a000      2000  /system/lib64/libmediadrmmetrics_lite.so (BuildId: ff354e4c45cde6108907886ab5f7382b)
+    0000007b'3f68e000-0000007b'3f6cffff r--         0     42000  /system/lib64/libhidlbase.so (BuildId: 33969b3761aabf59a6562f7f8911db4b)
+    0000007b'3f6d0000-0000007b'3f724fff r-x     42000     55000  /system/lib64/libhidlbase.so (BuildId: 33969b3761aabf59a6562f7f8911db4b)
+    0000007b'3f725000-0000007b'3f72ffff r--     97000      b000  /system/lib64/libhidlbase.so (BuildId: 33969b3761aabf59a6562f7f8911db4b)
+    0000007b'3f730000-0000007b'3f730fff rw-     a1000      1000  /system/lib64/libhidlbase.so (BuildId: 33969b3761aabf59a6562f7f8911db4b)
+    0000007b'3f759000-0000007b'3f782fff r--         0     2a000  /system/lib64/libft2.so (BuildId: fd922ff846fe5ab8a3f4f4334985b34a)
+    0000007b'3f783000-0000007b'3f7e8fff r-x     2a000     66000  /system/lib64/libft2.so (BuildId: fd922ff846fe5ab8a3f4f4334985b34a)
+    0000007b'3f7e9000-0000007b'3f7edfff r--     90000      5000  /system/lib64/libft2.so (BuildId: fd922ff846fe5ab8a3f4f4334985b34a)
+    0000007b'3f801000-0000007b'3f826fff r--         0     26000  /system/lib64/android.hardware.drm@1.4.so (BuildId: 764871df4bf60c139277ad377357bf44)
+    0000007b'3f827000-0000007b'3f846fff r-x     26000     20000  /system/lib64/android.hardware.drm@1.4.so (BuildId: 764871df4bf60c139277ad377357bf44)
+    0000007b'3f847000-0000007b'3f84efff r--     46000      8000  /system/lib64/android.hardware.drm@1.4.so (BuildId: 764871df4bf60c139277ad377357bf44)
+    0000007b'3f84f000-0000007b'3f84ffff rw-     4d000      1000  /system/lib64/android.hardware.drm@1.4.so (BuildId: 764871df4bf60c139277ad377357bf44)
+    0000007b'3f888000-0000007b'3f88dfff r--         0      6000  /system/lib64/vintf-codecsolution-V2-cpp.so (BuildId: ce8be0f4739e40ff6382a8bca24aaece)
+    0000007b'3f88e000-0000007b'3f891fff r-x      6000      4000  /system/lib64/vintf-codecsolution-V2-cpp.so (BuildId: ce8be0f4739e40ff6382a8bca24aaece)
+    0000007b'3f892000-0000007b'3f893fff r--      a000      2000  /system/lib64/vintf-codecsolution-V2-cpp.so (BuildId: ce8be0f4739e40ff6382a8bca24aaece)
+    0000007b'3f894000-0000007b'3f894fff rw-      b000      1000  /system/lib64/vintf-codecsolution-V2-cpp.so (BuildId: ce8be0f4739e40ff6382a8bca24aaece)
+    0000007b'3f8d7000-0000007b'3f8d7fff r--         0      1000  /system/lib64/android.hidl.safe_union@1.0.so (BuildId: 1f52702ed735404c2e14ded74ead6005)
+    0000007b'3f8d8000-0000007b'3f8d8fff r-x      1000      1000  /system/lib64/android.hidl.safe_union@1.0.so (BuildId: 1f52702ed735404c2e14ded74ead6005)
+    0000007b'3f8d9000-0000007b'3f8d9fff r--      2000      1000  /system/lib64/android.hidl.safe_union@1.0.so (BuildId: 1f52702ed735404c2e14ded74ead6005)
+    0000007b'3f933000-0000007b'3f934fff r--         0      2000  /system/lib64/libmedia_jni_utils.so (BuildId: cc88acac42f5422011fa98b12235e6bd)
+    0000007b'3f935000-0000007b'3f936fff r-x      2000      2000  /system/lib64/libmedia_jni_utils.so (BuildId: cc88acac42f5422011fa98b12235e6bd)
+    0000007b'3f937000-0000007b'3f937fff r--      4000      1000  /system/lib64/libmedia_jni_utils.so (BuildId: cc88acac42f5422011fa98b12235e6bd)
+    0000007b'3f969000-0000007b'3f971fff r--         0      9000  /system/lib64/libcutils.so (BuildId: 638ad6bbab2e2d9108674bc00fd976c6)
+    0000007b'3f972000-0000007b'3f97cfff r-x      9000      b000  /system/lib64/libcutils.so (BuildId: 638ad6bbab2e2d9108674bc00fd976c6)
+    0000007b'3f97d000-0000007b'3f97efff r--     14000      2000  /system/lib64/libcutils.so (BuildId: 638ad6bbab2e2d9108674bc00fd976c6)
+    0000007b'3f97f000-0000007b'3f97ffff rw-     15000      1000  /system/lib64/libcutils.so (BuildId: 638ad6bbab2e2d9108674bc00fd976c6)
+    0000007b'3f999000-0000007b'3f99cfff r--         0      4000  /system/lib64/libheif.so (BuildId: 2bfbe268196513cfa5bfd2fdcb1d8faa)
+    0000007b'3f99d000-0000007b'3f9a1fff r-x      4000      5000  /system/lib64/libheif.so (BuildId: 2bfbe268196513cfa5bfd2fdcb1d8faa)
+    0000007b'3f9a2000-0000007b'3f9a2fff r--      9000      1000  /system/lib64/libheif.so (BuildId: 2bfbe268196513cfa5bfd2fdcb1d8faa)
+    0000007b'3f9f0000-0000007b'3f9f3fff r--         0      4000  /system/lib64/libnativewindow.so (BuildId: 39a483b9fa1a0d0a5681653bbfb2ad14)
+    0000007b'3f9f4000-0000007b'3f9f6fff r-x      4000      3000  /system/lib64/libnativewindow.so (BuildId: 39a483b9fa1a0d0a5681653bbfb2ad14)
+    0000007b'3f9f7000-0000007b'3f9f7fff r--      7000      1000  /system/lib64/libnativewindow.so (BuildId: 39a483b9fa1a0d0a5681653bbfb2ad14)
+    0000007b'3fa00000-0000007b'40ffffff ---         0   1600000
+    0000007b'41056000-0000007b'4109cfff r--         0     47000  /apex/com.android.runtime/lib64/bionic/libc.so (BuildId: ae97b4676db8ce3f620ba6bf7932eba6)
+    0000007b'4109d000-0000007b'41150fff r-x     47000     b4000  /apex/com.android.runtime/lib64/bionic/libc.so (BuildId: ae97b4676db8ce3f620ba6bf7932eba6)
+    0000007b'41151000-0000007b'41157fff r--     fb000      7000  /apex/com.android.runtime/lib64/bionic/libc.so (BuildId: ae97b4676db8ce3f620ba6bf7932eba6)
+    0000007b'41158000-0000007b'4115afff rw-    101000      3000  /apex/com.android.runtime/lib64/bionic/libc.so (BuildId: ae97b4676db8ce3f620ba6bf7932eba6)
+    0000007b'4115b000-0000007b'4136afff rw-         0    210000  [anon:.bss]
+    0000007b'4136b000-0000007b'4136bfff r--         0      1000  [anon:.bss]
+    0000007b'4136c000-0000007b'41373fff rw-         0      8000  [anon:.bss]
+    0000007b'413cd000-0000007b'413d1fff r--         0      5000  /system/lib64/libactivitymanager_aidl.so (BuildId: 7b235c93a5deefe16fefbbeb57ef0fac)
+    0000007b'413d2000-0000007b'413d4fff r-x      5000      3000  /system/lib64/libactivitymanager_aidl.so (BuildId: 7b235c93a5deefe16fefbbeb57ef0fac)
+    0000007b'413d5000-0000007b'413d6fff r--      8000      2000  /system/lib64/libactivitymanager_aidl.so (BuildId: 7b235c93a5deefe16fefbbeb57ef0fac)
+    0000007b'413d7000-0000007b'413d7fff rw-      9000      1000  /system/lib64/libactivitymanager_aidl.so (BuildId: 7b235c93a5deefe16fefbbeb57ef0fac)
+    0000007b'41400000-0000007b'449fffff ---         0   3600000
+    0000007b'44a69000-0000007b'44a70fff r--         0      8000  /system/lib64/libdatasource.so (BuildId: e281fa7e751b82407791f5b371ad8951)
+    0000007b'44a71000-0000007b'44a7bfff r-x      8000      b000  /system/lib64/libdatasource.so (BuildId: e281fa7e751b82407791f5b371ad8951)
+    0000007b'44a7c000-0000007b'44a7dfff r--     13000      2000  /system/lib64/libdatasource.so (BuildId: e281fa7e751b82407791f5b371ad8951)
+    0000007b'44a7e000-0000007b'44a7efff rw-     14000      1000  /system/lib64/libdatasource.so (BuildId: e281fa7e751b82407791f5b371ad8951)
+    0000007b'44a80000-0000007b'44ac8fff r--         0     49000  /system/lib64/libc++.so (BuildId: c43691f579c6316722d646cc6daa2e0e)
+    0000007b'44ac9000-0000007b'44b23fff r-x     49000     5b000  /system/lib64/libc++.so (BuildId: c43691f579c6316722d646cc6daa2e0e)
+    0000007b'44b24000-0000007b'44b2afff r--     a4000      7000  /system/lib64/libc++.so (BuildId: c43691f579c6316722d646cc6daa2e0e)
+    0000007b'44b2b000-0000007b'44b2bfff rw-     aa000      1000  /system/lib64/libc++.so (BuildId: c43691f579c6316722d646cc6daa2e0e)
+    0000007b'44b2c000-0000007b'44b2efff rw-         0      3000  [anon:.bss]
+    0000007b'44b44000-0000007b'44b4afff r--         0      7000  /system/lib64/libexpat.so (BuildId: df33ad809e3bfbaa650f66152503351c)
+    0000007b'44b4b000-0000007b'44b65fff r-x      7000     1b000  /system/lib64/libexpat.so (BuildId: df33ad809e3bfbaa650f66152503351c)
+    0000007b'44b66000-0000007b'44b67fff r--     22000      2000  /system/lib64/libexpat.so (BuildId: df33ad809e3bfbaa650f66152503351c)
+    0000007b'44ba2000-0000007b'44ba6fff r--         0      5000  /system/lib64/libdebuggerd_client.so (BuildId: dcbb64344bc656e701b1b0e1180ef427)
+    0000007b'44ba7000-0000007b'44babfff r-x      5000      5000  /system/lib64/libdebuggerd_client.so (BuildId: dcbb64344bc656e701b1b0e1180ef427)
+    0000007b'44bac000-0000007b'44bacfff r--      a000      1000  /system/lib64/libdebuggerd_client.so (BuildId: dcbb64344bc656e701b1b0e1180ef427)
+    0000007b'44bca000-0000007b'44bccfff r--         0      3000  /system/lib64/audiopolicy-types-aidl-cpp.so (BuildId: 904c8ce22faf57e04e9e6d15227e2ef8)
+    0000007b'44bcd000-0000007b'44bd0fff r-x      3000      4000  /system/lib64/audiopolicy-types-aidl-cpp.so (BuildId: 904c8ce22faf57e04e9e6d15227e2ef8)
+    0000007b'44bd1000-0000007b'44bd1fff r--      7000      1000  /system/lib64/audiopolicy-types-aidl-cpp.so (BuildId: 904c8ce22faf57e04e9e6d15227e2ef8)
+    0000007b'44c25000-0000007b'44c25fff r--         0      1000  /system/lib64/shared-file-region-aidl-cpp.so (BuildId: 79430963587683ea6b6df95e01209f9b)
+    0000007b'44c26000-0000007b'44c27fff r-x      1000      2000  /system/lib64/shared-file-region-aidl-cpp.so (BuildId: 79430963587683ea6b6df95e01209f9b)
+    0000007b'44c28000-0000007b'44c28fff r--      3000      1000  /system/lib64/shared-file-region-aidl-cpp.so (BuildId: 79430963587683ea6b6df95e01209f9b)
+    0000007b'44c4a000-0000007b'44c5efff r--         0     15000  /system/lib64/libmediandk.so (BuildId: 72da99bc61c8c126520b88b1e1f65057)
+    0000007b'44c5f000-0000007b'44c7bfff r-x     15000     1d000  /system/lib64/libmediandk.so (BuildId: 72da99bc61c8c126520b88b1e1f65057)
+    0000007b'44c7c000-0000007b'44c7dfff r--     32000      2000  /system/lib64/libmediandk.so (BuildId: 72da99bc61c8c126520b88b1e1f65057)
+    0000007b'44c7e000-0000007b'44c7efff rw-     33000      1000  /system/lib64/libmediandk.so (BuildId: 72da99bc61c8c126520b88b1e1f65057)
+    0000007b'44c7f000-0000007b'44c7ffff rw-         0      1000  [anon:.bss]
+    0000007b'44c80000-0000007b'44cb0fff r--         0     31000  /system/lib64/libsfplugin_ccodec.so (BuildId: 4fc2868427275db05befc116a7c70eee)
+    0000007b'44cb1000-0000007b'44d36fff r-x     31000     86000  /system/lib64/libsfplugin_ccodec.so (BuildId: 4fc2868427275db05befc116a7c70eee)
+    0000007b'44d37000-0000007b'44d3dfff r--     b7000      7000  /system/lib64/libsfplugin_ccodec.so (BuildId: 4fc2868427275db05befc116a7c70eee)
+    0000007b'44d3e000-0000007b'44d3efff rw-     bd000      1000  /system/lib64/libsfplugin_ccodec.so (BuildId: 4fc2868427275db05befc116a7c70eee)
+    0000007b'44d3f000-0000007b'44d3ffff rw-         0      1000  [anon:.bss]
+    0000007b'44d4b000-0000007b'44d7efff r--         0     34000  /system/lib64/libcamera_client.so (BuildId: 0dd2143148776bac74b1b034e43cfdda)
+    0000007b'44d7f000-0000007b'44dd5fff r-x     34000     57000  /system/lib64/libcamera_client.so (BuildId: 0dd2143148776bac74b1b034e43cfdda)
+    0000007b'44dd6000-0000007b'44de4fff r--     8b000      f000  /system/lib64/libcamera_client.so (BuildId: 0dd2143148776bac74b1b034e43cfdda)
+    0000007b'44de5000-0000007b'44de5fff rw-     99000      1000  /system/lib64/libcamera_client.so (BuildId: 0dd2143148776bac74b1b034e43cfdda)
+    0000007b'44e35000-0000007b'44e36fff r--         0      2000  /system/lib64/libhyperintf.so (BuildId: 073deffda92e25097176d21ee7cd8ab8)
+    0000007b'44e37000-0000007b'44e38fff r-x      2000      2000  /system/lib64/libhyperintf.so (BuildId: 073deffda92e25097176d21ee7cd8ab8)
+    0000007b'44e39000-0000007b'44e39fff r--      4000      1000  /system/lib64/libhyperintf.so (BuildId: 073deffda92e25097176d21ee7cd8ab8)
+    0000007b'44e3a000-0000007b'44e3afff rw-      4000      1000  /system/lib64/libhyperintf.so (BuildId: 073deffda92e25097176d21ee7cd8ab8)
+    0000007b'44e41000-0000007b'44e4cfff r--         0      c000  /system/lib64/libsensor.so (BuildId: 19c2446011ac2bcbb6a75d6e166e3884)
+    0000007b'44e4d000-0000007b'44e54fff r-x      c000      8000  /system/lib64/libsensor.so (BuildId: 19c2446011ac2bcbb6a75d6e166e3884)
+    0000007b'44e55000-0000007b'44e57fff r--     14000      3000  /system/lib64/libsensor.so (BuildId: 19c2446011ac2bcbb6a75d6e166e3884)
+    0000007b'44e58000-0000007b'44e58fff rw-     16000      1000  /system/lib64/libsensor.so (BuildId: 19c2446011ac2bcbb6a75d6e166e3884)
+    0000007b'44e81000-0000007b'44e95fff r--         0     15000  /system/lib64/android.hardware.camera.device@3.2.so (BuildId: 5704a27870369deb04ce1c12a8a70824)
+    0000007b'44e96000-0000007b'44eabfff r-x     15000     16000  /system/lib64/android.hardware.camera.device@3.2.so (BuildId: 5704a27870369deb04ce1c12a8a70824)
+    0000007b'44eac000-0000007b'44eaffff r--     2b000      4000  /system/lib64/android.hardware.camera.device@3.2.so (BuildId: 5704a27870369deb04ce1c12a8a70824)
+    0000007b'44eb0000-0000007b'44eb0fff rw-     2e000      1000  /system/lib64/android.hardware.camera.device@3.2.so (BuildId: 5704a27870369deb04ce1c12a8a70824)
+    0000007b'44ee7000-0000007b'44f23fff r--         0     3d000  /system/lib64/libcodec2_vndk.so (BuildId: 97745351941e4377a6db903642fe3355)
+    0000007b'44f24000-0000007b'44f87fff r-x     3d000     64000  /system/lib64/libcodec2_vndk.so (BuildId: 97745351941e4377a6db903642fe3355)
+    0000007b'44f88000-0000007b'44f8bfff r--     a1000      4000  /system/lib64/libcodec2_vndk.so (BuildId: 97745351941e4377a6db903642fe3355)
+    0000007b'44f8c000-0000007b'44f8cfff rw-     a4000      1000  /system/lib64/libcodec2_vndk.so (BuildId: 97745351941e4377a6db903642fe3355)
+    0000007b'44f8d000-0000007b'44f8dfff rw-         0      1000  [anon:.bss]
+    0000007b'45000000-0000007b'465fffff ---         0   1600000
+    0000007b'4665b000-0000007b'46668fff r--         0      e000  /system/lib64/android.hardware.graphics.mapper@4.0.so (BuildId: fd51806b68084764f8c3c71ad61b83f8)
+    0000007b'46669000-0000007b'46675fff r-x      e000      d000  /system/lib64/android.hardware.graphics.mapper@4.0.so (BuildId: fd51806b68084764f8c3c71ad61b83f8)
+    0000007b'46676000-0000007b'46677fff r--     1b000      2000  /system/lib64/android.hardware.graphics.mapper@4.0.so (BuildId: fd51806b68084764f8c3c71ad61b83f8)
+    0000007b'46678000-0000007b'46678fff rw-     1c000      1000  /system/lib64/android.hardware.graphics.mapper@4.0.so (BuildId: fd51806b68084764f8c3c71ad61b83f8)
+    0000007b'46694000-0000007b'4669bfff r--         0      8000  /system/lib64/libziparchive.so (BuildId: 1fbf662308953b24115bf9c25d98eee5)
+    0000007b'4669c000-0000007b'466a5fff r-x      8000      a000  /system/lib64/libziparchive.so (BuildId: 1fbf662308953b24115bf9c25d98eee5)
+    0000007b'466a6000-0000007b'466a6fff r--     12000      1000  /system/lib64/libziparchive.so (BuildId: 1fbf662308953b24115bf9c25d98eee5)
+    0000007b'466df000-0000007b'466e2fff r--         0      4000  /system/lib64/libtimeinstate.so (BuildId: 8e1b845984804b5cb192126718ddeb68)
+    0000007b'466e3000-0000007b'466eafff r-x      4000      8000  /system/lib64/libtimeinstate.so (BuildId: 8e1b845984804b5cb192126718ddeb68)
+    0000007b'466eb000-0000007b'466ebfff r--      c000      1000  /system/lib64/libtimeinstate.so (BuildId: 8e1b845984804b5cb192126718ddeb68)
+    0000007b'466ec000-0000007b'466ecfff rw-      c000      1000  /system/lib64/libtimeinstate.so (BuildId: 8e1b845984804b5cb192126718ddeb68)
+    0000007b'4670f000-0000007b'4671afff r--         0      c000  /system/lib64/libselinux_ext.so (BuildId: aef81443502dfad904926eb397a12a01)
+    0000007b'4671b000-0000007b'46730fff r-x      c000     16000  /system/lib64/libselinux_ext.so (BuildId: aef81443502dfad904926eb397a12a01)
+    0000007b'46731000-0000007b'46731fff r--     22000      1000  /system/lib64/libselinux_ext.so (BuildId: aef81443502dfad904926eb397a12a01)
+    0000007b'46732000-0000007b'46732fff rw-     22000      1000  /system/lib64/libselinux_ext.so (BuildId: aef81443502dfad904926eb397a12a01)
+    0000007b'46733000-0000007b'46734fff rw-         0      2000  [anon:.bss]
+    0000007b'4676e000-0000007b'4676efff r--         0      1000  /system/lib64/libETC1.so (BuildId: 877c5b78379204768929aa3eb48575f4)
+    0000007b'4676f000-0000007b'46770fff r-x      1000      2000  /system/lib64/libETC1.so (BuildId: 877c5b78379204768929aa3eb48575f4)
+    0000007b'46771000-0000007b'46771fff r--      3000      1000  /system/lib64/libETC1.so (BuildId: 877c5b78379204768929aa3eb48575f4)
+    0000007b'46784000-0000007b'46786fff r--         0      3000  /system/lib64/libnetd_client.so (BuildId: 1aab40faf5b06ba2571263e4fc182a9b)
+    0000007b'46787000-0000007b'4678afff r-x      3000      4000  /system/lib64/libnetd_client.so (BuildId: 1aab40faf5b06ba2571263e4fc182a9b)
+    0000007b'4678b000-0000007b'4678bfff r--      7000      1000  /system/lib64/libnetd_client.so (BuildId: 1aab40faf5b06ba2571263e4fc182a9b)
+    0000007b'4678c000-0000007b'4678cfff rw-      7000      1000  /system/lib64/libnetd_client.so (BuildId: 1aab40faf5b06ba2571263e4fc182a9b)
+    0000007b'467c7000-0000007b'467c7fff r--         0      1000  /system/lib64/libsefinfoutils.so (BuildId: de4025e86e844613012f0efc7004bd5b)
+    0000007b'467c8000-0000007b'467c8fff r-x      1000      1000  /system/lib64/libsefinfoutils.so (BuildId: de4025e86e844613012f0efc7004bd5b)
+    0000007b'467c9000-0000007b'467c9fff r--      2000      1000  /system/lib64/libsefinfoutils.so (BuildId: de4025e86e844613012f0efc7004bd5b)
+    0000007b'46806000-0000007b'4680bfff r--         0      6000  /system/lib64/libGLESv1_CM.so (BuildId: ea6e6e0a3155cd318cf6ddc61c3843fa)
+    0000007b'4680c000-0000007b'4680dfff r-x      6000      2000  /system/lib64/libGLESv1_CM.so (BuildId: ea6e6e0a3155cd318cf6ddc61c3843fa)
+    0000007b'4680e000-0000007b'4680efff r--      8000      1000  /system/lib64/libGLESv1_CM.so (BuildId: ea6e6e0a3155cd318cf6ddc61c3843fa)
+    0000007b'4684a000-0000007b'46852fff r--         0      9000  /system/lib64/android.hardware.memtrack@1.0.so (BuildId: 20cf6e7c42c4aad7630383275a05136f)
+    0000007b'46853000-0000007b'46859fff r-x      9000      7000  /system/lib64/android.hardware.memtrack@1.0.so (BuildId: 20cf6e7c42c4aad7630383275a05136f)
+    0000007b'4685a000-0000007b'4685bfff r--     10000      2000  /system/lib64/android.hardware.memtrack@1.0.so (BuildId: 20cf6e7c42c4aad7630383275a05136f)
+    0000007b'4685c000-0000007b'4685cfff rw-     11000      1000  /system/lib64/android.hardware.memtrack@1.0.so (BuildId: 20cf6e7c42c4aad7630383275a05136f)
+    0000007b'4689e000-0000007b'468a2fff r--         0      5000  /system/lib64/libmediametrics.so (BuildId: 0eac75df43d0d303334817c7d02125cc)
+    0000007b'468a3000-0000007b'468adfff r-x      5000      b000  /system/lib64/libmediametrics.so (BuildId: 0eac75df43d0d303334817c7d02125cc)
+    0000007b'468ae000-0000007b'468aefff r--     10000      1000  /system/lib64/libmediametrics.so (BuildId: 0eac75df43d0d303334817c7d02125cc)
+    0000007b'468af000-0000007b'468affff rw-     10000      1000  /system/lib64/libmediametrics.so (BuildId: 0eac75df43d0d303334817c7d02125cc)
+    0000007b'468ea000-0000007b'468ebfff r--         0      2000  /system/lib64/libstagefright_surface_utils.so (BuildId: cf0f0fbc7bafabcea4bfec7e82a83465)
+    0000007b'468ec000-0000007b'468eefff r-x      2000      3000  /system/lib64/libstagefright_surface_utils.so (BuildId: cf0f0fbc7bafabcea4bfec7e82a83465)
+    0000007b'468ef000-0000007b'468effff r--      5000      1000  /system/lib64/libstagefright_surface_utils.so (BuildId: cf0f0fbc7bafabcea4bfec7e82a83465)
+    0000007b'46913000-0000007b'4691afff r--         0      8000  /system/lib64/libcodec2_hidl_client@1.0.so (BuildId: 9dd4acf6e23f33e9d1d4d1306622cd72)
+    0000007b'4691b000-0000007b'4692afff r-x      8000     10000  /system/lib64/libcodec2_hidl_client@1.0.so (BuildId: 9dd4acf6e23f33e9d1d4d1306622cd72)
+    0000007b'4692b000-0000007b'4692bfff r--     18000      1000  /system/lib64/libcodec2_hidl_client@1.0.so (BuildId: 9dd4acf6e23f33e9d1d4d1306622cd72)
+    0000007b'4692c000-0000007b'4692cfff rw-     18000      1000  /system/lib64/libcodec2_hidl_client@1.0.so (BuildId: 9dd4acf6e23f33e9d1d4d1306622cd72)
+    0000007b'4696c000-0000007b'4696cfff r--         0      1000  /system/lib64/libshmemcompat.so (BuildId: 68a153b8f20d3da3ec5b2196da262688)
+    0000007b'4696d000-0000007b'4696efff r-x      1000      2000  /system/lib64/libshmemcompat.so (BuildId: 68a153b8f20d3da3ec5b2196da262688)
+    0000007b'4696f000-0000007b'4696ffff r--      3000      1000  /system/lib64/libshmemcompat.so (BuildId: 68a153b8f20d3da3ec5b2196da262688)
+    0000007b'4699a000-0000007b'4699dfff r--         0      4000  /system/lib64/libedmnativehelper.so (BuildId: b951c03df3eb08447f4135e1649b8026)
+    0000007b'4699e000-0000007b'469a0fff r-x      4000      3000  /system/lib64/libedmnativehelper.so (BuildId: b951c03df3eb08447f4135e1649b8026)
+    0000007b'469a1000-0000007b'469a2fff r--      7000      2000  /system/lib64/libedmnativehelper.so (BuildId: b951c03df3eb08447f4135e1649b8026)
+    0000007b'469a3000-0000007b'469a3fff rw-      8000      1000  /system/lib64/libedmnativehelper.so (BuildId: b951c03df3eb08447f4135e1649b8026)
+    0000007b'469c5000-0000007b'469d5fff r--         0     11000  /system/lib64/libmedia_omx.so (BuildId: b7a6d1cd3b821f3ab2423425d16c7e81)
+    0000007b'469d6000-0000007b'469ebfff r-x     11000     16000  /system/lib64/libmedia_omx.so (BuildId: b7a6d1cd3b821f3ab2423425d16c7e81)
+    0000007b'469ec000-0000007b'469f2fff r--     27000      7000  /system/lib64/libmedia_omx.so (BuildId: b7a6d1cd3b821f3ab2423425d16c7e81)
+    0000007b'469f3000-0000007b'469f3fff rw-     2d000      1000  /system/lib64/libmedia_omx.so (BuildId: b7a6d1cd3b821f3ab2423425d16c7e81)
+    0000007b'46a3f000-0000007b'46a99fff r--         0     5b000  /system/lib64/libcrypto.so (BuildId: a5ee61e6ad51b3fe577425c1270a6b5c)
+    0000007b'46a9a000-0000007b'46b0cfff r-x     5b000     73000  /system/lib64/libcrypto.so (BuildId: a5ee61e6ad51b3fe577425c1270a6b5c)
+    0000007b'46b0d000-0000007b'46b5bfff --x     ce000     4f000  /system/lib64/libcrypto.so (BuildId: a5ee61e6ad51b3fe577425c1270a6b5c)
+    0000007b'46b5c000-0000007b'46b60fff r-x    11d000      5000  /system/lib64/libcrypto.so (BuildId: a5ee61e6ad51b3fe577425c1270a6b5c)
+    0000007b'46b61000-0000007b'46b70fff r--    122000     10000  /system/lib64/libcrypto.so (BuildId: a5ee61e6ad51b3fe577425c1270a6b5c)
+    0000007b'46b71000-0000007b'46b71fff rw-    131000      1000  /system/lib64/libcrypto.so (BuildId: a5ee61e6ad51b3fe577425c1270a6b5c)
+    0000007b'46b72000-0000007b'46b77fff rw-         0      6000  [anon:.bss]
+    0000007b'46bca000-0000007b'46bd0fff r--         0      7000  /system/lib64/libknox_remotedesktopclient.knox.samsung.so (BuildId: 3275b6a43bc0fcc242955dc6ce53f58e)
+    0000007b'46bd1000-0000007b'46bd4fff r-x      7000      4000  /system/lib64/libknox_remotedesktopclient.knox.samsung.so (BuildId: 3275b6a43bc0fcc242955dc6ce53f58e)
+    0000007b'46bd5000-0000007b'46bd7fff r--      b000      3000  /system/lib64/libknox_remotedesktopclient.knox.samsung.so (BuildId: 3275b6a43bc0fcc242955dc6ce53f58e)
+    0000007b'46bd8000-0000007b'46bd8fff rw-      d000      1000  /system/lib64/libknox_remotedesktopclient.knox.samsung.so (BuildId: 3275b6a43bc0fcc242955dc6ce53f58e)
+    0000007b'46c00000-0000007b'4a7fffff ---         0   3c00000
+    0000007b'4a852000-0000007b'4a867fff r--         0     16000  /system/lib64/libandroid.so (BuildId: 91c10dcc702d46950ca790a8d4f95129)
+    0000007b'4a868000-0000007b'4a879fff r-x     16000     12000  /system/lib64/libandroid.so (BuildId: 91c10dcc702d46950ca790a8d4f95129)
+    0000007b'4a87a000-0000007b'4a87cfff r--     28000      3000  /system/lib64/libandroid.so (BuildId: 91c10dcc702d46950ca790a8d4f95129)
+    0000007b'4a87d000-0000007b'4a87dfff rw-     2a000      1000  /system/lib64/libandroid.so (BuildId: 91c10dcc702d46950ca790a8d4f95129)
+    0000007b'4a892000-0000007b'4a894fff r--         0      3000  /system/lib64/libautils.so (BuildId: eb13f95bdf4be0c5c2f18ac5689ebb56)
+    0000007b'4a895000-0000007b'4a898fff r-x      3000      4000  /system/lib64/libautils.so (BuildId: eb13f95bdf4be0c5c2f18ac5689ebb56)
+    0000007b'4a899000-0000007b'4a899fff r--      7000      1000  /system/lib64/libautils.so (BuildId: eb13f95bdf4be0c5c2f18ac5689ebb56)
+    0000007b'4a89a000-0000007b'4a89afff rw-      7000      1000  /system/lib64/libautils.so (BuildId: eb13f95bdf4be0c5c2f18ac5689ebb56)
+    0000007b'4a8e2000-0000007b'4a8e5fff r--         0      4000  /system/lib64/capture_state_listener-aidl-cpp.so (BuildId: ffc1451e06706739d8f0b9ab939e1e53)
+    0000007b'4a8e6000-0000007b'4a8e8fff r-x      4000      3000  /system/lib64/capture_state_listener-aidl-cpp.so (BuildId: ffc1451e06706739d8f0b9ab939e1e53)
+    0000007b'4a8e9000-0000007b'4a8eafff r--      7000      2000  /system/lib64/capture_state_listener-aidl-cpp.so (BuildId: ffc1451e06706739d8f0b9ab939e1e53)
+    0000007b'4a8eb000-0000007b'4a8ebfff rw-      8000      1000  /system/lib64/capture_state_listener-aidl-cpp.so (BuildId: ffc1451e06706739d8f0b9ab939e1e53)
+    0000007b'4a916000-0000007b'4a95cfff r--         0     47000  /system/lib64/libaudioclient.so (BuildId: e0cfae51c59308e62e2a0daec5336956)
+    0000007b'4a95d000-0000007b'4a9e7fff r-x     47000     8b000  /system/lib64/libaudioclient.so (BuildId: e0cfae51c59308e62e2a0daec5336956)
+    0000007b'4a9e8000-0000007b'4a9f3fff r--     d2000      c000  /system/lib64/libaudioclient.so (BuildId: e0cfae51c59308e62e2a0daec5336956)
+    0000007b'4a9f4000-0000007b'4a9f4fff rw-     dd000      1000  /system/lib64/libaudioclient.so (BuildId: e0cfae51c59308e62e2a0daec5336956)
+    0000007b'4aa00000-0000007b'4abbcfff r--         0    1bd000  /system/lib64/libpdfium.so (BuildId: 897c695105e0adf6a3378c2ba1d0f9a0)
+    0000007b'4abbd000-0000007b'4ad9afff r-x    1bd000    1de000  /system/lib64/libpdfium.so (BuildId: 897c695105e0adf6a3378c2ba1d0f9a0)
+    0000007b'4ad9b000-0000007b'4ada8fff r--    39b000      e000  /system/lib64/libpdfium.so (BuildId: 897c695105e0adf6a3378c2ba1d0f9a0)
+    0000007b'4ada9000-0000007b'4adabfff rw-    3a8000      3000  /system/lib64/libpdfium.so (BuildId: 897c695105e0adf6a3378c2ba1d0f9a0)
+    0000007b'4adac000-0000007b'4adb3fff rw-         0      8000  [anon:.bss]
+    0000007b'4ae00000-0000007b'4b3fffff ---         0    600000
+    0000007b'4b44a000-0000007b'4b470fff r--         0     27000  /system/lib64/libpcre2.so (BuildId: e8b83feaca0458bb3df86ae0cffd925e)
+    0000007b'4b471000-0000007b'4b49ffff r-x     27000     2f000  /system/lib64/libpcre2.so (BuildId: e8b83feaca0458bb3df86ae0cffd925e)
+    0000007b'4b4a0000-0000007b'4b4a0fff r--     56000      1000  /system/lib64/libpcre2.so (BuildId: e8b83feaca0458bb3df86ae0cffd925e)
+    0000007b'4b4a1000-0000007b'4b4a1fff rw-     56000      1000  /system/lib64/libpcre2.so (BuildId: e8b83feaca0458bb3df86ae0cffd925e)
+    0000007b'4b4d8000-0000007b'4b4dffff r--         0      8000  /system/lib64/libnetdutils.so (BuildId: 924f3918cbf3a1f166a94abd81ae4b46)
+    0000007b'4b4e0000-0000007b'4b4edfff r-x      8000      e000  /system/lib64/libnetdutils.so (BuildId: 924f3918cbf3a1f166a94abd81ae4b46)
+    0000007b'4b4ee000-0000007b'4b4eefff r--     16000      1000  /system/lib64/libnetdutils.so (BuildId: 924f3918cbf3a1f166a94abd81ae4b46)
+    0000007b'4b4ef000-0000007b'4b4effff rw-     16000      1000  /system/lib64/libnetdutils.so (BuildId: 924f3918cbf3a1f166a94abd81ae4b46)
+    0000007b'4b4f0000-0000007b'4b4f0fff rw-         0      1000  [anon:.bss]
+    0000007b'4b516000-0000007b'4b516fff r--         0      1000  /system/lib64/libcodec2_hidl_client@1.2.so (BuildId: d2b3a5b5cb0f717d61f6ab53a78932d3)
+    0000007b'4b517000-0000007b'4b518fff r-x      1000      2000  /system/lib64/libcodec2_hidl_client@1.2.so (BuildId: d2b3a5b5cb0f717d61f6ab53a78932d3)
+    0000007b'4b519000-0000007b'4b519fff r--      3000      1000  /system/lib64/libcodec2_hidl_client@1.2.so (BuildId: d2b3a5b5cb0f717d61f6ab53a78932d3)
+    0000007b'4b579000-0000007b'4b57afff r--         0      2000  /system/lib64/libcgrouprc.so (BuildId: d6907309a68373dd6a35faf08ba8f07e)
+    0000007b'4b57b000-0000007b'4b57bfff r-x      2000      1000  /system/lib64/libcgrouprc.so (BuildId: d6907309a68373dd6a35faf08ba8f07e)
+    0000007b'4b57c000-0000007b'4b57cfff r--      3000      1000  /system/lib64/libcgrouprc.so (BuildId: d6907309a68373dd6a35faf08ba8f07e)
+    0000007b'4b57d000-0000007b'4b57dfff rw-      3000      1000  /system/lib64/libcgrouprc.so (BuildId: d6907309a68373dd6a35faf08ba8f07e)
+    0000007b'4b5b7000-0000007b'4b5b7fff r--         0      1000  /system/lib64/libsqlite3_expert.so (BuildId: 6a39cb3ed5348816cf2739c632b9e1fc)
+    0000007b'4b5b8000-0000007b'4b5b8fff r-x      1000      1000  /system/lib64/libsqlite3_expert.so (BuildId: 6a39cb3ed5348816cf2739c632b9e1fc)
+    0000007b'4b5b9000-0000007b'4b5b9fff r--      2000      1000  /system/lib64/libsqlite3_expert.so (BuildId: 6a39cb3ed5348816cf2739c632b9e1fc)
+    0000007b'4b5e1000-0000007b'4b5e2fff r--         0      2000  /system/lib64/libmedia_omx_client.so (BuildId: 0668d58a67c3350d9e77dab667f5029d)
+    0000007b'4b5e3000-0000007b'4b5e5fff r-x      2000      3000  /system/lib64/libmedia_omx_client.so (BuildId: 0668d58a67c3350d9e77dab667f5029d)
+    0000007b'4b5e6000-0000007b'4b5e6fff r--      5000      1000  /system/lib64/libmedia_omx_client.so (BuildId: 0668d58a67c3350d9e77dab667f5029d)
+    0000007b'4b624000-0000007b'4b6d3fff r--         0     b0000  /apex/com.android.i18n/lib64/libicuuc.so (BuildId: b749984f9507b6a252a8a478865784cf)
+    0000007b'4b6d4000-0000007b'4b7dcfff r-x     b0000    109000  /apex/com.android.i18n/lib64/libicuuc.so (BuildId: b749984f9507b6a252a8a478865784cf)
+    0000007b'4b7dd000-0000007b'4b7f1fff r--    1b9000     15000  /apex/com.android.i18n/lib64/libicuuc.so (BuildId: b749984f9507b6a252a8a478865784cf)
+    0000007b'4b7f2000-0000007b'4b7f2fff rw-    1cd000      1000  /apex/com.android.i18n/lib64/libicuuc.so (BuildId: b749984f9507b6a252a8a478865784cf)
+    0000007b'4b7f3000-0000007b'4b7f4fff rw-         0      2000  [anon:.bss]
+    0000007b'4b800000-0000007b'4f5fffff ---         0   3e00000
+    0000007b'4f672000-0000007b'4f672fff r--         0      1000  /system/lib64/android.hardware.camera.common@1.0.so (BuildId: 42bf9fab73c8c478db9327a88a29ecf7)
+    0000007b'4f673000-0000007b'4f673fff r-x      1000      1000  /system/lib64/android.hardware.camera.common@1.0.so (BuildId: 42bf9fab73c8c478db9327a88a29ecf7)
+    0000007b'4f674000-0000007b'4f674fff r--      2000      1000  /system/lib64/android.hardware.camera.common@1.0.so (BuildId: 42bf9fab73c8c478db9327a88a29ecf7)
+    0000007b'4f6af000-0000007b'4f6b0fff r--         0      2000  /system/lib64/av-types-aidl-cpp.so (BuildId: 09fc9cd512763b5c4963d873bb80eab7)
+    0000007b'4f6b1000-0000007b'4f6b2fff r-x      2000      2000  /system/lib64/av-types-aidl-cpp.so (BuildId: 09fc9cd512763b5c4963d873bb80eab7)
+    0000007b'4f6b3000-0000007b'4f6b3fff r--      4000      1000  /system/lib64/av-types-aidl-cpp.so (BuildId: 09fc9cd512763b5c4963d873bb80eab7)
+    0000007b'4f6c8000-0000007b'4f6d4fff r--         0      d000  /system/lib64/libaudioutils.so (BuildId: fa5c1c59bac9069314f8028ec29bdfe9)
+    0000007b'4f6d5000-0000007b'4f6e8fff r-x      d000     14000  /system/lib64/libaudioutils.so (BuildId: fa5c1c59bac9069314f8028ec29bdfe9)
+    0000007b'4f6e9000-0000007b'4f6e9fff r--     21000      1000  /system/lib64/libaudioutils.so (BuildId: fa5c1c59bac9069314f8028ec29bdfe9)
+    0000007b'4f713000-0000007b'4f722fff r--         0     10000  /system/lib64/audioflinger-aidl-cpp.so (BuildId: 830209c26052a7fa6a7827e54d43c694)
+    0000007b'4f723000-0000007b'4f74cfff r-x     10000     2a000  /system/lib64/audioflinger-aidl-cpp.so (BuildId: 830209c26052a7fa6a7827e54d43c694)
+    0000007b'4f74d000-0000007b'4f752fff r--     3a000      6000  /system/lib64/audioflinger-aidl-cpp.so (BuildId: 830209c26052a7fa6a7827e54d43c694)
+    0000007b'4f753000-0000007b'4f753fff rw-     3f000      1000  /system/lib64/audioflinger-aidl-cpp.so (BuildId: 830209c26052a7fa6a7827e54d43c694)
+    0000007b'4f75d000-0000007b'4f7c0fff rw-         0     64000  [anon:linker_alloc]
+    0000007b'4f7c1000-0000007b'4f7d0fff r--         0     10000  /system/lib64/libstagefright_framecapture_utils.so (BuildId: 6200236ddfe147c9608e0c548690d145)
+    0000007b'4f7d1000-0000007b'4f7ecfff r-x     10000     1c000  /system/lib64/libstagefright_framecapture_utils.so (BuildId: 6200236ddfe147c9608e0c548690d145)
+    0000007b'4f7ed000-0000007b'4f7eefff r--     2c000      2000  /system/lib64/libstagefright_framecapture_utils.so (BuildId: 6200236ddfe147c9608e0c548690d145)
+    0000007b'4f7ef000-0000007b'4f7effff rw-     2d000      1000  /system/lib64/libstagefright_framecapture_utils.so (BuildId: 6200236ddfe147c9608e0c548690d145)
+    0000007b'4f800000-0000007b'517fffff ---         0   2000000
+    0000007b'51854000-0000007b'51854fff r--         0      1000  /apex/com.android.runtime/lib64/bionic/libdl.so (BuildId: ce71fb830f8ed38a9446bf6688f75929)
+    0000007b'51855000-0000007b'51855fff r-x      1000      1000  /apex/com.android.runtime/lib64/bionic/libdl.so (BuildId: ce71fb830f8ed38a9446bf6688f75929)
+    0000007b'51856000-0000007b'51856fff r--      2000      1000  /apex/com.android.runtime/lib64/bionic/libdl.so (BuildId: ce71fb830f8ed38a9446bf6688f75929)
+    0000007b'51857000-0000007b'51857fff ---         0      1000
+    0000007b'51858000-0000007b'51858fff r--         0      1000  [anon:.bss]
+    0000007b'51886000-0000007b'518b6fff r--         0     31000  /system/lib64/libomafldrm.so (BuildId: eece523c09f4644a176ff293c91b738a)
+    0000007b'518b7000-0000007b'518f1fff r-x     31000     3b000  /system/lib64/libomafldrm.so (BuildId: eece523c09f4644a176ff293c91b738a)
+    0000007b'518f2000-0000007b'518f4fff r--     6c000      3000  /system/lib64/libomafldrm.so (BuildId: eece523c09f4644a176ff293c91b738a)
+    0000007b'518f5000-0000007b'518f6fff rw-     6e000      2000  /system/lib64/libomafldrm.so (BuildId: eece523c09f4644a176ff293c91b738a)
+    0000007b'5190a000-0000007b'5190efff r--         0      5000  /system/lib64/android.system.suspend-V1-ndk.so (BuildId: 5bb5e8daf66c3401758594663facb005)
+    0000007b'5190f000-0000007b'51912fff r-x      5000      4000  /system/lib64/android.system.suspend-V1-ndk.so (BuildId: 5bb5e8daf66c3401758594663facb005)
+    0000007b'51913000-0000007b'51913fff r--      9000      1000  /system/lib64/android.system.suspend-V1-ndk.so (BuildId: 5bb5e8daf66c3401758594663facb005)
+    0000007b'51914000-0000007b'51914fff rw-      9000      1000  /system/lib64/android.system.suspend-V1-ndk.so (BuildId: 5bb5e8daf66c3401758594663facb005)
+    0000007b'5194e000-0000007b'51956fff r--         0      9000  /system/lib64/libmeminfo.so (BuildId: 77d5ded0f0a62898dfbbfc5c1d3b156c)
+    0000007b'51957000-0000007b'51962fff r-x      9000      c000  /system/lib64/libmeminfo.so (BuildId: 77d5ded0f0a62898dfbbfc5c1d3b156c)
+    0000007b'51963000-0000007b'51963fff r--     15000      1000  /system/lib64/libmeminfo.so (BuildId: 77d5ded0f0a62898dfbbfc5c1d3b156c)
+    0000007b'51964000-0000007b'51964fff rw-     15000      1000  /system/lib64/libmeminfo.so (BuildId: 77d5ded0f0a62898dfbbfc5c1d3b156c)
+    0000007b'51994000-0000007b'519a2fff r--         0      f000  /system/lib64/libincfs.so (BuildId: 79f2082f98bcd3ad79c8ce766e78b52d)
+    0000007b'519a3000-0000007b'519bdfff r-x      f000     1b000  /system/lib64/libincfs.so (BuildId: 79f2082f98bcd3ad79c8ce766e78b52d)
+    0000007b'519be000-0000007b'519befff r--     2a000      1000  /system/lib64/libincfs.so (BuildId: 79f2082f98bcd3ad79c8ce766e78b52d)
+    0000007b'519bf000-0000007b'519bffff rw-     2a000      1000  /system/lib64/libincfs.so (BuildId: 79f2082f98bcd3ad79c8ce766e78b52d)
+    0000007b'519c4000-0000007b'519cdfff r--         0      a000  /system/lib64/libbinder_ndk.so (BuildId: b9926b4ab09a572f3c8b62004f4e7c4f)
+    0000007b'519ce000-0000007b'519d7fff r-x      a000      a000  /system/lib64/libbinder_ndk.so (BuildId: b9926b4ab09a572f3c8b62004f4e7c4f)
+    0000007b'519d8000-0000007b'519d9fff r--     14000      2000  /system/lib64/libbinder_ndk.so (BuildId: b9926b4ab09a572f3c8b62004f4e7c4f)
+    0000007b'519da000-0000007b'519dafff rw-     15000      1000  /system/lib64/libbinder_ndk.so (BuildId: b9926b4ab09a572f3c8b62004f4e7c4f)
+    0000007b'51a00000-0000007b'51a13fff r--         0     14000  /system/lib64/libaudioclient_aidl_conversion.so (BuildId: 3708921d7052d9baff48e554b039e749)
+    0000007b'51a14000-0000007b'51a3bfff r-x     14000     28000  /system/lib64/libaudioclient_aidl_conversion.so (BuildId: 3708921d7052d9baff48e554b039e749)
+    0000007b'51a3c000-0000007b'51a3dfff r--     3c000      2000  /system/lib64/libaudioclient_aidl_conversion.so (BuildId: 3708921d7052d9baff48e554b039e749)
+    0000007b'51a3e000-0000007b'51a3efff rw-     3d000      1000  /system/lib64/libaudioclient_aidl_conversion.so (BuildId: 3708921d7052d9baff48e554b039e749)
+    0000007b'51a68000-0000007b'51a71fff r--         0      a000  /system/lib64/libSurfaceFlingerProp.so (BuildId: 92462f54e5ba65afc3bc818620f36bc6)
+    0000007b'51a72000-0000007b'51a7afff r-x      a000      9000  /system/lib64/libSurfaceFlingerProp.so (BuildId: 92462f54e5ba65afc3bc818620f36bc6)
+    0000007b'51a7b000-0000007b'51a7bfff r--     13000      1000  /system/lib64/libSurfaceFlingerProp.so (BuildId: 92462f54e5ba65afc3bc818620f36bc6)
+    0000007b'51a7c000-0000007b'51a7cfff rw-     13000      1000  /system/lib64/libSurfaceFlingerProp.so (BuildId: 92462f54e5ba65afc3bc818620f36bc6)
+    0000007b'51a8b000-0000007b'51a95fff r--         0      b000  /system/lib64/android.hardware.graphics.mapper@3.0.so (BuildId: 57b745740e22be351139f19822eb61ff)
+    0000007b'51a96000-0000007b'51a9ffff r-x      b000      a000  /system/lib64/android.hardware.graphics.mapper@3.0.so (BuildId: 57b745740e22be351139f19822eb61ff)
+    0000007b'51aa0000-0000007b'51aa1fff r--     15000      2000  /system/lib64/android.hardware.graphics.mapper@3.0.so (BuildId: 57b745740e22be351139f19822eb61ff)
+    0000007b'51aa2000-0000007b'51aa2fff rw-     16000      1000  /system/lib64/android.hardware.graphics.mapper@3.0.so (BuildId: 57b745740e22be351139f19822eb61ff)
+    0000007b'51ac5000-0000007b'51ad5fff r--         0     11000  /system/lib64/libstagefright_bufferpool@2.0.1.so (BuildId: c0a030620caeef04259efcdff186c3dc)
+    0000007b'51ad6000-0000007b'51aedfff r-x     11000     18000  /system/lib64/libstagefright_bufferpool@2.0.1.so (BuildId: c0a030620caeef04259efcdff186c3dc)
+    0000007b'51aee000-0000007b'51aeffff r--     29000      2000  /system/lib64/libstagefright_bufferpool@2.0.1.so (BuildId: c0a030620caeef04259efcdff186c3dc)
+    0000007b'51af0000-0000007b'51af0fff rw-     2a000      1000  /system/lib64/libstagefright_bufferpool@2.0.1.so (BuildId: c0a030620caeef04259efcdff186c3dc)
+    0000007b'51b00000-0000007b'51b03fff r--         0      4000  /system/lib64/mediametricsservice-aidl-cpp.so (BuildId: a574d430d982f83e4c1508eeeb021f90)
+    0000007b'51b04000-0000007b'51b06fff r-x      4000      3000  /system/lib64/mediametricsservice-aidl-cpp.so (BuildId: a574d430d982f83e4c1508eeeb021f90)
+    0000007b'51b07000-0000007b'51b08fff r--      7000      2000  /system/lib64/mediametricsservice-aidl-cpp.so (BuildId: a574d430d982f83e4c1508eeeb021f90)
+    0000007b'51b09000-0000007b'51b09fff rw-      8000      1000  /system/lib64/mediametricsservice-aidl-cpp.so (BuildId: a574d430d982f83e4c1508eeeb021f90)
+    0000007b'51b5f000-0000007b'51b85fff r--         0     27000  /system/lib64/android.hardware.drm@1.2.so (BuildId: 03f6dad89deccd4773f89930220f3b60)
+    0000007b'51b86000-0000007b'51badfff r-x     27000     28000  /system/lib64/android.hardware.drm@1.2.so (BuildId: 03f6dad89deccd4773f89930220f3b60)
+    0000007b'51bae000-0000007b'51bb5fff r--     4f000      8000  /system/lib64/android.hardware.drm@1.2.so (BuildId: 03f6dad89deccd4773f89930220f3b60)
+    0000007b'51bb6000-0000007b'51bb6fff rw-     56000      1000  /system/lib64/android.hardware.drm@1.2.so (BuildId: 03f6dad89deccd4773f89930220f3b60)
+    0000007b'51bf1000-0000007b'51bf2fff r--         0      2000  /system/lib64/libspeexresampler.so (BuildId: 95a77cae85b314a2380120d252cd12c7)
+    0000007b'51bf3000-0000007b'51bf4fff r-x      2000      2000  /system/lib64/libspeexresampler.so (BuildId: 95a77cae85b314a2380120d252cd12c7)
+    0000007b'51bf5000-0000007b'51bf5fff r--      4000      1000  /system/lib64/libspeexresampler.so (BuildId: 95a77cae85b314a2380120d252cd12c7)
+    0000007b'51c05000-0000007b'51c05fff r--         0      1000  /system/lib64/libnativebridge_lazy.so (BuildId: 00199bde9c05a333390dd4adec1c57d1)
+    0000007b'51c06000-0000007b'51c06fff r-x      1000      1000  /system/lib64/libnativebridge_lazy.so (BuildId: 00199bde9c05a333390dd4adec1c57d1)
+    0000007b'51c07000-0000007b'51c07fff r--      2000      1000  /system/lib64/libnativebridge_lazy.so (BuildId: 00199bde9c05a333390dd4adec1c57d1)
+    0000007b'51c08000-0000007b'51c08fff rw-      2000      1000  /system/lib64/libnativebridge_lazy.so (BuildId: 00199bde9c05a333390dd4adec1c57d1)
+    0000007b'51c52000-0000007b'51c80fff r--         0     2f000  /system/lib64/libunwindstack.so (BuildId: dbf9cdd3bb20bb25e963454469f328d0)
+    0000007b'51c81000-0000007b'51cd6fff r-x     2f000     56000  /system/lib64/libunwindstack.so (BuildId: dbf9cdd3bb20bb25e963454469f328d0)
+    0000007b'51cd7000-0000007b'51cdcfff r--     85000      6000  /system/lib64/libunwindstack.so (BuildId: dbf9cdd3bb20bb25e963454469f328d0)
+    0000007b'51cdd000-0000007b'51cddfff rw-     8a000      1000  /system/lib64/libunwindstack.so (BuildId: dbf9cdd3bb20bb25e963454469f328d0)
+    0000007b'51cdf000-0000007b'51d1efff rw-         0     40000
+    0000007b'51d1f000-0000007b'51d1ffff r--         0      1000  /system/lib64/libhardware.so (BuildId: 54aed346af8d949740a1583706d539cd)
+    0000007b'51d20000-0000007b'51d20fff r-x      1000      1000  /system/lib64/libhardware.so (BuildId: 54aed346af8d949740a1583706d539cd)
+    0000007b'51d21000-0000007b'51d21fff r--      2000      1000  /system/lib64/libhardware.so (BuildId: 54aed346af8d949740a1583706d539cd)
+    0000007b'51d43000-0000007b'51d50fff r--         0      e000  /system/lib64/libgfxgrab.so (BuildId: 0ca331632ee45ea1d83b29dd815f63fe)
+    0000007b'51d51000-0000007b'51d82fff r-x      e000     32000  /system/lib64/libgfxgrab.so (BuildId: 0ca331632ee45ea1d83b29dd815f63fe)
+    0000007b'51d83000-0000007b'51d84fff r--     40000      2000  /system/lib64/libgfxgrab.so (BuildId: 0ca331632ee45ea1d83b29dd815f63fe)
+    0000007b'51d85000-0000007b'51d85fff rw-     41000      1000  /system/lib64/libgfxgrab.so (BuildId: 0ca331632ee45ea1d83b29dd815f63fe)
+    0000007b'51dc2000-0000007b'51dcefff r--         0      d000  /system/lib64/libminikin.so (BuildId: 2256240c953ee19c7c9a7d0c88ced823)
+    0000007b'51dcf000-0000007b'51df4fff r-x      d000     26000  /system/lib64/libminikin.so (BuildId: 2256240c953ee19c7c9a7d0c88ced823)
+    0000007b'51df5000-0000007b'51df5fff r--     33000      1000  /system/lib64/libminikin.so (BuildId: 2256240c953ee19c7c9a7d0c88ced823)
+    0000007b'51df6000-0000007b'51df6fff rw-     33000      1000  /system/lib64/libminikin.so (BuildId: 2256240c953ee19c7c9a7d0c88ced823)
+    0000007b'51e1d000-0000007b'51e21fff r--         0      5000  /system/lib64/framework-permission-aidl-cpp.so (BuildId: 92a37f2ec982be6707178bf520580551)
+    0000007b'51e22000-0000007b'51e24fff r-x      5000      3000  /system/lib64/framework-permission-aidl-cpp.so (BuildId: 92a37f2ec982be6707178bf520580551)
+    0000007b'51e25000-0000007b'51e26fff r--      8000      2000  /system/lib64/framework-permission-aidl-cpp.so (BuildId: 92a37f2ec982be6707178bf520580551)
+    0000007b'51e27000-0000007b'51e27fff rw-      9000      1000  /system/lib64/framework-permission-aidl-cpp.so (BuildId: 92a37f2ec982be6707178bf520580551)
+    0000007b'51e59000-0000007b'51e59fff rw-         0      1000  [anon:bionic_alloc_small_objects]
+    0000007b'51e70000-0000007b'51e70fff rw-         0      1000  [anon:bionic_alloc_small_objects]
+    0000007b'51f6d000-0000007b'51f6dfff rw-         0      1000  [anon:bionic_alloc_small_objects]
+    0000007b'51fed000-0000007b'51fedfff rw-         0      1000  [anon:bionic_alloc_lob]
+    0000007b'520a4000-0000007b'520a4fff rw-         0      1000  [anon:bionic_alloc_small_objects]
+    0000007b'521a0000-0000007b'521a0fff rw-         0      1000  [anon:bionic_alloc_small_objects]
+    0000007b'52206000-0000007b'52206fff ---         0      1000
+    0000007b'52207000-0000007b'52301fff rw-         0     fb000  [anon:stack_and_tls:12087]
+    0000007b'52302000-0000007b'52302fff ---         0      1000
+    0000007b'52303000-0000007b'52303fff rw-         0      1000  [anon:bionic_alloc_small_objects]
+    0000007b'5230f000-0000007b'5230ffff rw-         0      1000  [anon:bionic_alloc_small_objects]
+    0000007b'523f2000-0000007b'523f2fff rw-         0      1000  [anon:bionic_alloc_small_objects]
+    0000007b'524b5000-0000007b'524c4fff r--         0     10000  [anon:atexit handlers]
+    0000007b'524c5000-0000007b'524f4fff r--         0     30000  /dev/__properties__/u:object_r:bq_config_prop:s0
+    0000007b'524f5000-0000007b'52524fff r--         0     30000  /dev/__properties__/u:object_r:log_tag_prop:s0
+    0000007b'52525000-0000007b'52525fff rw-         0      1000  [anon:bionic_alloc_small_objects]
+    0000007b'5252b000-0000007b'5252bfff ---         0      1000
+    0000007b'5252c000-0000007b'52533fff rw-         0      8000  [anon:thread signal stack]
+    0000007b'52534000-0000007b'52733fff rw-         0    200000  [anon:libc_malloc]
+    0000007b'52734000-0000007b'52763fff r--         0     30000  /dev/__properties__/u:object_r:heapprofd_prop:s0
+    0000007b'52764000-0000007b'52793fff r--         0     30000  /dev/__properties__/u:object_r:libc_debug_prop:s0
+    0000007b'52794000-0000007b'527c3fff r--         0     30000  /dev/__properties__/u:object_r:gwp_asan_prop:s0
+    0000007b'527c4000-0000007b'527f3fff r--         0     30000  /dev/__properties__/u:object_r:exported_system_prop:s0
+    0000007b'527f4000-0000007b'52823fff r--         0     30000  /dev/__properties__/u:object_r:debug_prop:s0
+    0000007b'52824000-0000007b'52853fff r--         0     30000  /dev/__properties__/properties_serial
+    0000007b'52854000-0000007b'5286efff r--         0     1b000  /dev/__properties__/property_info
+    0000007b'52873000-0000007b'528a2fff r--         0     30000  /dev/__properties__/u:object_r:build_prop:s0
+    0000007b'528a3000-0000007b'528d2fff r--         0     30000  /dev/__properties__/u:object_r:vendor_socket_hook_prop:s0
+    0000007b'528d3000-0000007b'5299afff r--         0     c8000  [anon:linker_alloc]
+    0000007b'5299b000-0000007b'529cafff r--         0     30000  /dev/__properties__/u:object_r:vndk_prop:s0
+    0000007b'529cb000-0000007b'529cbfff rw-         0      1000  [anon:bionic_alloc_small_objects]
+    0000007b'529cd000-0000007b'529cefff rw-         0      2000  [anon:bionic_alloc_small_objects]
+    0000007b'529d0000-0000007b'529d0fff rw-         0      1000  [anon:bionic_alloc_small_objects]
+    0000007b'529d6000-0000007b'529d6fff rw-         0      1000  [anon:bionic_alloc_small_objects]
+    0000007b'529da000-0000007b'529dbfff rw-         0      2000  [anon:bionic_alloc_small_objects]
+    0000007b'529e1000-0000007b'529e2fff rw-         0      2000  [anon:InternalMmapVector]
+    0000007b'529e6000-0000007b'529e6fff rw-         0      1000  [anon:abort message]
+    0000007b'529e7000-0000007b'529e8fff rw-         0      2000  [anon:Allocate]
+    0000007b'529e9000-0000007b'529ecfff rw-         0      4000  [anon:System property context nodes]
+    0000007b'529ed000-0000007b'529edfff ---         0      1000
+    0000007b'529ee000-0000007b'529f0fff rw-         0      3000  [anon:stack_and_tls:main]
+    0000007b'529f1000-0000007b'529f1fff ---         0      1000
+    0000007b'529f2000-0000007b'529f3fff rw-         0      2000  [anon:bionic_alloc_small_objects]
+    0000007b'529f4000-0000007b'529f4fff rw-         0      1000  [anon:Allocate]
+    0000007b'529f5000-0000007b'52a04fff rw-         0     10000  [anon:bionic_alloc_small_objects]
+    0000007b'52a05000-0000007b'52a34fff r--         0     30000  /dev/__properties__/u:object_r:arm64_memtag_prop:s0
+    0000007b'52a35000-0000007b'52a98fff r--         0     64000  [anon:linker_alloc]
+    0000007b'52a99000-0000007b'52a99fff rw-         0      1000  [anon:bionic_alloc_small_objects]
+    0000007b'52a9a000-0000007b'52ac9fff r--         0     30000  /dev/__properties__/u:object_r:debug_prop:s0
+    0000007b'52aca000-0000007b'52af9fff r--         0     30000  /dev/__properties__/u:object_r:build_prop:s0
+    0000007b'52afa000-0000007b'52afafff ---         0      1000
+    0000007b'52afb000-0000007b'52b02fff rw-         0      8000
+    0000007b'52b03000-0000007b'52b03fff ---         0      1000
+    0000007b'52b04000-0000007b'52b33fff r--         0     30000  /dev/__properties__/properties_serial
+    0000007b'52b34000-0000007b'52b37fff rw-         0      4000  [anon:System property context nodes]
+    0000007b'52b38000-0000007b'52b52fff r--         0     1b000  /dev/__properties__/property_info
+    0000007b'52b53000-0000007b'52bb6fff r--         0     64000  [anon:linker_alloc]
+    0000007b'52bb7000-0000007b'52bb9fff rw-         0      3000  [anon:bionic_alloc_small_objects]
+    0000007b'52bba000-0000007b'52bbafff r--         0      1000  [anon:atexit handlers]
+    0000007b'52bbb000-0000007b'53287fff ---         0    6cd000
+    0000007b'53288000-0000007b'53289fff rw-         0      2000
+    0000007b'5328a000-0000007b'53bbafff ---         0    931000
+    0000007b'53bbb000-0000007b'53bbbfff ---         0      1000
+    0000007b'53bbc000-0000007b'53bc3fff rw-         0      8000  [anon:thread signal stack]
+    0000007b'53bc4000-0000007b'53bc4fff rw-         0      1000  [anon:arc4random data]
+    0000007b'53bc5000-0000007b'53bc6fff rw-         0      2000  [anon:ReadFileToBuffer]
+    0000007b'53bc7000-0000007b'53bc7fff rw-         0      1000  [anon:arc4random data]
+    0000007b'53bc8000-0000007b'53bc8fff r--         0      1000  [vvar]
+    0000007b'53bc9000-0000007b'53bc9fff r-x         0      1000  [vdso]
+    0000007b'53bca000-0000007b'53c01fff r--         0     38000  /apex/com.android.runtime/bin/linker64 (BuildId: 771418265fff206ca0a435b4fd9ba888)
+    0000007b'53c02000-0000007b'53ce8fff r-x     38000     e7000  /apex/com.android.runtime/bin/linker64 (BuildId: 771418265fff206ca0a435b4fd9ba888)
+    0000007b'53ce9000-0000007b'53cf0fff r--    11f000      8000  /apex/com.android.runtime/bin/linker64 (BuildId: 771418265fff206ca0a435b4fd9ba888)
+    0000007b'53cf1000-0000007b'53cf2fff rw-    126000      2000  /apex/com.android.runtime/bin/linker64 (BuildId: 771418265fff206ca0a435b4fd9ba888)
+    0000007b'53cf3000-0000007b'53cfbfff rw-         0      9000  [anon:.bss]
+    0000007b'53cfc000-0000007b'53cfcfff r--         0      1000  [anon:.bss]
+    0000007b'53cfd000-0000007b'53cfefff rw-         0      2000  [anon:.bss]
+    0000007f'f2f8f000-0000007f'f2fb0fff rw-         0     22000  [stack]
+--- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+Cmdline: /data/app/~~UMi4L7cRFHODvoQ5X4Lk7g==/com.chess-bki1fQA4hjIJuY4p8Nnv8Q==/lib/arm64/libkt.so
+pid: 12051, tid: 12087, name: libkt.so  >>> /data/app/~~UMi4L7cRFHODvoQ5X4Lk7g==/com.chess-bki1fQA4hjIJuY4p8Nnv8Q==/lib/arm64/libkt.so <<<
+uid: 10393
+    x0  0000007a965ddcc0  x1  0000000000000089  x2  0000000000000000  x3  0000000000000000
+    x4  0000000000000000  x5  00000000ffffffff  x6  00000000ffffffff  x7  656d616777656e69
+    x8  0000000000000062  x9  0000000000000089  x10 0000000000000009  x11 0000000000000004
+    x12 0000007a93a07600  x13 0000007a93818000  x14 fffffffffc000000  x15 0000000000000000
+    x16 0000007b41156ab0  x17 0000007b410dd0c0  x18 0000007a93cb6000  x19 0000000000000000
+    x20 0000000000000000  x21 0000007a965ddcc0  x22 0000000000000089  x23 0000007b522ff000
+    x24 0000007b522ff010  x25 0000000000000000  x26 0000007b522ff008  x27 00000000000fb000
+    x28 00000000000fd000  x29 0000007b522feab0
+    lr  0000007b410e18bc  sp  0000007b522fea90  pc  0000007b410dd0dc  pst 0000000040001000
+
+backtrace:
+      #00 pc 00000000000870dc  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: ae97b4676db8ce3f620ba6bf7932eba6)
+      #01 pc 000000000008b8b8  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex(void volatile*, bool, int, bool, timespec const*)+144) (BuildId: ae97b4676db8ce3f620ba6bf7932eba6)
+      #02 pc 00000000000ee994  /apex/com.android.runtime/lib64/bionic/libc.so (pthread_cond_wait+76) (BuildId: ae97b4676db8ce3f620ba6bf7932eba6)
+      #03 pc 00000000005a18b0  /data/app/~~UMi4L7cRFHODvoQ5X4Lk7g==/com.chess-bki1fQA4hjIJuY4p8Nnv8Q==/lib/arm64/libkt.so (BuildId: 1ca752a82b13a8aa0fa9192c7ab3cf99098de659)
+      #04 pc 00000000001f4834  /data/app/~~UMi4L7cRFHODvoQ5X4Lk7g==/com.chess-bki1fQA4hjIJuY4p8Nnv8Q==/lib/arm64/libkt.so (BuildId: 1ca752a82b13a8aa0fa9192c7ab3cf99098de659)
+      #05 pc 00000000001f4574  /data/app/~~UMi4L7cRFHODvoQ5X4Lk7g==/com.chess-bki1fQA4hjIJuY4p8Nnv8Q==/lib/arm64/libkt.so (BuildId: 1ca752a82b13a8aa0fa9192c7ab3cf99098de659)
+      #06 pc 00000000001f43f0  /data/app/~~UMi4L7cRFHODvoQ5X4Lk7g==/com.chess-bki1fQA4hjIJuY4p8Nnv8Q==/lib/arm64/libkt.so (BuildId: 1ca752a82b13a8aa0fa9192c7ab3cf99098de659)
+      #07 pc 00000000000ef678  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: ae97b4676db8ce3f620ba6bf7932eba6)
+      #08 pc 000000000008c30c  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: ae97b4676db8ce3f620ba6bf7932eba6)
+
+open files:
+    fd 0: pipe:[1133992] (unowned)
+    fd 1: pipe:[1133993] (unowned)
+    fd 2: /data/data/com.chess/files/chess-engine-error105728505915893707.log (unowned)
+    fd 3: /dev/urandom (unowned)
+    fd 4: /dev/urandom (unowned)
+    fd 5: /dev/urandom (unowned)
+    fd 6: /dev/urandom (unowned)
+    fd 7: /dev/urandom (unowned)
+    fd 8: /dev/urandom (unowned)
+    fd 9: /dev/urandom (unowned)
+    fd 10: /dev/urandom (unowned)
+    fd 11: /dev/urandom (unowned)
+    fd 12: /dev/urandom (unowned)
+    fd 13: /dev/urandom (unowned)
+    fd 14: /dev/urandom (unowned)
+    fd 15: /dev/urandom (unowned)
+    fd 16: /dev/urandom (unowned)
+    fd 17: /dev/urandom (unowned)
+    fd 18: /dev/urandom (unowned)
+    fd 19: /dev/urandom (unowned)
+    fd 20: /dev/urandom (unowned)
+    fd 21: /dev/urandom (unowned)
+    fd 22: /dev/urandom (unowned)
+    fd 23: /dev/urandom (unowned)
+    fd 24: /dev/urandom (unowned)
+    fd 25: /dev/urandom (unowned)
+    fd 26: /dev/urandom (unowned)
+    fd 27: /dev/urandom (unowned)
+    fd 28: /dev/urandom (unowned)
+    fd 29: /dev/urandom (unowned)
+    fd 30: /dev/urandom (unowned)
