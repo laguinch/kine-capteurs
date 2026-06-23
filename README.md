@@ -7,6 +7,26 @@ Projet local pour capteurs Kinvent / ANR, patients, évaluations, exercices, gra
 Les données patients ne doivent jamais être envoyées sur GitHub.
 La base réelle et les exports restent uniquement sur le serveur du cabinet.
 
+## Règle impérative pour le Bluetooth Kinvent
+
+Toute modification concernant un capteur Kinvent doit reproduire strictement
+le fonctionnement observé dans l'application officielle Kinvent et dans les
+captures Bluetooth présentes dans `bug_report/`.
+
+- consulter les bug-reports et les captures HCI avant de modifier un pilote ;
+- utiliser uniquement les commandes, délais et transitions effectivement
+  observés ;
+- ne pas inventer de commande, de temporisation, de reconnexion, de relance
+  ciblée ou de mécanisme de récupération ;
+- si une information n'apparaît pas dans les captures, l'indiquer explicitement
+  avant toute implémentation ;
+- conserver un gestionnaire Bluetooth unique, propriétaire du dongle, afin de
+  changer de capteur sans réinitialiser le contrôleur, comme dans l'application
+  officielle ;
+- protéger cette règle par des tests décrivant les séquences officielles.
+
+Cette règle est prioritaire sur toute optimisation ou correction empirique.
+
 ## Lancement local
 
 ```bash
