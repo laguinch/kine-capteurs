@@ -99,6 +99,20 @@ class KMoveHciClient(RawKinventClient):
                 ]
             )
 
+    def reset(self):
+        """Tolère une seule transition lente du dongle après les plateformes."""
+        try:
+            super().reset()
+        except TimeoutError as exc:
+            if "0x0c03" not in str(exc):
+                raise
+            print(
+                "Contrôleur encore en cours de libération; "
+                "nouvel essai HCI Reset..."
+            )
+            time.sleep(1.0)
+            super().reset()
+
     @staticmethod
     def _advertised_name(data):
         offset = 0

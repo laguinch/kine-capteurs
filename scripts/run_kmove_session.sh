@@ -39,13 +39,27 @@ trap restore_plates EXIT INT TERM
 
 cd "$PROJECT_DIR"
 systemctl stop "$BLUETOOTH_SERVICE_NAME"
+systemctl kill --kill-who=all --signal=SIGKILL \
+  "$BLUETOOTH_SERVICE_NAME" 2>/dev/null || true
 pkill -f "$PROJECT_DIR/scripts/kinvent_dual_hci.py" || true
+
+# Le service systemd peut être arrêté alors que son ancien canal HCI_USER est
+# encore en cours de fermeture. Attendre sa disparition évite que la première
+# commande HCI Reset du K-Move parte dans un contrôleur encore occupé.
+for _ in 1 2 3 4 5; do
+  if ! pgrep -f "$PROJECT_DIR/scripts/[k]invent_dual_hci.py" >/dev/null; then
+    break
+  fi
+  sleep 1
+done
+
 if command -v hciconfig >/dev/null 2>&1; then
   for controller_path in /sys/class/bluetooth/hci*; do
     [[ -e "$controller_path" ]] || continue
     hciconfig "${controller_path##*/}" down || true
   done
 fi
+sleep 1
 
 "$PROJECT_DIR/.venv/bin/python" -u \
   "$PROJECT_DIR/scripts/kinvent_kmove_hci.py" \
