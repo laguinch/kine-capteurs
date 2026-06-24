@@ -18,6 +18,12 @@ function formatDateTime(value) {
   });
 }
 
+function formatSessionType(value) {
+  if (value === "evaluation") return "évaluation";
+  if (value === "training") return "entraînement";
+  return value || "séance";
+}
+
 function patientCard(patient) {
   const birthDate = patient.date_naissance ? formatDate(`${patient.date_naissance}T00:00:00`) : "Date non renseignée";
   const article = document.createElement("article");
@@ -39,7 +45,7 @@ function sessionCard(session) {
   article.innerHTML = `
     <div>
       <strong>${session.display_name || session.test_name}</strong>
-      <small>${formatDateTime(session.created_at)} · ${session.sensor} · ${session.session_type}</small>
+      <small>${formatDateTime(session.created_at)} · ${session.sensor} · ${formatSessionType(session.session_type)}</small>
       ${session.summary ? `<p class="session-summary">${session.summary}</p>` : ""}
     </div>
     ${session.csv_path ? `<span class="badge neutral">Données brutes</span>` : `<span class="badge neutral">Résumé</span>`}
