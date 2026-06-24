@@ -146,7 +146,7 @@ async function maybeSave(data) {
     const saved = await window.KinePatientSave.saveEvaluation(data, {
       sensor: "K-Move",
       test_name: selection.mouvement || "Mobilité",
-      display_name: label ? `K‑Move — ${label}` : "K‑Move — mobilité tridimensionnelle",
+      display_name: label || "Mobilité tridimensionnelle",
       summary:
         `Rotation ${format(rotation.min, 1)}° à ${format(rotation.max, 1)}° · ` +
         `flexion ${format(flexion.min, 1)}° à ${format(flexion.max, 1)}° · ` +

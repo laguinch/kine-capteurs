@@ -129,7 +129,7 @@ async function maybeSave(data) {
     const saved = await window.KinePatientSave.saveEvaluation(data, {
       sensor: "K-Push",
       test_name: selection.mouvement || "Force maximale",
-      display_name: label ? `K‑Push — ${label}` : "K‑Push — force maximale",
+      display_name: label || "Force maximale",
       summary:
         `Force maximale ${format(state.maxForceKg, 1)} kg · ` +
         `${format(state.maxForceN, 0)} N`,
