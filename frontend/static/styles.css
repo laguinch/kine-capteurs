@@ -154,6 +154,10 @@ button, input, select { font: inherit; }
   gap: 14px;
 }
 
+.setup-card.variant-choice-card {
+  cursor: default;
+}
+
 .setup-card strong {
   font-size: clamp(1.35rem, 2vw, 2rem);
 }

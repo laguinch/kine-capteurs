@@ -19,6 +19,11 @@ const MOVEMENTS = [
   "Rotation externe",
 ];
 
+const MOVEMENT_VARIANTS = {
+  "Rotation interne": ["RI 1", "RI 2", "RI 3"],
+  "Rotation externe": ["RE 1", "RE 2", "RE 3"],
+};
+
 const SIDED_JOINTS = new Set([
   "Épaule",
   "Coude",
@@ -90,7 +95,11 @@ function renderJoints() {
   });
 }
 
-function targetUrl(movement) {
+function movementLabel(movement, variant = null) {
+  return [movement, variant].filter(Boolean).join(" ");
+}
+
+function targetUrl(movement, variant = null) {
   const next = new URLSearchParams(params);
   next.set("articulation", selectedJoint);
   if (selectedSide) {
@@ -98,7 +107,7 @@ function targetUrl(movement) {
   } else {
     next.delete("cote");
   }
-  next.set("mouvement", movement);
+  next.set("mouvement", movementLabel(movement, variant));
   return `${testPath}?${next.toString()}`;
 }
 
@@ -110,11 +119,30 @@ function renderMovements() {
   selectedJointTitle.textContent = selectedLabel();
   movementChoices.innerHTML = "";
   MOVEMENTS.forEach((movement) => {
-    const link = document.createElement("a");
-    link.className = "choice-card setup-card";
-    link.href = targetUrl(movement);
-    link.innerHTML = `<strong>${movement}</strong>`;
-    movementChoices.appendChild(link);
+    const variants = MOVEMENT_VARIANTS[movement] || [];
+    const card = document.createElement(variants.length ? "div" : "a");
+    card.className = `choice-card setup-card ${variants.length ? "has-side-choice variant-choice-card" : ""}`.trim();
+    if (!variants.length) {
+      card.href = targetUrl(movement);
+    }
+    card.innerHTML = `<strong>${movement}</strong>`;
+    if (variants.length) {
+      const row = document.createElement("span");
+      row.className = "side-choice-row";
+      variants.forEach((variant) => {
+        const variantLink = document.createElement("span");
+        variantLink.className = "side-choice";
+        variantLink.textContent = variant;
+        variantLink.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          window.location.href = targetUrl(movement, variant);
+        });
+        row.appendChild(variantLink);
+      });
+      card.appendChild(row);
+    }
+    movementChoices.appendChild(card);
   });
   movementStep.classList.remove("hidden");
 }
