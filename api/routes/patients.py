@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
@@ -29,8 +31,11 @@ def _apply_payload(patient: Patient, payload):
 
 @router.get("", response_model=list[PatientRead])
 def list_patients(
-    q: str | None = Query(default=None, description="Nom, prénom ou pathologie"),
-    limit: int = Query(default=50, ge=1, le=200),
+    q: Annotated[
+        str | None,
+        Query(description="Nom, prénom ou pathologie"),
+    ] = None,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
     db: Session = Depends(get_db),
 ):
     query = db.query(Patient)
