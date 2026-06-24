@@ -2,6 +2,11 @@ const $ = (id) => document.getElementById(id);
 const state = {
   history: { rotation: [], flexion: [], inclination: [] },
   lastTimestamp: null,
+  ranges: {
+    rotation: { min: 0, max: 0 },
+    flexion_extension: { min: 0, max: 0 },
+    inclination: { min: 0, max: 0 },
+  },
 };
 const format = (value, digits = 1) =>
   Number.isFinite(value)
@@ -11,10 +16,11 @@ const format = (value, digits = 1) =>
       })
     : "—";
 
-function message(text, error = false) {
+function message(text, error = false, ready = false) {
   $("message").textContent = text || "";
   $("message").classList.toggle("hidden", !text);
   $("message").classList.toggle("error", error);
+  $("message").classList.toggle("ready", ready);
 }
 
 function drawSeries(ctx, values, color, width, height, maximum) {
@@ -105,10 +111,12 @@ function update(data) {
   } else if (phase === "disconnected") {
     message("Cliquez sur « Connecter le K‑Move ».");
   }
+  maybeSave(data);
 
   const m = data.measurement;
   if (!m || m.timestamp_utc === state.lastTimestamp) return;
   state.lastTimestamp = m.timestamp_utc;
+  state.ranges = m.ranges || state.ranges;
   $("rotation").textContent = format(m.rotation_deg, 1);
   $("flexion").textContent = format(m.flexion_extension_deg, 1);
   $("inclination").textContent = format(m.inclination_deg, 1);
@@ -124,6 +132,27 @@ function update(data) {
       if (values.length > 300) values.shift();
     }
     draw();
+  }
+}
+
+async function maybeSave(data) {
+  if (!window.KinePatientSave) return;
+  const rotation = state.ranges.rotation || {};
+  const flexion = state.ranges.flexion_extension || {};
+  const inclination = state.ranges.inclination || {};
+  try {
+    const saved = await window.KinePatientSave.saveEvaluation(data, {
+      sensor: "K-Move",
+      test_name: "Mobilité",
+      display_name: "K‑Move — mobilité tridimensionnelle",
+      summary:
+        `Rotation ${format(rotation.min, 1)}° à ${format(rotation.max, 1)}° · ` +
+        `flexion ${format(flexion.min, 1)}° à ${format(flexion.max, 1)}° · ` +
+        `inclinaison ${format(inclination.min, 1)}° à ${format(inclination.max, 1)}°`,
+    });
+    if (saved) message("✓ Test terminé et enregistré dans le dossier patient.", false, true);
+  } catch (error) {
+    message(`${error.message}. Le fichier CSV reste disponible.`, true);
   }
 }
 
@@ -157,6 +186,11 @@ async function disconnect() {
 async function start() {
   state.history = { rotation: [], flexion: [], inclination: [] };
   state.lastTimestamp = null;
+  state.ranges = {
+    rotation: { min: 0, max: 0 },
+    flexion_extension: { min: 0, max: 0 },
+    inclination: { min: 0, max: 0 },
+  };
   draw();
   try {
     await request("/api/kmove/start", {

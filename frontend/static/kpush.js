@@ -1,5 +1,5 @@
 const $ = (id) => document.getElementById(id);
-const state = { history: [], lastTimestamp: null };
+const state = { history: [], lastTimestamp: null, maxForceKg: 0, maxForceN: 0 };
 const format = (value, digits = 1) =>
   Number.isFinite(value)
     ? value.toLocaleString("fr-FR", {
@@ -8,10 +8,11 @@ const format = (value, digits = 1) =>
       })
     : "—";
 
-function message(text, error = false) {
+function message(text, error = false, ready = false) {
   $("message").textContent = text || "";
   $("message").classList.toggle("hidden", !text);
   $("message").classList.toggle("error", error);
+  $("message").classList.toggle("ready", ready);
 }
 
 function draw() {
@@ -102,10 +103,13 @@ function update(data) {
   } else if (phase === "disconnected") {
     message("Cliquez sur « Connecter le K‑Push ».");
   }
+  maybeSave(data);
 
   const m = data.measurement;
   if (!m || m.timestamp_utc === state.lastTimestamp) return;
   state.lastTimestamp = m.timestamp_utc;
+  state.maxForceKg = Math.max(state.maxForceKg, Number(m.max_force_kg) || 0);
+  state.maxForceN = Math.max(state.maxForceN, Number(m.max_force_n) || 0);
   $("forceKg").textContent = format(Math.max(0, m.force_kg), 1);
   $("forceN").textContent = `${format(Math.max(0, m.force_n), 0)} N`;
   $("maxKg").textContent = format(m.max_force_kg, 1);
@@ -114,6 +118,23 @@ function update(data) {
     state.history.push(Math.max(0, m.force_kg));
     if (state.history.length > 300) state.history.shift();
     draw();
+  }
+}
+
+async function maybeSave(data) {
+  if (!window.KinePatientSave) return;
+  try {
+    const saved = await window.KinePatientSave.saveEvaluation(data, {
+      sensor: "K-Push",
+      test_name: "Force maximale",
+      display_name: "K‑Push — force maximale",
+      summary:
+        `Force maximale ${format(state.maxForceKg, 1)} kg · ` +
+        `${format(state.maxForceN, 0)} N`,
+    });
+    if (saved) message("✓ Test terminé et enregistré dans le dossier patient.", false, true);
+  } catch (error) {
+    message(`${error.message}. Le fichier CSV reste disponible.`, true);
   }
 }
 
@@ -147,6 +168,8 @@ async function disconnect() {
 async function start() {
   state.history = [];
   state.lastTimestamp = null;
+  state.maxForceKg = 0;
+  state.maxForceN = 0;
   draw();
   try {
     await request("/api/kpush/start", {
