@@ -40,6 +40,17 @@ def create_evaluation(payload: EvaluationCreate, db: Session = Depends(get_db)):
         data[key] = _clean(data.get(key))
     if not data["session_type"]:
         data["session_type"] = "evaluation"
+    if data.get("csv_path"):
+        existing = (
+            db.query(Evaluation)
+            .filter(
+                Evaluation.patient_id == payload.patient_id,
+                Evaluation.csv_path == data["csv_path"],
+            )
+            .first()
+        )
+        if existing is not None:
+            return existing
     evaluation = Evaluation(**data)
     db.add(evaluation)
     db.commit()

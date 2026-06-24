@@ -9,7 +9,14 @@ const state = {
   lastMeasurementTimestamp: null,
   cmjResultLoaded: false,
   cmjReady: false,
+  savedEvaluations: new Set(),
 };
+
+const flowParams = new URLSearchParams(window.location.search);
+const flowContext = flowParams.get("context") || "anonymous";
+const patientId = flowContext.startsWith("patient:")
+  ? Number(flowContext.split(":")[1])
+  : null;
 
 const format = (value, digits = 1) =>
   Number.isFinite(value)
@@ -125,6 +132,7 @@ function updateStatus(data) {
   ) {
     loadCmjResult();
   }
+  maybeSavePatientEvaluation(data);
 }
 
 async function loadCmjResult() {
@@ -169,6 +177,57 @@ async function loadCmjResult() {
       `résolution ≈ ${format(result.temporal_resolution_ms, 0)} ms`;
   } catch (error) {
     setMessage(error.message, true);
+  }
+}
+
+async function maybeSavePatientEvaluation(data) {
+  if (!patientId || !data.finished_at || !data.csv_path || data.running) return;
+  if (data.last_error && !data.result_available) return;
+  if (state.savedEvaluations.has(data.csv_path)) return;
+
+  state.savedEvaluations.add(data.csv_path);
+  const mode = data.mode || $("testMode").value || "balance";
+  const sensor = "K-Force Plates";
+  const testName = mode === "cmj" ? "CMJ" : "Analyse bipodale";
+  const displayName = mode === "cmj" ? "CMJ — saut vertical" : "Analyse bipodale";
+  let summary = "Test terminé.";
+
+  if (mode === "cmj") {
+    try {
+      const response = await fetch("/api/kplates/cmj/result", { cache: "no-store" });
+      if (response.ok) {
+        const result = await response.json();
+        summary =
+          `Hauteur ${format(result.jump_height_cm, 1)} cm · ` +
+          `force max ${format(result.peak_force_kg, 1)} kg · ` +
+          `temps de vol ${format(result.flight_time_s, 3)} s`;
+      }
+    } catch (_) {
+      summary = "CMJ terminé, analyse détaillée à consulter dans le fichier.";
+    }
+  } else {
+    summary = "Analyse bipodale terminée.";
+  }
+
+  try {
+    const response = await fetch("/api/evaluations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        patient_id: patientId,
+        session_type: "evaluation",
+        sensor,
+        test_name: testName,
+        display_name: displayName,
+        summary,
+        csv_path: data.csv_path,
+      }),
+    });
+    if (!response.ok) throw new Error("Enregistrement patient impossible");
+    setMessage("✓ Test terminé et enregistré dans le dossier patient.", false, true);
+  } catch (error) {
+    state.savedEvaluations.delete(data.csv_path);
+    setMessage(`${error.message}. Le fichier CSV reste disponible.`, true);
   }
 }
 

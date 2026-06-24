@@ -41,11 +41,25 @@ class EvaluationApiTest(unittest.TestCase):
                         test_name="CMJ",
                         display_name="CMJ — saut vertical",
                         summary="Hauteur 15 cm",
+                        csv_path="/tmp/cmj.csv",
+                    ),
+                    db=db,
+                )
+                duplicate = evaluations_routes.create_evaluation(
+                    evaluations_routes.EvaluationCreate(
+                        patient_id=patient.id,
+                        session_type="evaluation",
+                        sensor="K-Force Plates",
+                        test_name="CMJ",
+                        display_name="CMJ — saut vertical",
+                        summary="Hauteur 15 cm",
+                        csv_path="/tmp/cmj.csv",
                     ),
                     db=db,
                 )
 
                 self.assertEqual(evaluation.patient_id, patient.id)
+                self.assertEqual(duplicate.id, evaluation.id)
                 results = evaluations_routes.list_patient_evaluations(patient.id, db=db)
                 self.assertEqual(len(results), 1)
                 self.assertEqual(results[0].test_name, "CMJ")
