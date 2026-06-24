@@ -56,6 +56,8 @@ class KPlateApiTest(unittest.TestCase):
         self.assertIn("/api/kmove/disconnect", paths)
         self.assertIn("/api/kmove/latest", paths)
         self.assertIn("/api/kmove/download", paths)
+        self.assertIn("/api/patients", paths)
+        self.assertIn("/api/patients/{patient_id}", paths)
 
     def test_new_service_is_idle(self):
         service = DualPlateAcquisitionService()

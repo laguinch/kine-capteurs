@@ -20,20 +20,52 @@
       </header>
 
       <section class="panel patient-panel">
-        <label>
-          Rechercher un patient
-          <input placeholder="Nom, prénom ou date de naissance" disabled>
-        </label>
-        <div class="empty-state">
-          <p class="eyebrow">À connecter</p>
-          <h2>Base patients non branchée sur cette interface</h2>
-          <p>
-            La structure est prête : une fois la liste patients connectée, le choix mènera vers
-            le parcours évaluation ou entraînement avec enregistrement dans le dossier patient.
-          </p>
+        <div class="patient-toolbar">
+          <label>
+            Rechercher un patient
+            <input id="patientSearch" placeholder="Nom, prénom ou pathologie">
+          </label>
+          <button id="showCreateButton" class="primary" type="button">Nouveau patient</button>
         </div>
+
+        <form id="patientForm" class="patient-form hidden">
+          <div class="form-grid">
+            <label>
+              Nom
+              <input id="patientLastName" required>
+            </label>
+            <label>
+              Prénom
+              <input id="patientFirstName" required>
+            </label>
+            <label>
+              Date de naissance
+              <input id="patientBirthDate" type="date">
+            </label>
+            <label>
+              Date d’ordonnance
+              <input id="patientPrescriptionDate" type="date">
+            </label>
+          </div>
+          <label>
+            Pathologie
+            <input id="patientCondition" placeholder="Ex : genou, épaule, rachis…">
+          </label>
+          <label>
+            Commentaires
+            <textarea id="patientNotes" rows="3"></textarea>
+          </label>
+          <div class="form-actions">
+            <button class="primary" type="submit">Créer le patient</button>
+            <button id="cancelCreateButton" class="secondary" type="button">Annuler</button>
+          </div>
+        </form>
+
+        <div id="patientMessage" class="message hidden"></div>
+        <div id="patientList" class="patient-list"></div>
         <a class="download" href="/session/anonyme?context=anonymous">Continuer en test anonyme</a>
       </section>
     </main>
+    <script src="/static/patients.js?v=1"></script>
   </body>
 </html>

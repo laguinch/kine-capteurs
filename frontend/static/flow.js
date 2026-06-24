@@ -19,4 +19,15 @@
       ? "Les jeux d’entraînement utiliseront le capteur sélectionné et pourront être rattachés au patient."
       : "Les jeux d’entraînement resteront anonymes.";
   }
+
+  if (isPatient) {
+    const patientId = context.split(":")[1];
+    fetch(`/api/patients/${patientId}`)
+      .then((response) => response.ok ? response.json() : null)
+      .then((patient) => {
+        if (!patient) return;
+        mode.textContent = `${isTraining ? "Entraînement" : "Évaluation"} · ${patient.nom} ${patient.prenom}`;
+      })
+      .catch(() => {});
+  }
 })();

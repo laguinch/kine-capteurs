@@ -8,13 +8,17 @@ from api.routes.kplates import router as kplates_router
 from api.routes.kmove import router as kmove_router
 from api.routes.kpull import router as kpull_router
 from api.routes.kpush import router as kpush_router
+from api.routes.patients import router as patients_router
 from app.config import BASE_DIR
+from database.database import init_db
 
 app = FastAPI(title="Kine Capteurs")
+init_db()
 app.include_router(kplates_router)
 app.include_router(kpush_router)
 app.include_router(kpull_router)
 app.include_router(kmove_router)
+app.include_router(patients_router)
 app.mount(
     "/static",
     StaticFiles(directory=BASE_DIR / "frontend" / "static"),

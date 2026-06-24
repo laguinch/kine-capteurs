@@ -43,6 +43,13 @@
       if (context === "patient") {
         document.getElementById("sessionContext").textContent = "Patient sélectionné";
         document.getElementById("sessionSubtitle").textContent = "Les résultats seront enregistrés dans le dossier patient à la fin de la séance.";
+        fetch(`/api/patients/${patientId}`)
+          .then((response) => response.ok ? response.json() : null)
+          .then((patient) => {
+            if (!patient) return;
+            document.getElementById("sessionContext").textContent = `${patient.nom} ${patient.prenom}`;
+          })
+          .catch(() => {});
       } else {
         document.getElementById("sessionContext").textContent = "Test anonyme";
       }
