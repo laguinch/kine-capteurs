@@ -11,6 +11,14 @@
   const mode = document.getElementById("flowMode");
   const save = document.getElementById("flowSave");
   const banner = document.getElementById("flowBanner");
+
+  document.querySelectorAll(".sensor-nav a[href^='/kforceplates'], .sensor-nav a[href^='/kpush'], .sensor-nav a[href^='/kpull'], .sensor-nav a[href^='/kmove']").forEach((link) => {
+    const target = new URL(link.getAttribute("href"), window.location.origin);
+    target.searchParams.set("context", context);
+    target.searchParams.set("type", type);
+    link.href = `${target.pathname}${target.search}`;
+  });
+
   if (!mode || !save) return;
 
   mode.textContent = `${isTraining ? "Entraînement" : "Évaluation"} ${isPatient ? "patient" : "anonyme"}`;

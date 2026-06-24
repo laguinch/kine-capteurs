@@ -34,6 +34,8 @@ const SIDED_JOINTS = new Set([
 ]);
 
 const params = new URLSearchParams(window.location.search);
+const context = params.get("context") || "anonymous";
+const type = params.get("type") || "evaluation";
 const root = document.querySelector(".sensor-setup");
 const testPath = root.dataset.testPath;
 const jointChoices = document.getElementById("jointChoices");
@@ -42,6 +44,13 @@ const movementStep = document.getElementById("movementStep");
 const selectedJointTitle = document.getElementById("selectedJointTitle");
 let selectedJoint = params.get("articulation") || null;
 let selectedSide = params.get("cote") || null;
+
+document.querySelectorAll(".sensor-nav a[href^='/kforceplates'], .sensor-nav a[href^='/kpush'], .sensor-nav a[href^='/kpull'], .sensor-nav a[href^='/kmove']").forEach((link) => {
+  const target = new URL(link.getAttribute("href"), window.location.origin);
+  target.searchParams.set("context", context);
+  target.searchParams.set("type", type);
+  link.href = `${target.pathname}${target.search}`;
+});
 
 function selectedLabel() {
   return [selectedJoint, selectedSide].filter(Boolean).join(" ");
