@@ -124,7 +124,7 @@ function update(data) {
 async function maybeSave(data) {
   if (!window.KinePatientSave) return;
   const selection = window.KinePatientSave.selection();
-  const label = [selection.articulation, selection.mouvement].filter(Boolean).join(" · ");
+  const label = [selection.articulation, selection.cote, selection.mouvement].filter(Boolean).join(" · ");
   try {
     const saved = await window.KinePatientSave.saveEvaluation(data, {
       sensor: "K-Push",

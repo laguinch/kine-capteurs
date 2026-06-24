@@ -138,7 +138,7 @@ function update(data) {
 async function maybeSave(data) {
   if (!window.KinePatientSave) return;
   const selection = window.KinePatientSave.selection();
-  const label = [selection.articulation, selection.mouvement].filter(Boolean).join(" · ");
+  const label = [selection.articulation, selection.cote, selection.mouvement].filter(Boolean).join(" · ");
   const rotation = state.ranges.rotation || {};
   const flexion = state.ranges.flexion_extension || {};
   const inclination = state.ranges.inclination || {};

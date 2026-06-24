@@ -5,6 +5,7 @@
   const isPatient = context.startsWith("patient:");
   const isTraining = type === "training";
   const articulation = params.get("articulation");
+  const cote = params.get("cote");
   const mouvement = params.get("mouvement");
 
   const mode = document.getElementById("flowMode");
@@ -22,8 +23,8 @@
       : "Les jeux d’entraînement resteront anonymes.";
   }
 
-  if (articulation || mouvement) {
-    const selection = [articulation, mouvement].filter(Boolean).join(" · ");
+  if (articulation || cote || mouvement) {
+    const selection = [articulation, cote, mouvement].filter(Boolean).join(" · ");
     save.textContent = `${selection} — ${save.textContent}`;
   }
 

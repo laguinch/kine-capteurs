@@ -13,6 +13,7 @@ window.KinePatientSave = (() => {
   function selection() {
     return {
       articulation: params.get("articulation") || "",
+      cote: params.get("cote") || "",
       mouvement: params.get("mouvement") || "",
     };
   }

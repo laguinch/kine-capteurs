@@ -150,8 +150,42 @@ button, input, select { font: inherit; }
   cursor: pointer;
 }
 
+.setup-card.has-side-choice {
+  gap: 14px;
+}
+
 .setup-card strong {
   font-size: clamp(1.35rem, 2vw, 2rem);
+}
+
+.side-choice-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.side-choice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 86px;
+  border-radius: 999px;
+  padding: 9px 13px;
+  background: #e9f2ef;
+  color: var(--teal-dark);
+  font-size: .86rem;
+  font-weight: 850;
+}
+
+.side-choice.active,
+.primary-choice .side-choice.active {
+  background: #fff;
+  color: var(--teal-dark);
+}
+
+.primary-choice .side-choice {
+  background: rgba(255,255,255,.18);
+  color: #fff;
 }
 
 .choice-card small {
