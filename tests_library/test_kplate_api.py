@@ -22,6 +22,10 @@ class KPlateApiTest(unittest.TestCase):
         paths = set(app.openapi()["paths"])
 
         self.assertIn("/", paths)
+        self.assertIn("/patients", paths)
+        self.assertIn("/session/anonyme", paths)
+        self.assertIn("/session/patient/{patient_id}", paths)
+        self.assertIn("/capteurs", paths)
         self.assertIn("/kforceplates", paths)
         self.assertIn("/kpush", paths)
         self.assertIn("/kpull", paths)

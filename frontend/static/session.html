@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Type de séance — Kine Capteurs</title>
+    <link rel="stylesheet" href="/static/styles.css?v=8">
+  </head>
+  <body>
+    <main class="shell home-shell">
+      <nav class="sensor-nav">
+        <a href="/">Accueil</a>
+        <a href="/patients">Patients</a>
+      </nav>
+      <header class="hero">
+        <p id="sessionContext" class="eyebrow">Séance</p>
+        <h1>Évaluation ou entraînement ?</h1>
+        <p id="sessionSubtitle" class="subtitle">
+          Choisissez le type de séance avant de sélectionner le capteur.
+        </p>
+      </header>
+
+      <section class="choice-grid two-columns">
+        <a id="evaluationLink" class="choice-card primary-choice" href="/capteurs?context=anonymous&type=evaluation">
+          <span class="choice-kicker">Mesurer</span>
+          <strong>Évaluation</strong>
+          <small>Tests, valeurs chiffrées, graphiques et résultats exportables.</small>
+        </a>
+        <a id="trainingLink" class="choice-card" href="/capteurs?context=anonymous&type=training">
+          <span class="choice-kicker">Exercer</span>
+          <strong>Entraînement</strong>
+          <small>Jeux et exercices guidés selon le capteur choisi.</small>
+        </a>
+      </section>
+    </main>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const context = params.get("context") || (window.location.pathname.includes("/patient/") ? "patient" : "anonymous");
+      const patientId = window.location.pathname.split("/").pop();
+      const targetContext = context === "patient" ? `patient:${patientId}` : "anonymous";
+      document.getElementById("evaluationLink").href = `/capteurs?context=${encodeURIComponent(targetContext)}&type=evaluation`;
+      document.getElementById("trainingLink").href = `/capteurs?context=${encodeURIComponent(targetContext)}&type=training`;
+      if (context === "patient") {
+        document.getElementById("sessionContext").textContent = "Patient sélectionné";
+        document.getElementById("sessionSubtitle").textContent = "Les résultats seront enregistrés dans le dossier patient à la fin de la séance.";
+      } else {
+        document.getElementById("sessionContext").textContent = "Test anonyme";
+      }
+    </script>
+  </body>
+</html>

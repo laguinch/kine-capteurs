@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Patients — Kine Capteurs</title>
+    <link rel="stylesheet" href="/static/styles.css?v=8">
+  </head>
+  <body>
+    <main class="shell home-shell">
+      <nav class="sensor-nav">
+        <a href="/">Accueil</a>
+      </nav>
+      <header class="hero">
+        <p class="eyebrow">Dossier patient</p>
+        <h1>Choisir un patient</h1>
+        <p class="subtitle">
+          Cette page préparera la recherche dans la base patients du cabinet.
+        </p>
+      </header>
+
+      <section class="panel patient-panel">
+        <label>
+          Rechercher un patient
+          <input placeholder="Nom, prénom ou date de naissance" disabled>
+        </label>
+        <div class="empty-state">
+          <p class="eyebrow">À connecter</p>
+          <h2>Base patients non branchée sur cette interface</h2>
+          <p>
+            La structure est prête : une fois la liste patients connectée, le choix mènera vers
+            le parcours évaluation ou entraînement avec enregistrement dans le dossier patient.
+          </p>
+        </div>
+        <a class="download" href="/session/anonyme?context=anonymous">Continuer en test anonyme</a>
+      </section>
+    </main>
+  </body>
+</html>

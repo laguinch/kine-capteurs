@@ -4,11 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Kine Capteurs</title>
-    <link rel="stylesheet" href="/static/styles.css?v=7">
+    <link rel="stylesheet" href="/static/styles.css?v=8">
   </head>
   <body>
     <main class="shell">
       <nav class="sensor-nav">
+        <a href="/">Accueil</a>
+        <a href="/capteurs">Capteurs</a>
         <a class="active" href="/kforceplates">K‑Force Plates</a>
         <a href="/kpush">K‑Push</a>
         <a href="/kpull">K‑Pull</a>
@@ -25,6 +27,11 @@
           <span id="statusText">Prêt</span>
         </div>
       </header>
+
+      <section id="flowBanner" class="flow-banner">
+        <span id="flowMode">Évaluation anonyme</span>
+        <strong id="flowSave">Résultats anonymes, exportables sans dossier patient.</strong>
+      </section>
 
       <section class="control-panel">
         <label>
@@ -180,6 +187,7 @@
         </div>
       </section>
     </main>
-    <script src="/static/app.js?v=6"></script>
+    <script src="/static/app.js?v=7"></script>
+    <script src="/static/flow.js?v=1"></script>
   </body>
 </html>

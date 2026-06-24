@@ -30,6 +30,12 @@ button, input, select { font: inherit; }
   margin: 0 auto;
   padding: 34px 0 48px;
 }
+.home-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 .sensor-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
 .sensor-nav a {
   padding: 8px 12px;
@@ -70,6 +76,123 @@ button, input, select { font: inherit; }
   gap: 20px;
 }
 
+.hero {
+  max-width: 780px;
+  margin-bottom: 28px;
+}
+
+.hero h1 {
+  font-size: clamp(2.6rem, 7vw, 5rem);
+}
+
+.choice-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.two-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sensor-choice-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.choice-card {
+  min-height: 230px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(20, 124, 117, 0.11), transparent 16rem),
+    var(--card);
+  color: var(--ink);
+  text-decoration: none;
+  box-shadow: var(--shadow);
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.choice-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(20, 124, 117, .35);
+  box-shadow: 0 24px 60px rgba(24, 56, 52, 0.12);
+}
+
+.choice-card strong {
+  display: block;
+  font-size: clamp(1.8rem, 3.8vw, 3rem);
+  line-height: .95;
+  letter-spacing: -.055em;
+}
+
+.choice-card small {
+  color: var(--muted);
+  font-size: .98rem;
+  line-height: 1.45;
+}
+
+.choice-kicker {
+  width: max-content;
+  border-radius: 999px;
+  padding: 8px 11px;
+  background: #e9f2ef;
+  color: var(--teal-dark);
+  font-size: .76rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.primary-choice {
+  background:
+    linear-gradient(135deg, rgba(20, 124, 117, .94), rgba(13, 88, 84, .94)),
+    var(--teal);
+  color: #fff;
+}
+
+.primary-choice small,
+.primary-choice .choice-kicker {
+  color: rgba(255,255,255,.86);
+}
+
+.primary-choice .choice-kicker {
+  background: rgba(255,255,255,.16);
+}
+
+.patient-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.patient-panel label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.patient-panel input {
+  width: min(520px, 100%);
+}
+
+.empty-state {
+  padding: 22px;
+  border: 1px dashed #bfd0cb;
+  border-radius: 20px;
+  background: #f8fbfa;
+}
+
+.empty-state p:not(.eyebrow) {
+  max-width: 680px;
+  color: var(--muted);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
 h1, h2, p { margin: 0; }
 h1 { font-size: clamp(2rem, 4vw, 3.2rem); letter-spacing: -0.055em; }
 h2 { font-size: 1.15rem; letter-spacing: -0.02em; }
@@ -92,6 +215,33 @@ h2 { font-size: 1.15rem; letter-spacing: -0.02em; }
   border-radius: 999px;
   padding: 10px 15px;
   box-shadow: var(--shadow);
+}
+
+.flow-banner {
+  margin: 22px 0 -8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,.68);
+  color: var(--muted);
+}
+
+.flow-banner span {
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: #e5f2ef;
+  color: var(--teal-dark);
+  font-size: .78rem;
+  font-weight: 850;
+}
+
+.flow-banner strong {
+  color: var(--ink);
+  font-size: .9rem;
 }
 .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #91a09c; }
 .status-dot.running { background: #16a267; box-shadow: 0 0 0 5px rgba(22,162,103,.12); }
@@ -215,7 +365,8 @@ button:disabled { opacity: .45; cursor: default; }
 .quality span { color: var(--muted); font-size: .75rem; }
 
 @media (max-width: 800px) {
-  .metrics-grid, .visual-grid { grid-template-columns: 1fr; }
+  .metrics-grid, .visual-grid, .two-columns, .sensor-choice-grid { grid-template-columns: 1fr; }
+  .home-shell { justify-content: flex-start; }
   .topbar { align-items: flex-start; }
   .connection { white-space: nowrap; }
   .timer { margin-left: 0; }

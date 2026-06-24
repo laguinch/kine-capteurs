@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.routes.kplates import router as kplates_router
@@ -35,7 +35,27 @@ def frontend_page(filename):
 
 @app.get("/")
 def home():
-    return RedirectResponse(url="/kforceplates")
+    return frontend_page("home.html")
+
+
+@app.get("/patients")
+def patients():
+    return frontend_page("patients.html")
+
+
+@app.get("/session/anonyme")
+def anonymous_session():
+    return frontend_page("session.html")
+
+
+@app.get("/session/patient/{patient_id}")
+def patient_session(patient_id: str):
+    return frontend_page("session.html")
+
+
+@app.get("/capteurs")
+def sensors():
+    return frontend_page("sensors.html")
 
 
 @app.get("/kforceplates")

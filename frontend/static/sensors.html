@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Capteurs — Kine Capteurs</title>
+    <link rel="stylesheet" href="/static/styles.css?v=8">
+  </head>
+  <body>
+    <main class="shell home-shell">
+      <nav class="sensor-nav">
+        <a href="/">Accueil</a>
+        <a href="/session/anonyme?context=anonymous">Type de séance</a>
+      </nav>
+      <header class="hero">
+        <p id="flowContext" class="eyebrow">Choix du capteur</p>
+        <h1>Quel capteur utiliser ?</h1>
+        <p id="flowSubtitle" class="subtitle">
+          Sélectionnez le capteur, puis choisissez le test ou le jeu disponible.
+        </p>
+      </header>
+
+      <section class="choice-grid sensor-choice-grid">
+        <a class="choice-card primary-choice sensor-link" data-sensor="/kforceplates" href="/kforceplates">
+          <span class="choice-kicker">Plateformes</span>
+          <strong>K‑Force Plates</strong>
+          <small>Analyse bipodale, CMJ et futurs jeux d’appui.</small>
+        </a>
+        <a class="choice-card sensor-link" data-sensor="/kpush" href="/kpush">
+          <span class="choice-kicker">Pression</span>
+          <strong>K‑Push</strong>
+          <small>Force instantanée, force maximale et exercices ciblés.</small>
+        </a>
+        <a class="choice-card sensor-link" data-sensor="/kpull" href="/kpull">
+          <span class="choice-kicker">Traction</span>
+          <strong>K‑Pull</strong>
+          <small>Traction, maintien de force et exercices progressifs.</small>
+        </a>
+        <a class="choice-card sensor-link" data-sensor="/kmove" href="/kmove">
+          <span class="choice-kicker">Amplitude</span>
+          <strong>K‑Move</strong>
+          <small>Rotation, flexion-extension et inclinaison en degrés.</small>
+        </a>
+      </section>
+    </main>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const context = params.get("context") || "anonymous";
+      const type = params.get("type") || "evaluation";
+      const typeLabel = type === "training" ? "Entraînement" : "Évaluation";
+      const contextLabel = context.startsWith("patient:") ? "patient" : "anonyme";
+      document.getElementById("flowContext").textContent = `${typeLabel} ${contextLabel}`;
+      document.getElementById("flowSubtitle").textContent =
+        context.startsWith("patient:")
+          ? "Après le test, les résultats seront enregistrés dans le dossier patient."
+          : "Les résultats resteront anonymes et exportables.";
+      document.querySelectorAll(".sensor-link").forEach((link) => {
+        const target = link.dataset.sensor;
+        link.href = `${target}?context=${encodeURIComponent(context)}&type=${encodeURIComponent(type)}`;
+      });
+    </script>
+  </body>
+</html>
