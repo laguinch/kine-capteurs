@@ -9,11 +9,9 @@ from pathlib import Path
     "FastAPI est installé dans l'environnement serveur.",
 )
 class PatientApiTest(unittest.TestCase):
-    def test_create_search_and_get_patient(self):
-        from fastapi.testclient import TestClient
-
+    def test_create_search_update_and_delete_patient(self):
+        import api.routes.patients as patients_routes
         import database.database as database_module
-        from app.main import app
         from database.database import Base
 
         with tempfile.TemporaryDirectory() as directory:
@@ -28,40 +26,38 @@ class PatientApiTest(unittest.TestCase):
                 autocommit=False,
             )
             Base.metadata.create_all(bind=engine)
-
-            def override_get_db():
-                db = TestingSessionLocal()
-                try:
-                    yield db
-                finally:
-                    db.close()
-
-            app.dependency_overrides[database_module.get_db] = override_get_db
+            db = TestingSessionLocal()
             try:
-                client = TestClient(app)
-                response = client.post(
-                    "/api/patients",
-                    json={
-                        "nom": "Dupont",
-                        "prenom": "Marie",
-                        "date_naissance": "1980-04-12",
-                        "pathologie": "Genou",
-                    },
+                patient = patients_routes.create_patient(
+                    patients_routes.PatientCreate(
+                        nom="Dupont",
+                        prenom="Marie",
+                        date_naissance="1980-04-12",
+                        pathologie="Genou",
+                    ),
+                    db=db,
                 )
-                self.assertEqual(response.status_code, 201)
-                patient = response.json()
-                self.assertEqual(patient["nom"], "Dupont")
-                self.assertEqual(patient["prenom"], "Marie")
 
-                response = client.get("/api/patients?q=genou")
-                self.assertEqual(response.status_code, 200)
-                self.assertEqual(len(response.json()), 1)
+                self.assertEqual(patient.nom, "Dupont")
+                self.assertEqual(patient.prenom, "Marie")
 
-                response = client.get(f"/api/patients/{patient['id']}")
-                self.assertEqual(response.status_code, 200)
-                self.assertEqual(response.json()["date_naissance"], "1980-04-12")
+                results = patients_routes.list_patients(q="genou", db=db)
+                self.assertEqual(len(results), 1)
+
+                loaded = patients_routes.get_patient(patient.id, db=db)
+                self.assertEqual(str(loaded.date_naissance), "1980-04-12")
+
+                updated = patients_routes.update_patient(
+                    patient.id,
+                    patients_routes.PatientUpdate(pathologie="Épaule"),
+                    db=db,
+                )
+                self.assertEqual(updated.pathologie, "Épaule")
+
+                patients_routes.delete_patient(patient.id, db=db)
+                self.assertEqual(patients_routes.list_patients(db=db), [])
             finally:
-                app.dependency_overrides.clear()
+                db.close()
 
 
 if __name__ == "__main__":
