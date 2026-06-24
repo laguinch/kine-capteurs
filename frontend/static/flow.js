@@ -10,6 +10,7 @@
 
   const mode = document.getElementById("flowMode");
   const save = document.getElementById("flowSave");
+  const banner = document.getElementById("flowBanner");
   if (!mode || !save) return;
 
   mode.textContent = `${isTraining ? "Entraînement" : "Évaluation"} ${isPatient ? "patient" : "anonyme"}`;
@@ -30,6 +31,13 @@
 
   if (isPatient) {
     const patientId = context.split(":")[1];
+    if (banner) {
+      banner.classList.add("clickable");
+      banner.title = "Ouvrir le dossier patient";
+      banner.addEventListener("click", () => {
+        window.location.href = `/seances?patient_id=${encodeURIComponent(patientId)}`;
+      });
+    }
     fetch(`/api/patients/${patientId}`)
       .then((response) => response.ok ? response.json() : null)
       .then((patient) => {

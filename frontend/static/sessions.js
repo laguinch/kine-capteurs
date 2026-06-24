@@ -4,6 +4,7 @@ const sessionPanel = document.getElementById("sessionPanel");
 const sessionList = document.getElementById("sessionList");
 const selectedPatient = document.getElementById("selectedPatient");
 const newSessionLink = document.getElementById("newSessionLink");
+const params = new URLSearchParams(window.location.search);
 
 function formatDate(value) {
   if (!value) return "Date non renseignée";
@@ -71,6 +72,11 @@ async function loadPatients() {
     return;
   }
   patients.forEach((patient) => patientList.appendChild(patientCard(patient)));
+  const requestedPatientId = Number(params.get("patient_id"));
+  if (Number.isFinite(requestedPatientId) && requestedPatientId > 0) {
+    const patient = patients.find((item) => item.id === requestedPatientId);
+    if (patient) loadSessions(patient);
+  }
 }
 
 async function loadSessions(patient) {
