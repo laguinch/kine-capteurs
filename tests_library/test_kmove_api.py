@@ -109,6 +109,23 @@ class KMoveApiTest(unittest.TestCase):
         self.assertEqual(measurement["ranges"]["rotation"]["min"], -20.0)
         self.assertEqual(measurement["ranges"]["rotation"]["max"], 65.0)
 
+    def test_start_arms_then_first_movement_starts_recording(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = self.make_ready_service(directory)
+
+            status = service.start(duration=1_000_000_000, filename="armed.csv")
+            self.assertFalse(status["running"])
+            self.assertEqual(status["phase"], "armed")
+
+            self.write_live_rows(service._live_path)
+            latest = service.latest()
+            control = service._control_path.read_text()
+
+        self.assertTrue(latest["running"])
+        self.assertEqual(latest["phase"], "active")
+        self.assertEqual(latest["started_at"], "2026-06-22T08:00:02+00:00")
+        self.assertIn('"action": "start"', control)
+
     def test_stop_keeps_kmove_connected(self):
         with tempfile.TemporaryDirectory() as directory:
             service = self.make_ready_service(directory)

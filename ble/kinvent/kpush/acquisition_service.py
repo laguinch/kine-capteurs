@@ -30,6 +30,7 @@ class KPushAcquisitionService:
         self._finished_at = None
         self._duration = None
         self._recording = False
+        self._armed = False
         self._csv_path = None
         self._live_path = raw_dir / "kpush_live.csv"
         self._log_path = raw_dir / "kpush_worker.log"
@@ -68,6 +69,8 @@ class KPushAcquisitionService:
             self._refresh()
             if self._recording:
                 raise RuntimeError("Arrêtez le test avant de déconnecter le K-Push.")
+            if self._armed:
+                raise RuntimeError("Annulez le test armé avant de déconnecter le K-Push.")
             if self._process is not None:
                 self._stop_requested = True
                 request_sensor(None)
@@ -81,7 +84,7 @@ class KPushAcquisitionService:
                 raise RuntimeError("Connectez le K-Push avant de démarrer.")
             if self._connection_phase() != "ready":
                 raise RuntimeError("Attendez la fin de la connexion et de la tare.")
-            if self._recording:
+            if self._recording or self._armed:
                 raise RuntimeError("Une acquisition K-Push est déjà en cours.")
             if filename is None:
                 stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -92,19 +95,23 @@ class KPushAcquisitionService:
                 filename += ".csv"
 
             self._csv_path = BASE_DIR / "storage" / "raw_data" / filename
-            self._started_at = now_iso()
+            self._started_at = None
             self._finished_at = None
             self._duration = float(duration)
-            self._recording = True
+            self._recording = False
+            self._armed = True
             self._test_generation = uuid.uuid4().hex
-            self._write_control("start", self._test_generation)
             self._write_recording_csv()
             return self.status()
 
     def stop(self):
         with self._lock:
             self._refresh()
-            if self._recording:
+            if self._armed:
+                self._armed = False
+                self._finished_at = None
+                self._write_control("idle", self._test_generation)
+            elif self._recording:
                 self._recording = False
                 self._finished_at = now_iso()
                 self._write_control("stop", self._test_generation)
@@ -123,6 +130,8 @@ class KPushAcquisitionService:
                 self.stop()
                 elapsed = self._recording_elapsed()
                 phase = self._connection_phase()
+            if self._armed:
+                phase = "armed"
             return {
                 "running": self._recording,
                 "connected": self._process is not None,
@@ -141,11 +150,14 @@ class KPushAcquisitionService:
     def latest(self):
         with self._lock:
             status = self.status()
+            row = self._read_latest_row(self._live_path)
+            if self._armed and row and self._should_trigger(row):
+                self._begin_recording(row)
+                status = self.status()
             if self._recording:
                 self._write_recording_csv()
-            row = self._read_latest_row(self._live_path)
             measurement = None
-            if row and status["phase"] in {"ready", "active"}:
+            if row and status["phase"] in {"ready", "armed", "active"}:
                 measurement = {
                     "timestamp_utc": row["timestamp_utc"],
                     "sensor_time": float(row["sensor_time"]),
@@ -203,6 +215,7 @@ class KPushAcquisitionService:
         if self._recording:
             self._recording = False
             self._finished_at = now_iso()
+        self._armed = False
         if return_code != 0 and not self._stop_requested:
             lines = self._read_log_tail()
             self._last_error = (
@@ -224,6 +237,20 @@ class KPushAcquisitionService:
             encoding="utf-8",
         )
         temporary.replace(self._control_path)
+
+    def _begin_recording(self, row):
+        self._started_at = row.get("timestamp_utc") or now_iso()
+        self._finished_at = None
+        self._recording = True
+        self._armed = False
+        self._write_control("start", self._test_generation)
+
+    @staticmethod
+    def _should_trigger(row):
+        try:
+            return float(row.get("force_kg") or 0) >= 0.5
+        except (TypeError, ValueError):
+            return False
 
     def _recording_rows(self):
         if not self._started_at or not self._live_path.exists():

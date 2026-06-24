@@ -103,6 +103,23 @@ class KPushApiTest(unittest.TestCase):
         self.assertEqual(latest["measurement"]["max_force_n"], 196.2)
         self.assertAlmostEqual(latest["measurement"]["max_force_kg"], 20.0)
 
+    def test_start_arms_then_first_force_starts_recording(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = self.make_ready_service(directory)
+
+            status = service.start(duration=1_000_000_000, filename="armed.csv")
+            self.assertFalse(status["running"])
+            self.assertEqual(status["phase"], "armed")
+
+            self.write_live_rows(service._live_path)
+            latest = service.latest()
+            control = service._control_path.read_text()
+
+        self.assertTrue(latest["running"])
+        self.assertEqual(latest["phase"], "active")
+        self.assertEqual(latest["started_at"], "2026-06-19T15:00:02+00:00")
+        self.assertIn('"action": "start"', control)
+
     def test_stop_keeps_kpush_connected_and_ready(self):
         with tempfile.TemporaryDirectory() as directory:
             service = self.make_ready_service(directory)

@@ -71,6 +71,7 @@ function rangeText(range) {
 function update(data) {
   const phase = data.phase || "disconnected";
   const active = phase === "active";
+  const armed = phase === "armed";
   const ready = phase === "ready";
   const busy = ["connecting", "reference"].includes(phase);
   $("statusDot").className =
@@ -80,14 +81,15 @@ function update(data) {
     connecting: "Connexion au K‑Move",
     reference: "Mise à zéro",
     ready: "K‑Move prêt",
+    armed: "En attente de mouvement",
     active: "Acquisition en cours",
     error: "Erreur",
   };
   $("statusText").textContent = labels[phase] || "Prêt";
   $("connectButton").disabled = data.connected || busy;
-  $("disconnectButton").disabled = !data.connected || active;
+  $("disconnectButton").disabled = !data.connected || active || armed;
   $("startButton").disabled = !ready;
-  $("stopButton").disabled = !active;
+  $("stopButton").disabled = !(active || armed);
   $("downloadButton").classList.toggle("disabled", !data.csv_path);
   $("fileLabel").textContent = data.csv_path
     ? data.csv_path.split("/").pop()
@@ -106,6 +108,8 @@ function update(data) {
     message("Maintenez le K‑Move parfaitement immobile pendant la mise à zéro.");
   } else if (phase === "ready") {
     message("Référence enregistrée. Le K‑Move est prêt.");
+  } else if (phase === "armed") {
+    message("Test prêt. Le chrono démarrera au premier mouvement.");
   } else if (phase === "active") {
     message("Test en cours : effectuez le mouvement demandé.");
   } else if (phase === "disconnected") {
@@ -210,7 +214,7 @@ async function start() {
 
 async function stopTest() {
   $("stopButton").disabled = true;
-  message("Arrêt et enregistrement du test…");
+  message("Arrêt du test…");
   try {
     await request("/api/kmove/stop", { method: "POST" });
   } catch (error) {

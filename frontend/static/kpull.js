@@ -63,6 +63,7 @@ function draw() {
 function update(data) {
   const phase = data.phase || "disconnected";
   const active = phase === "active";
+  const armed = phase === "armed";
   const ready = phase === "ready";
   const busy = ["connecting", "tare"].includes(phase);
   $("statusDot").className =
@@ -72,14 +73,15 @@ function update(data) {
     connecting: "Connexion au K‑Pull",
     tare: "Tare en cours",
     ready: "K‑Pull prêt",
+    armed: "En attente de traction",
     active: "Acquisition en cours",
     error: "Erreur",
   };
   $("statusText").textContent = labels[phase] || "Prêt";
   $("connectButton").disabled = data.connected || busy;
-  $("disconnectButton").disabled = !data.connected || active;
+  $("disconnectButton").disabled = !data.connected || active || armed;
   $("startButton").disabled = !ready;
-  $("stopButton").disabled = !active;
+  $("stopButton").disabled = !(active || armed);
   $("downloadButton").classList.toggle("disabled", !data.csv_path);
   $("fileLabel").textContent = data.csv_path
     ? data.csv_path.split("/").pop()
@@ -98,6 +100,8 @@ function update(data) {
     message("Laissez le câble du K‑Pull complètement détendu pendant la tare.");
   } else if (phase === "ready") {
     message("Tare terminée. Le K‑Pull est prêt : vous pouvez démarrer le test.");
+  } else if (phase === "armed") {
+    message("Test prêt. Le chrono démarrera à la première traction.");
   } else if (phase === "active") {
     message("Test en cours : exercez la traction demandée.");
   } else if (phase === "disconnected") {
@@ -190,7 +194,7 @@ async function start() {
 async function stopTest() {
   $("stopButton").disabled = true;
   $("statusText").textContent = "Arrêt du test…";
-  message("Arrêt et enregistrement du test…");
+  message("Arrêt du test…");
   try {
     await request("/api/kpull/stop", { method: "POST" });
   } catch (error) {
