@@ -20,6 +20,7 @@ def get_db():
 
 
 def init_db():
+    import database.models.evaluation  # noqa: F401
     import database.models.patient  # noqa: F401
 
     Base.metadata.create_all(bind=engine)

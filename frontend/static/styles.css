@@ -227,6 +227,12 @@ textarea {
   gap: 10px;
 }
 
+.session-panel,
+.session-list {
+  display: grid;
+  gap: 12px;
+}
+
 .patient-card {
   display: flex;
   align-items: center;
@@ -245,6 +251,12 @@ textarea {
 
 .patient-card small {
   color: var(--muted);
+}
+
+.session-summary {
+  color: var(--muted);
+  margin-top: 6px;
+  line-height: 1.35;
 }
 
 .empty-state {

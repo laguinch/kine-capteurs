@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Nouvelle séance — Kine Capteurs</title>
+    <link rel="stylesheet" href="/static/styles.css?v=9">
+  </head>
+  <body>
+    <main class="shell home-shell">
+      <nav class="sensor-nav">
+        <a href="/">Accueil</a>
+      </nav>
+      <header class="hero">
+        <p class="eyebrow">Nouvelle séance</p>
+        <h1>Patient ou anonyme ?</h1>
+        <p class="subtitle">
+          Choisissez d’abord si la séance concerne un patient ou si elle reste anonyme.
+        </p>
+      </header>
+
+      <section class="choice-grid two-columns">
+        <a class="choice-card primary-choice" href="/patients">
+          <span class="choice-kicker">Dossier patient</span>
+          <strong>Choisir un patient</strong>
+          <small>Les résultats seront enregistrés dans son dossier après le test.</small>
+        </a>
+        <a class="choice-card" href="/session/anonyme?context=anonymous">
+          <span class="choice-kicker">Sans dossier</span>
+          <strong>Test anonyme</strong>
+          <small>Les résultats seront affichés et exportables, sans lien avec un patient.</small>
+        </a>
+      </section>
+    </main>
+  </body>
+</html>

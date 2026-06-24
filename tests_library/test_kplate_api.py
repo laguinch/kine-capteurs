@@ -22,7 +22,9 @@ class KPlateApiTest(unittest.TestCase):
         paths = set(app.openapi()["paths"])
 
         self.assertIn("/", paths)
+        self.assertIn("/nouvelle-seance", paths)
         self.assertIn("/patients", paths)
+        self.assertIn("/seances", paths)
         self.assertIn("/session/anonyme", paths)
         self.assertIn("/session/patient/{patient_id}", paths)
         self.assertIn("/capteurs", paths)
@@ -58,6 +60,8 @@ class KPlateApiTest(unittest.TestCase):
         self.assertIn("/api/kmove/download", paths)
         self.assertIn("/api/patients", paths)
         self.assertIn("/api/patients/{patient_id}", paths)
+        self.assertIn("/api/evaluations", paths)
+        self.assertIn("/api/evaluations/patient/{patient_id}", paths)
 
     def test_new_service_is_idle(self):
         service = DualPlateAcquisitionService()

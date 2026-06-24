@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from api.routes.evaluations import router as evaluations_router
 from api.routes.kplates import router as kplates_router
 from api.routes.kmove import router as kmove_router
 from api.routes.kpull import router as kpull_router
@@ -19,6 +20,7 @@ app.include_router(kpush_router)
 app.include_router(kpull_router)
 app.include_router(kmove_router)
 app.include_router(patients_router)
+app.include_router(evaluations_router)
 app.mount(
     "/static",
     StaticFiles(directory=BASE_DIR / "frontend" / "static"),
@@ -42,9 +44,19 @@ def home():
     return frontend_page("home.html")
 
 
+@app.get("/nouvelle-seance")
+def new_session():
+    return frontend_page("new_session.html")
+
+
 @app.get("/patients")
 def patients():
     return frontend_page("patients.html")
+
+
+@app.get("/seances")
+def sessions():
+    return frontend_page("sessions.html")
 
 
 @app.get("/session/anonyme")

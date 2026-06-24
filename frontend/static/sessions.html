@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Séances patient — Kine Capteurs</title>
+    <link rel="stylesheet" href="/static/styles.css?v=9">
+  </head>
+  <body>
+    <main class="shell home-shell">
+      <nav class="sensor-nav">
+        <a href="/">Accueil</a>
+        <a href="/nouvelle-seance">Nouvelle séance</a>
+      </nav>
+      <header class="hero">
+        <p class="eyebrow">Historique patient</p>
+        <h1>Trouver une séance</h1>
+        <p class="subtitle">
+          Recherchez un patient pour afficher ses tests et évaluations enregistrés.
+        </p>
+      </header>
+
+      <section class="panel patient-panel">
+        <div class="patient-toolbar">
+          <label>
+            Rechercher un patient
+            <input id="patientSearch" placeholder="Nom, prénom ou pathologie">
+          </label>
+        </div>
+        <div id="patientList" class="patient-list"></div>
+        <div id="sessionPanel" class="session-panel hidden">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Patient sélectionné</p>
+              <h2 id="selectedPatient">—</h2>
+            </div>
+            <a id="newSessionLink" class="download" href="/patients">Nouvelle séance</a>
+          </div>
+          <div id="sessionList" class="session-list"></div>
+        </div>
+      </section>
+    </main>
+    <script src="/static/sessions.js?v=1"></script>
+  </body>
+</html>
