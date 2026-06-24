@@ -123,11 +123,13 @@ function update(data) {
 
 async function maybeSave(data) {
   if (!window.KinePatientSave) return;
+  const selection = window.KinePatientSave.selection();
+  const label = [selection.articulation, selection.mouvement].filter(Boolean).join(" · ");
   try {
     const saved = await window.KinePatientSave.saveEvaluation(data, {
       sensor: "K-Pull",
-      test_name: "Traction maximale",
-      display_name: "K‑Pull — traction maximale",
+      test_name: selection.mouvement || "Traction maximale",
+      display_name: label ? `K‑Pull — ${label}` : "K‑Pull — traction maximale",
       summary:
         `Force maximale ${format(state.maxForceKg, 1)} kg · ` +
         `${format(state.maxForceN, 0)} N`,

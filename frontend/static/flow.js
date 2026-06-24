@@ -4,6 +4,8 @@
   const type = params.get("type") || "evaluation";
   const isPatient = context.startsWith("patient:");
   const isTraining = type === "training";
+  const articulation = params.get("articulation");
+  const mouvement = params.get("mouvement");
 
   const mode = document.getElementById("flowMode");
   const save = document.getElementById("flowSave");
@@ -18,6 +20,11 @@
     save.textContent = isPatient
       ? "Les jeux d’entraînement utiliseront le capteur sélectionné et pourront être rattachés au patient."
       : "Les jeux d’entraînement resteront anonymes.";
+  }
+
+  if (articulation || mouvement) {
+    const selection = [articulation, mouvement].filter(Boolean).join(" · ");
+    save.textContent = `${selection} — ${save.textContent}`;
   }
 
   if (isPatient) {

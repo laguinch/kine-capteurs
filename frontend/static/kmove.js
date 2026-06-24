@@ -137,14 +137,16 @@ function update(data) {
 
 async function maybeSave(data) {
   if (!window.KinePatientSave) return;
+  const selection = window.KinePatientSave.selection();
+  const label = [selection.articulation, selection.mouvement].filter(Boolean).join(" · ");
   const rotation = state.ranges.rotation || {};
   const flexion = state.ranges.flexion_extension || {};
   const inclination = state.ranges.inclination || {};
   try {
     const saved = await window.KinePatientSave.saveEvaluation(data, {
       sensor: "K-Move",
-      test_name: "Mobilité",
-      display_name: "K‑Move — mobilité tridimensionnelle",
+      test_name: selection.mouvement || "Mobilité",
+      display_name: label ? `K‑Move — ${label}` : "K‑Move — mobilité tridimensionnelle",
       summary:
         `Rotation ${format(rotation.min, 1)}° à ${format(rotation.max, 1)}° · ` +
         `flexion ${format(flexion.min, 1)}° à ${format(flexion.max, 1)}° · ` +

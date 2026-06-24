@@ -84,14 +84,29 @@ def kpush():
     return frontend_page("kpush.html")
 
 
+@app.get("/kpush/test")
+def kpush_test():
+    return frontend_page("kpush_test.html")
+
+
 @app.get("/kpull")
 def kpull():
     return frontend_page("kpull.html")
 
 
+@app.get("/kpull/test")
+def kpull_test():
+    return frontend_page("kpull_test.html")
+
+
 @app.get("/kmove")
 def kmove():
     return frontend_page("kmove.html")
+
+
+@app.get("/kmove/test")
+def kmove_test():
+    return frontend_page("kmove_test.html")
 
 
 @app.get("/api/health")

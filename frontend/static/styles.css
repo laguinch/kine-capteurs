@@ -98,6 +98,14 @@ button, input, select { font: inherit; }
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.anatomy-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.movement-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .choice-card {
   min-height: 230px;
   display: flex;
@@ -127,6 +135,23 @@ button, input, select { font: inherit; }
   font-size: clamp(1.8rem, 3.8vw, 3rem);
   line-height: .95;
   letter-spacing: -.055em;
+}
+
+.setup-step {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.setup-card {
+  min-height: 120px;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.setup-card strong {
+  font-size: clamp(1.35rem, 2vw, 2rem);
 }
 
 .choice-card small {
@@ -445,7 +470,7 @@ button:disabled { opacity: .45; cursor: default; }
 .quality span { color: var(--muted); font-size: .75rem; }
 
 @media (max-width: 800px) {
-  .metrics-grid, .visual-grid, .two-columns, .sensor-choice-grid { grid-template-columns: 1fr; }
+  .metrics-grid, .visual-grid, .two-columns, .sensor-choice-grid, .anatomy-grid, .movement-grid { grid-template-columns: 1fr; }
   .form-grid { grid-template-columns: 1fr; }
   .patient-toolbar, .patient-card { align-items: stretch; flex-direction: column; }
   .home-shell { justify-content: flex-start; }

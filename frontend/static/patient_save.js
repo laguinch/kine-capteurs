@@ -10,6 +10,13 @@ window.KinePatientSave = (() => {
     return Number.isFinite(patientId) && patientId > 0;
   }
 
+  function selection() {
+    return {
+      articulation: params.get("articulation") || "",
+      mouvement: params.get("mouvement") || "",
+    };
+  }
+
   async function saveEvaluation(data, details) {
     if (!hasPatient()) return false;
     if (!data?.finished_at || !data?.csv_path || data?.running || data?.phase === "active") {
@@ -39,5 +46,5 @@ window.KinePatientSave = (() => {
     return true;
   }
 
-  return { hasPatient, saveEvaluation };
+  return { hasPatient, saveEvaluation, selection };
 })();
