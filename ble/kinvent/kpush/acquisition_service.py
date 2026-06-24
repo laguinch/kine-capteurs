@@ -101,6 +101,7 @@ class KPushAcquisitionService:
             self._recording = False
             self._armed = True
             self._test_generation = uuid.uuid4().hex
+            self._write_control("start", self._test_generation)
             self._write_recording_csv()
             return self.status()
 
@@ -110,7 +111,7 @@ class KPushAcquisitionService:
             if self._armed:
                 self._armed = False
                 self._finished_at = None
-                self._write_control("idle", self._test_generation)
+                self._write_control("stop", self._test_generation)
             elif self._recording:
                 self._recording = False
                 self._finished_at = now_iso()
@@ -243,7 +244,6 @@ class KPushAcquisitionService:
         self._finished_at = None
         self._recording = True
         self._armed = False
-        self._write_control("start", self._test_generation)
 
     @staticmethod
     def _should_trigger(row):

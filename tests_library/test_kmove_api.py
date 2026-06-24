@@ -114,8 +114,10 @@ class KMoveApiTest(unittest.TestCase):
             service = self.make_ready_service(directory)
 
             status = service.start(duration=1_000_000_000, filename="armed.csv")
+            initial_control = service._control_path.read_text()
             self.assertFalse(status["running"])
             self.assertEqual(status["phase"], "armed")
+            self.assertIn('"action": "start"', initial_control)
 
             self.write_live_rows(service._live_path)
             latest = service.latest()
