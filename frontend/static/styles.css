@@ -51,6 +51,26 @@ button, input, select { font: inherit; }
 .kpush-history { height: 300px; }
 .game-shell {
   width: min(1320px, calc(100% - 32px));
+  min-height: 100svh;
+  padding: 12px 0;
+}
+.game-shell .sensor-nav {
+  margin-bottom: 8px;
+}
+.game-shell .game-header {
+  display: none;
+}
+.game-shell .flow-banner {
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border-radius: 14px;
+}
+.game-shell .flow-banner span {
+  padding: 5px 9px;
+  font-size: .74rem;
+}
+.game-shell .flow-banner strong {
+  font-size: .82rem;
 }
 .game-header {
   display: flex;
@@ -70,6 +90,9 @@ button, input, select { font: inherit; }
   grid-template-columns: minmax(340px, 1fr) 330px;
   gap: 18px;
   align-items: stretch;
+  height: calc(100svh - 92px);
+  min-height: 520px;
+  max-height: 760px;
 }
 .game-panel {
   display: flex;
@@ -88,14 +111,16 @@ button, input, select { font: inherit; }
 .game-sidebar {
   display: grid;
   align-content: start;
-  gap: 16px;
+  gap: 10px;
+  min-height: 0;
+  padding: 18px;
 }
 .game-score {
   display: flex;
   justify-content: space-between;
   gap: 16px;
   align-items: baseline;
-  padding-bottom: 12px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--line);
 }
 .game-score span,
@@ -104,12 +129,12 @@ button, input, select { font: inherit; }
   font-weight: 800;
 }
 .game-score strong {
-  font-size: 2rem;
+  font-size: 1.65rem;
   letter-spacing: -.05em;
 }
 .force-mini {
   display: grid;
-  gap: 7px;
+  gap: 5px;
 }
 .game-level {
   display: grid;
@@ -159,7 +184,14 @@ button, input, select { font: inherit; }
 }
 .control-actions {
   display: grid;
-  gap: 10px;
+  gap: 8px;
+}
+.game-sidebar .message {
+  margin: 0;
+  padding: 10px 12px;
+}
+.game-sidebar button {
+  padding: 10px 14px;
 }
 .kmove-metrics { margin-top: 18px; }
 .kmove-legend { display: flex; flex-wrap: wrap; gap: 18px; margin: 10px 0; color: var(--muted); }
