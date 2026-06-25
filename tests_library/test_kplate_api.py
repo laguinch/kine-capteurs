@@ -29,6 +29,8 @@ class KPlateApiTest(unittest.TestCase):
         self.assertIn("/session/patient/{patient_id}", paths)
         self.assertIn("/capteurs", paths)
         self.assertIn("/kforceplates", paths)
+        self.assertIn("/kforceplates/jeux", paths)
+        self.assertIn("/kforceplates/jeux/voiture", paths)
         self.assertIn("/kpush", paths)
         self.assertIn("/kpush/test", paths)
         self.assertIn("/kpull", paths)

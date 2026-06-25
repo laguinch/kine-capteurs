@@ -7,6 +7,14 @@
     <link rel="stylesheet" href="/static/styles.css?v=12">
   </head>
   <body>
+    <script>
+      (() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("type") === "training") {
+          window.location.replace(`/kforceplates/jeux?${params.toString()}`);
+        }
+      })();
+    </script>
     <main class="shell">
       <nav class="sensor-nav">
         <a href="/">Accueil</a>

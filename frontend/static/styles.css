@@ -49,6 +49,89 @@ button, input, select { font: inherit; }
 .kpush-metrics { grid-template-columns: repeat(2, 1fr); margin-top: 18px; }
 .kpush-chart-panel { margin-top: 16px; }
 .kpush-history { height: 300px; }
+.game-shell {
+  width: min(1320px, calc(100% - 32px));
+}
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+.game-header h1 {
+  margin: 0;
+  font-size: clamp(2.4rem, 6vw, 4.8rem);
+  letter-spacing: -.06em;
+  line-height: .95;
+}
+.game-layout {
+  display: grid;
+  grid-template-columns: minmax(340px, 1fr) 330px;
+  gap: 18px;
+  align-items: stretch;
+}
+.game-panel {
+  min-height: 620px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  overflow: hidden;
+  background: #172629;
+  box-shadow: var(--shadow);
+}
+#carCanvas {
+  display: block;
+  width: 100%;
+  height: min(72vh, 720px);
+  min-height: 620px;
+}
+.game-sidebar {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}
+.game-score {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: baseline;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.game-score span,
+.force-mini span {
+  color: var(--muted);
+  font-weight: 800;
+}
+.game-score strong {
+  font-size: 2rem;
+  letter-spacing: -.05em;
+}
+.force-mini {
+  display: grid;
+  gap: 7px;
+}
+.mini-bar {
+  height: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e7efec;
+}
+.mini-bar i {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--blue);
+  transition: width .12s ease;
+}
+.mini-bar.right i {
+  background: var(--orange);
+}
+.control-actions {
+  display: grid;
+  gap: 10px;
+}
 .kmove-metrics { margin-top: 18px; }
 .kmove-legend { display: flex; flex-wrap: wrap; gap: 18px; margin: 10px 0; color: var(--muted); }
 .kmove-legend span::before {
@@ -196,6 +279,11 @@ button, input, select { font: inherit; }
   color: var(--muted);
   font-size: .98rem;
   line-height: 1.45;
+}
+
+.disabled-card {
+  opacity: .72;
+  pointer-events: none;
 }
 
 .choice-kicker {
@@ -519,11 +607,13 @@ button:disabled { opacity: .45; cursor: default; }
 .quality span { color: var(--muted); font-size: .75rem; }
 
 @media (max-width: 800px) {
-  .metrics-grid, .visual-grid, .two-columns, .sensor-choice-grid, .anatomy-grid, .movement-grid { grid-template-columns: 1fr; }
+  .metrics-grid, .visual-grid, .two-columns, .sensor-choice-grid, .anatomy-grid, .movement-grid, .game-layout { grid-template-columns: 1fr; }
   .form-grid { grid-template-columns: 1fr; }
   .patient-toolbar, .patient-card { align-items: stretch; flex-direction: column; }
   .home-shell { justify-content: flex-start; }
-  .topbar { align-items: flex-start; }
+  .topbar, .game-header { align-items: flex-start; }
+  .game-header { display: grid; }
+  .game-panel, #carCanvas { min-height: 520px; }
   .connection { white-space: nowrap; }
   .timer { margin-left: 0; }
 }

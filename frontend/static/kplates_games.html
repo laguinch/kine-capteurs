@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>K‑Force Plates — Jeux</title>
+    <link rel="stylesheet" href="/static/styles.css?v=13">
+  </head>
+  <body>
+    <main class="shell home-shell">
+      <nav class="sensor-nav">
+        <a href="/">Accueil</a>
+        <a class="active" href="/kforceplates/jeux">K‑Force Plates</a>
+        <a href="/kpush">K‑Push</a>
+        <a href="/kpull">K‑Pull</a>
+        <a href="/kmove">K‑Move</a>
+      </nav>
+      <header class="hero">
+        <p class="eyebrow">K‑Force Plates</p>
+        <h1>Choisir un jeu</h1>
+        <p class="subtitle">
+          Les jeux utilisent les appuis gauche/droite pour piloter le mouvement.
+        </p>
+      </header>
+
+      <section id="flowBanner" class="flow-banner">
+        <span id="flowMode">Entraînement anonyme</span>
+        <strong id="flowSave">Les jeux resteront anonymes.</strong>
+      </section>
+
+      <section class="choice-grid sensor-choice-grid">
+        <a id="carGameLink" class="choice-card primary-choice" href="/kforceplates/jeux/voiture">
+          <span class="choice-kicker">Gauche / droite</span>
+          <strong>Voiture</strong>
+          <small>Éviter les obstacles en déplaçant la voiture avec les transferts d’appui.</small>
+        </a>
+        <article class="choice-card disabled-card">
+          <span class="choice-kicker">Prochain jeu</span>
+          <strong>Slalom</strong>
+          <small>Passer entre des portes avec des appuis alternés gauche/droite.</small>
+        </article>
+      </section>
+    </main>
+    <script src="/static/flow.js?v=6"></script>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      document.getElementById("carGameLink").href =
+        `/kforceplates/jeux/voiture?${params.toString()}`;
+    </script>
+  </body>
+</html>

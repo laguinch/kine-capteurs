@@ -55,7 +55,10 @@
           ? "Après le test, les résultats seront enregistrés dans le dossier patient."
           : "Les résultats resteront anonymes et exportables.";
       document.querySelectorAll(".sensor-link").forEach((link) => {
-        const target = link.dataset.sensor;
+        const target =
+          type === "training" && link.dataset.sensor === "/kforceplates"
+            ? "/kforceplates/jeux"
+            : link.dataset.sensor;
         link.href = `${target}?context=${encodeURIComponent(context)}&type=${encodeURIComponent(type)}`;
       });
     </script>

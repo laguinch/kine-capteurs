@@ -79,6 +79,16 @@ def kforceplates():
     return frontend_page("index.html")
 
 
+@app.get("/kforceplates/jeux")
+def kforceplates_games():
+    return frontend_page("kplates_games.html")
+
+
+@app.get("/kforceplates/jeux/voiture")
+def kforceplates_car_game():
+    return frontend_page("kplates_car_game.html")
+
+
 @app.get("/kpush")
 def kpush():
     return frontend_page("kpush.html")

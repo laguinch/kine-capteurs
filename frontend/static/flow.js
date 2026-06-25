@@ -14,6 +14,9 @@
 
   document.querySelectorAll(".sensor-nav a[href^='/kforceplates'], .sensor-nav a[href^='/kpush'], .sensor-nav a[href^='/kpull'], .sensor-nav a[href^='/kmove']").forEach((link) => {
     const target = new URL(link.getAttribute("href"), window.location.origin);
+    if (type === "training" && target.pathname === "/kforceplates") {
+      target.pathname = "/kforceplates/jeux";
+    }
     target.searchParams.set("context", context);
     target.searchParams.set("type", type);
     link.href = `${target.pathname}${target.search}`;

@@ -1,0 +1,301 @@
+const $ = (id) => document.getElementById(id);
+
+const canvas = $("carCanvas");
+const ctx = canvas.getContext("2d");
+const params = new URLSearchParams(window.location.search);
+const flowContext = params.get("context") || "anonymous";
+const patientId = flowContext.startsWith("patient:")
+  ? Number(flowContext.split(":")[1])
+  : null;
+
+const game = {
+  running: false,
+  lane: 1,
+  targetLane: 1,
+  score: 0,
+  startedAt: null,
+  lastFrameAt: performance.now(),
+  lastObstacleAt: 0,
+  obstacles: [],
+  direction: "center",
+  latestMeasurement: null,
+  saved: false,
+  csvPath: null,
+};
+
+const lanes = [0.23, 0.5, 0.77];
+
+function format(value, digits = 0) {
+  return Number.isFinite(value)
+    ? value.toLocaleString("fr-FR", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+      })
+    : "—";
+}
+
+function message(text, error = false, ready = false) {
+  const box = $("gameMessage");
+  box.textContent = text || "";
+  box.classList.toggle("error", error);
+  box.classList.toggle("ready", ready);
+}
+
+function updateStatus(data) {
+  const connected = Boolean(data.bluetooth_connected);
+  const running = Boolean(data.running);
+  $("gameStatusDot").className = `status-dot ${running || connected ? "running" : data.last_error ? "error" : ""}`;
+  $("gameStatusText").textContent = running
+    ? "Jeu en cours"
+    : connected
+      ? "Plateformes connectées"
+      : data.last_error
+        ? "Erreur"
+        : "Déconnecté";
+  $("connectButton").disabled = connected || running;
+  $("startGameButton").disabled = running || !connected;
+  $("stopGameButton").disabled = !running;
+  if (data.csv_path) game.csvPath = data.csv_path;
+  if (data.measurement) {
+    game.latestMeasurement = data.measurement;
+    updateControls(data.measurement);
+  }
+  if (!running && game.running) {
+    finishGame();
+  }
+  if (data.last_error) {
+    message(data.last_error, true);
+  }
+}
+
+function updateControls(measurement) {
+  const left = Number.isFinite(measurement.left_pct) ? measurement.left_pct : 0;
+  const right = Number.isFinite(measurement.right_pct) ? measurement.right_pct : 0;
+  const asymmetry = Number.isFinite(measurement.asymmetry_pct) ? measurement.asymmetry_pct : 0;
+  $("leftForceBar").style.width = `${Math.max(0, Math.min(100, left))}%`;
+  $("rightForceBar").style.width = `${Math.max(0, Math.min(100, right))}%`;
+  $("leftForceText").textContent = `${format(left)} %`;
+  $("rightForceText").textContent = `${format(right)} %`;
+
+  if (asymmetry < -10) {
+    game.direction = "left";
+    game.targetLane = 0;
+  } else if (asymmetry > 10) {
+    game.direction = "right";
+    game.targetLane = 2;
+  } else {
+    game.direction = "center";
+    game.targetLane = 1;
+  }
+  $("directionValue").textContent =
+    game.direction === "left"
+      ? "Gauche"
+      : game.direction === "right"
+        ? "Droite"
+        : "Centre";
+}
+
+async function poll() {
+  try {
+    const response = await fetch("/api/kplates/dual/latest", { cache: "no-store" });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Lecture impossible");
+    updateStatus(data);
+  } catch (error) {
+    $("gameStatusDot").className = "status-dot error";
+    $("gameStatusText").textContent = "Serveur indisponible";
+    message(error.message, true);
+  }
+}
+
+async function connect() {
+  message("Connexion aux plateformes…");
+  try {
+    const response = await fetch("/api/kplates/dual/connect", { method: "POST" });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Connexion impossible");
+    updateStatus(data);
+    message("Plateformes connectées. Vous pouvez démarrer le jeu.", false, true);
+  } catch (error) {
+    message(error.message, true);
+  }
+}
+
+async function startGame() {
+  game.score = 0;
+  game.startedAt = null;
+  game.lastObstacleAt = 0;
+  game.obstacles = [];
+  game.lane = 1;
+  game.targetLane = 1;
+  game.saved = false;
+  game.csvPath = null;
+  $("scoreValue").textContent = "0";
+  message("Jeu en cours : évitez les obstacles.");
+  try {
+    const response = await fetch("/api/kplates/dual/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        duration: 60,
+        mode: "balance",
+        recalibrate: false,
+        filename: `kplates_voiture_${new Date().toISOString().replace(/[:.]/g, "-")}.csv`,
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Démarrage impossible");
+    game.running = true;
+    game.startedAt = performance.now();
+    updateStatus(data);
+  } catch (error) {
+    game.running = false;
+    message(error.message, true);
+  }
+}
+
+async function stopGame() {
+  try {
+    await fetch("/api/kplates/dual/stop", { method: "POST" });
+  } finally {
+    finishGame();
+  }
+}
+
+function finishGame() {
+  if (!game.running) return;
+  game.running = false;
+  message(`Jeu terminé. Score : ${game.score}.`, false, true);
+  saveTrainingSummary();
+}
+
+async function saveTrainingSummary() {
+  if (!patientId || game.saved) return;
+  game.saved = true;
+  try {
+    await fetch("/api/evaluations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        patient_id: patientId,
+        session_type: "training",
+        sensor: "K-Force Plates",
+        test_name: "Voiture",
+        display_name: "Voiture · évitement",
+        summary: `Score ${game.score}`,
+        csv_path: game.csvPath,
+      }),
+    });
+  } catch (_) {
+    game.saved = false;
+  }
+}
+
+function drawRoad(width, height) {
+  ctx.fillStyle = "#172629";
+  ctx.fillRect(0, 0, width, height);
+  ctx.fillStyle = "#24383c";
+  ctx.fillRect(width * 0.12, 0, width * 0.76, height);
+  ctx.strokeStyle = "rgba(255,255,255,.28)";
+  ctx.lineWidth = 4;
+  [0.365, 0.635].forEach((xRatio) => {
+    ctx.setLineDash([24, 18]);
+    ctx.beginPath();
+    ctx.moveTo(width * xRatio, 0);
+    ctx.lineTo(width * xRatio, height);
+    ctx.stroke();
+  });
+  ctx.setLineDash([]);
+}
+
+function drawCar(width, height) {
+  game.lane += (game.targetLane - game.lane) * 0.18;
+  const x = width * lanes[0] + (width * (lanes[2] - lanes[0]) / 2) * game.lane;
+  const y = height * 0.78;
+  ctx.fillStyle = "#147c75";
+  ctx.beginPath();
+  ctx.roundRect(x - 34, y - 54, 68, 108, 14);
+  ctx.fill();
+  ctx.fillStyle = "#dff4ec";
+  ctx.beginPath();
+  ctx.roundRect(x - 22, y - 34, 44, 30, 8);
+  ctx.fill();
+}
+
+function drawObstacles(width, height, dt) {
+  if (game.running && performance.now() - game.lastObstacleAt > 950) {
+    game.lastObstacleAt = performance.now();
+    game.obstacles.push({
+      lane: Math.floor(Math.random() * 3),
+      y: -80,
+      counted: false,
+    });
+  }
+  const speed = 250 + Math.min(220, game.score * 5);
+  const carLane = Math.round(game.lane);
+  game.obstacles.forEach((obstacle) => {
+    obstacle.y += speed * dt;
+    const x = width * lanes[obstacle.lane];
+    ctx.fillStyle = "#df7b37";
+    ctx.beginPath();
+    ctx.roundRect(x - 32, obstacle.y - 42, 64, 84, 12);
+    ctx.fill();
+    if (!obstacle.counted && obstacle.y > height * 0.78) {
+      obstacle.counted = true;
+      if (obstacle.lane === carLane) {
+        game.score = Math.max(0, game.score - 3);
+        message("Obstacle touché : transférez plus vite l’appui.", true);
+      } else {
+        game.score += 1;
+        message("Bien joué, obstacle évité.", false, true);
+      }
+      $("scoreValue").textContent = String(game.score);
+    }
+  });
+  game.obstacles = game.obstacles.filter((obstacle) => obstacle.y < height + 90);
+}
+
+function draw() {
+  const now = performance.now();
+  const dt = Math.min(0.05, (now - game.lastFrameAt) / 1000);
+  game.lastFrameAt = now;
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.max(1, rect.width * dpr);
+  canvas.height = Math.max(1, rect.height * dpr);
+  ctx.scale(dpr, dpr);
+  const width = rect.width;
+  const height = rect.height;
+
+  drawRoad(width, height);
+  drawObstacles(width, height, dt);
+  drawCar(width, height);
+
+  if (game.running && game.startedAt) {
+    const elapsed = (now - game.startedAt) / 1000;
+    const minutes = Math.floor(elapsed / 60).toString().padStart(2, "0");
+    const seconds = Math.floor(elapsed % 60).toString().padStart(2, "0");
+    $("gameTimer").textContent = `${minutes}:${seconds}`;
+  }
+
+  requestAnimationFrame(draw);
+}
+
+$("connectButton").addEventListener("click", connect);
+$("startGameButton").addEventListener("click", startGame);
+$("stopGameButton").addEventListener("click", stopGame);
+
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+    this.moveTo(x + r, y);
+    this.arcTo(x + w, y, x + w, y + h, r);
+    this.arcTo(x + w, y + h, x, y + h, r);
+    this.arcTo(x, y + h, x, y, r);
+    this.arcTo(x, y, x + w, y, r);
+    return this;
+  };
+}
+
+poll();
+setInterval(poll, 180);
+requestAnimationFrame(draw);
