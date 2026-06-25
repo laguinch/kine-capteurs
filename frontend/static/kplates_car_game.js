@@ -12,8 +12,8 @@ const game = {
   running: false,
   playing: false,
   level: "easy",
-  lane: 1,
-  targetLane: 1,
+  lane: 2,
+  targetLane: 2,
   score: 0,
   startedAt: null,
   lastFrameAt: performance.now(),
@@ -26,8 +26,14 @@ const game = {
   csvPath: null,
 };
 
-const lanes = [0.23, 0.5, 0.77];
+const laneCount = 5;
+const laneMin = 0.17;
+const laneMax = 0.83;
+const lanes = Array.from({ length: laneCount }, (_, index) =>
+  laneMin + ((laneMax - laneMin) * index) / (laneCount - 1)
+);
 const movementThreshold = 10;
+const fullSteeringAsymmetry = 45;
 const levels = {
   easy: {
     label: "Facile",
@@ -121,15 +127,17 @@ function updateControls(measurement) {
   $("leftForceText").textContent = `${format(left)} %`;
   $("rightForceText").textContent = `${format(right)} %`;
 
+  const normalizedSteering = Math.max(
+    -1,
+    Math.min(1, asymmetry / fullSteeringAsymmetry)
+  );
+  game.targetLane = ((normalizedSteering + 1) / 2) * (laneCount - 1);
   if (asymmetry < -movementThreshold) {
     game.direction = "left";
-    game.targetLane = 0;
   } else if (asymmetry > movementThreshold) {
     game.direction = "right";
-    game.targetLane = 2;
   } else {
     game.direction = "center";
-    game.targetLane = 1;
   }
   $("directionValue").textContent =
     game.direction === "left"
@@ -170,8 +178,8 @@ async function startGame() {
   game.startedAt = null;
   game.lastObstacleAt = 0;
   game.obstacles = [];
-  game.lane = 1;
-  game.targetLane = 1;
+  game.lane = (laneCount - 1) / 2;
+  game.targetLane = (laneCount - 1) / 2;
   game.playing = false;
   game.lastMeasurementTimestamp = null;
   game.saved = false;
@@ -243,30 +251,34 @@ function drawRoad(width, height) {
   ctx.fillStyle = "#172629";
   ctx.fillRect(0, 0, width, height);
   ctx.fillStyle = "#24383c";
-  ctx.fillRect(width * 0.12, 0, width * 0.76, height);
+  const roadLeft = width * 0.10;
+  const roadWidth = width * 0.80;
+  ctx.fillRect(roadLeft, 0, roadWidth, height);
   ctx.strokeStyle = "rgba(255,255,255,.28)";
-  ctx.lineWidth = 4;
-  [0.365, 0.635].forEach((xRatio) => {
+  ctx.lineWidth = 3;
+  for (let index = 1; index < laneCount; index += 1) {
+    const xRatio = laneMin + ((laneMax - laneMin) * (index - 0.5)) / (laneCount - 1);
     ctx.setLineDash([24, 18]);
     ctx.beginPath();
     ctx.moveTo(width * xRatio, 0);
     ctx.lineTo(width * xRatio, height);
     ctx.stroke();
-  });
+  }
   ctx.setLineDash([]);
 }
 
 function drawCar(width, height) {
   game.lane += (game.targetLane - game.lane) * levels[game.level].steeringEase;
-  const x = width * lanes[0] + (width * (lanes[2] - lanes[0]) / 2) * game.lane;
-  const y = height * 0.78;
+  const laneIndex = Math.max(0, Math.min(laneCount - 1, game.lane));
+  const x = width * lanes[0] + (width * (lanes[laneCount - 1] - lanes[0]) / (laneCount - 1)) * laneIndex;
+  const y = height * 0.84;
   ctx.fillStyle = "#147c75";
   ctx.beginPath();
-  ctx.roundRect(x - 34, y - 54, 68, 108, 14);
+  ctx.roundRect(x - 22, y - 36, 44, 72, 10);
   ctx.fill();
   ctx.fillStyle = "#dff4ec";
   ctx.beginPath();
-  ctx.roundRect(x - 22, y - 34, 44, 30, 8);
+  ctx.roundRect(x - 14, y - 22, 28, 20, 6);
   ctx.fill();
 }
 
@@ -274,7 +286,7 @@ function drawObstacles(width, height, dt) {
   if (game.playing && performance.now() - game.lastObstacleAt > 950) {
     game.lastObstacleAt = performance.now();
     game.obstacles.push({
-      lane: Math.floor(Math.random() * 3),
+      lane: Math.floor(Math.random() * laneCount),
       y: -80,
       counted: false,
     });
@@ -287,9 +299,9 @@ function drawObstacles(width, height, dt) {
     const x = width * lanes[obstacle.lane];
     ctx.fillStyle = "#df7b37";
     ctx.beginPath();
-    ctx.roundRect(x - 32, obstacle.y - 42, 64, 84, 12);
+    ctx.roundRect(x - 20, obstacle.y - 32, 40, 64, 10);
     ctx.fill();
-    if (!obstacle.counted && obstacle.y > height * 0.78) {
+    if (!obstacle.counted && obstacle.y > height * 0.84) {
       obstacle.counted = true;
       if (obstacle.lane === carLane) {
         game.score = Math.max(0, game.score - 3);
