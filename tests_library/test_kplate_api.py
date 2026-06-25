@@ -66,6 +66,7 @@ class KPlateApiTest(unittest.TestCase):
         self.assertIn("/api/patients", paths)
         self.assertIn("/api/patients/{patient_id}", paths)
         self.assertIn("/api/evaluations", paths)
+        self.assertIn("/api/evaluations/{evaluation_id}", paths)
         self.assertIn("/api/evaluations/patient/{patient_id}", paths)
 
     def test_new_service_is_idle(self):
