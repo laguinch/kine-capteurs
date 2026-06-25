@@ -32,6 +32,7 @@ const laneMax = 0.83;
 const lanes = Array.from({ length: laneCount }, (_, index) =>
   laneMin + ((laneMax - laneMin) * index) / (laneCount - 1)
 );
+const carYRatio = 0.94;
 const movementThreshold = 10;
 const fullSteeringAsymmetry = 45;
 const levels = {
@@ -271,7 +272,7 @@ function drawCar(width, height) {
   game.lane += (game.targetLane - game.lane) * levels[game.level].steeringEase;
   const laneIndex = Math.max(0, Math.min(laneCount - 1, game.lane));
   const x = width * lanes[0] + (width * (lanes[laneCount - 1] - lanes[0]) / (laneCount - 1)) * laneIndex;
-  const y = height * 0.84;
+  const y = height * carYRatio;
   ctx.fillStyle = "#147c75";
   ctx.beginPath();
   ctx.roundRect(x - 22, y - 36, 44, 72, 10);
@@ -301,7 +302,7 @@ function drawObstacles(width, height, dt) {
     ctx.beginPath();
     ctx.roundRect(x - 20, obstacle.y - 32, 40, 64, 10);
     ctx.fill();
-    if (!obstacle.counted && obstacle.y > height * 0.84) {
+    if (!obstacle.counted && obstacle.y > height * carYRatio) {
       obstacle.counted = true;
       if (obstacle.lane === carLane) {
         game.score = Math.max(0, game.score - 3);
