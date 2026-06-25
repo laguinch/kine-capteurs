@@ -186,6 +186,9 @@ button, input, select { font: inherit; }
   display: grid;
   gap: 8px;
 }
+.mobile-game-actions {
+  display: none;
+}
 .game-sidebar .message {
   margin: 0;
   padding: 10px 12px;
@@ -671,10 +674,28 @@ button:disabled { opacity: .45; cursor: default; }
   .metrics-grid, .visual-grid, .two-columns, .sensor-choice-grid, .anatomy-grid, .movement-grid, .game-layout { grid-template-columns: 1fr; }
   .form-grid { grid-template-columns: 1fr; }
   .patient-toolbar, .patient-card { align-items: stretch; flex-direction: column; }
+  .game-shell { padding-bottom: 88px; }
   .home-shell { justify-content: flex-start; }
   .topbar, .game-header { align-items: flex-start; }
   .game-header { display: grid; }
   .game-panel { height: clamp(380px, 62vh, 560px); }
+  .game-sidebar .control-actions { display: none; }
+  .mobile-game-actions {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 1fr;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, .94);
+    box-shadow: 0 18px 50px rgba(24, 56, 52, 0.18);
+    backdrop-filter: blur(10px);
+  }
   .connection { white-space: nowrap; }
   .timer { margin-left: 0; }
 }

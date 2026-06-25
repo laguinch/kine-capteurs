@@ -92,6 +92,15 @@ function updateStatus(data) {
   $("connectButton").disabled = connected || running;
   $("startGameButton").disabled = running || !connected;
   $("stopGameButton").disabled = !running;
+  document.querySelectorAll(".connect-action").forEach((button) => {
+    button.disabled = connected || running;
+  });
+  document.querySelectorAll(".start-action").forEach((button) => {
+    button.disabled = running || !connected;
+  });
+  document.querySelectorAll(".stop-action").forEach((button) => {
+    button.disabled = !running;
+  });
   setLevelControlsDisabled(running);
   if (data.csv_path) game.csvPath = data.csv_path;
   if (data.measurement) {
@@ -346,6 +355,15 @@ function draw() {
 $("connectButton").addEventListener("click", connect);
 $("startGameButton").addEventListener("click", startGame);
 $("stopGameButton").addEventListener("click", stopGame);
+document.querySelectorAll(".connect-action").forEach((button) => {
+  button.addEventListener("click", connect);
+});
+document.querySelectorAll(".start-action").forEach((button) => {
+  button.addEventListener("click", startGame);
+});
+document.querySelectorAll(".stop-action").forEach((button) => {
+  button.addEventListener("click", stopGame);
+});
 document.querySelectorAll(".level-choice").forEach((button) => {
   button.addEventListener("click", () => {
     if (game.running) return;
