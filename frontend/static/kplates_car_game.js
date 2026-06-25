@@ -10,6 +10,7 @@ const patientId = flowContext.startsWith("patient:")
 
 const game = {
   running: false,
+  level: "easy",
   lane: 1,
   targetLane: 1,
   score: 0,
@@ -24,6 +25,23 @@ const game = {
 };
 
 const lanes = [0.23, 0.5, 0.77];
+const levels = {
+  easy: {
+    label: "Facile",
+    description: "Sensibilité faible",
+    threshold: 30,
+  },
+  medium: {
+    label: "Moyen",
+    description: "Sensibilité moyenne",
+    threshold: 20,
+  },
+  expert: {
+    label: "Expert",
+    description: "Sensibilité élevée",
+    threshold: 10,
+  },
+};
 
 function format(value, digits = 0) {
   return Number.isFinite(value)
@@ -41,6 +59,12 @@ function message(text, error = false, ready = false) {
   box.classList.toggle("ready", ready);
 }
 
+function setLevelControlsDisabled(disabled) {
+  document.querySelectorAll(".level-choice").forEach((button) => {
+    button.disabled = disabled;
+  });
+}
+
 function updateStatus(data) {
   const connected = Boolean(data.bluetooth_connected);
   const running = Boolean(data.running);
@@ -55,6 +79,7 @@ function updateStatus(data) {
   $("connectButton").disabled = connected || running;
   $("startGameButton").disabled = running || !connected;
   $("stopGameButton").disabled = !running;
+  setLevelControlsDisabled(running);
   if (data.csv_path) game.csvPath = data.csv_path;
   if (data.measurement) {
     game.latestMeasurement = data.measurement;
@@ -77,10 +102,11 @@ function updateControls(measurement) {
   $("leftForceText").textContent = `${format(left)} %`;
   $("rightForceText").textContent = `${format(right)} %`;
 
-  if (asymmetry < -10) {
+  const threshold = levels[game.level].threshold;
+  if (asymmetry < -threshold) {
     game.direction = "left";
     game.targetLane = 0;
-  } else if (asymmetry > 10) {
+  } else if (asymmetry > threshold) {
     game.direction = "right";
     game.targetLane = 2;
   } else {
@@ -140,7 +166,7 @@ async function startGame() {
         duration: 60,
         mode: "balance",
         recalibrate: false,
-        filename: `kplates_voiture_${new Date().toISOString().replace(/[:.]/g, "-")}.csv`,
+        filename: `kplates_voiture_${game.level}_${new Date().toISOString().replace(/[:.]/g, "-")}.csv`,
       }),
     });
     const data = await response.json();
@@ -182,7 +208,7 @@ async function saveTrainingSummary() {
         sensor: "K-Force Plates",
         test_name: "Voiture",
         display_name: "Voiture · évitement",
-        summary: `Score ${game.score}`,
+        summary: `Score ${game.score} · niveau ${levels[game.level].label}`,
         csv_path: game.csvPath,
       }),
     });
@@ -284,6 +310,18 @@ function draw() {
 $("connectButton").addEventListener("click", connect);
 $("startGameButton").addEventListener("click", startGame);
 $("stopGameButton").addEventListener("click", stopGame);
+document.querySelectorAll(".level-choice").forEach((button) => {
+  button.addEventListener("click", () => {
+    if (game.running) return;
+    game.level = button.dataset.level;
+    document.querySelectorAll(".level-choice").forEach((choice) => {
+      choice.classList.toggle("active", choice === button);
+    });
+    const level = levels[game.level];
+    $("sensitivityLabel").textContent =
+      `${level.description} · seuil ${level.threshold} %`;
+  });
+});
 
 if (!CanvasRenderingContext2D.prototype.roundRect) {
   CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {

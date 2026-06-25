@@ -111,6 +111,35 @@ button, input, select { font: inherit; }
   display: grid;
   gap: 7px;
 }
+.game-level {
+  display: grid;
+  gap: 8px;
+}
+.game-level > span {
+  color: var(--muted);
+  font-weight: 800;
+}
+.game-level small {
+  color: var(--muted);
+}
+.level-choice-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.level-choice {
+  padding: 9px 10px;
+  border-radius: 999px;
+  background: #e9f2ef;
+  color: var(--teal-dark);
+}
+.level-choice.active {
+  background: var(--teal);
+  color: #fff;
+}
+.level-choice:disabled {
+  opacity: .6;
+}
 .mini-bar {
   height: 14px;
   overflow: hidden;
