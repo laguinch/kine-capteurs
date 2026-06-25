@@ -27,24 +27,25 @@ const game = {
 };
 
 const lanes = [0.23, 0.5, 0.77];
+const movementThreshold = 10;
 const levels = {
   easy: {
     label: "Facile",
-    description: "Sensibilité faible · vitesse lente",
-    threshold: 30,
+    description: "Déclenchement léger · vitesse lente",
     speedFactor: 0.55,
+    steeringEase: 0.10,
   },
   medium: {
     label: "Moyen",
-    description: "Sensibilité moyenne · vitesse modérée",
-    threshold: 20,
+    description: "Déclenchement léger · vitesse modérée",
     speedFactor: 0.75,
+    steeringEase: 0.14,
   },
   expert: {
     label: "Expert",
-    description: "Sensibilité élevée · vitesse rapide",
-    threshold: 10,
+    description: "Déclenchement léger · vitesse rapide",
     speedFactor: 1,
+    steeringEase: 0.18,
   },
 };
 
@@ -120,11 +121,10 @@ function updateControls(measurement) {
   $("leftForceText").textContent = `${format(left)} %`;
   $("rightForceText").textContent = `${format(right)} %`;
 
-  const threshold = levels[game.level].threshold;
-  if (asymmetry < -threshold) {
+  if (asymmetry < -movementThreshold) {
     game.direction = "left";
     game.targetLane = 0;
-  } else if (asymmetry > threshold) {
+  } else if (asymmetry > movementThreshold) {
     game.direction = "right";
     game.targetLane = 2;
   } else {
@@ -257,7 +257,7 @@ function drawRoad(width, height) {
 }
 
 function drawCar(width, height) {
-  game.lane += (game.targetLane - game.lane) * 0.18;
+  game.lane += (game.targetLane - game.lane) * levels[game.level].steeringEase;
   const x = width * lanes[0] + (width * (lanes[2] - lanes[0]) / 2) * game.lane;
   const y = height * 0.78;
   ctx.fillStyle = "#147c75";
@@ -342,7 +342,7 @@ document.querySelectorAll(".level-choice").forEach((button) => {
     });
     const level = levels[game.level];
     $("sensitivityLabel").textContent =
-      `${level.description} · seuil ${level.threshold} %`;
+      `${level.description} · seuil ${movementThreshold} %`;
   });
 });
 
