@@ -30,18 +30,21 @@ const lanes = [0.23, 0.5, 0.77];
 const levels = {
   easy: {
     label: "Facile",
-    description: "Sensibilité faible",
+    description: "Sensibilité faible · vitesse lente",
     threshold: 30,
+    speedFactor: 0.55,
   },
   medium: {
     label: "Moyen",
-    description: "Sensibilité moyenne",
+    description: "Sensibilité moyenne · vitesse modérée",
     threshold: 20,
+    speedFactor: 0.75,
   },
   expert: {
     label: "Expert",
-    description: "Sensibilité élevée",
+    description: "Sensibilité élevée · vitesse rapide",
     threshold: 10,
+    speedFactor: 1,
   },
 };
 
@@ -276,7 +279,8 @@ function drawObstacles(width, height, dt) {
       counted: false,
     });
   }
-  const speed = 250 + Math.min(220, game.score * 5);
+  const level = levels[game.level];
+  const speed = (250 + Math.min(220, game.score * 5)) * level.speedFactor;
   const carLane = Math.round(game.lane);
   game.obstacles.forEach((obstacle) => {
     obstacle.y += speed * dt;
