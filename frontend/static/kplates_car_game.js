@@ -10,6 +10,7 @@ const patientId = flowContext.startsWith("patient:")
 
 const game = {
   running: false,
+  playing: false,
   level: "easy",
   lane: 1,
   targetLane: 1,
@@ -20,6 +21,7 @@ const game = {
   obstacles: [],
   direction: "center",
   latestMeasurement: null,
+  lastMeasurementTimestamp: null,
   saved: false,
   csvPath: null,
 };
@@ -94,6 +96,19 @@ function updateStatus(data) {
 }
 
 function updateControls(measurement) {
+  if (
+    game.running
+    && !game.playing
+    && measurement.timestamp_utc
+    && measurement.timestamp_utc !== game.lastMeasurementTimestamp
+  ) {
+    game.playing = true;
+    game.startedAt = performance.now();
+    game.lastObstacleAt = performance.now();
+    message("Jeu lancé : évitez les obstacles.", false, true);
+  }
+  game.lastMeasurementTimestamp = measurement.timestamp_utc || null;
+
   const left = Number.isFinite(measurement.left_pct) ? measurement.left_pct : 0;
   const right = Number.isFinite(measurement.right_pct) ? measurement.right_pct : 0;
   const asymmetry = Number.isFinite(measurement.asymmetry_pct) ? measurement.asymmetry_pct : 0;
@@ -154,10 +169,13 @@ async function startGame() {
   game.obstacles = [];
   game.lane = 1;
   game.targetLane = 1;
+  game.playing = false;
+  game.lastMeasurementTimestamp = null;
   game.saved = false;
   game.csvPath = null;
   $("scoreValue").textContent = "0";
-  message("Jeu en cours : évitez les obstacles.");
+  $("gameTimer").textContent = "00:00";
+  message("Préparation du jeu : attente des premières mesures des plateformes.");
   try {
     const response = await fetch("/api/kplates/dual/start", {
       method: "POST",
@@ -172,10 +190,10 @@ async function startGame() {
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || "Démarrage impossible");
     game.running = true;
-    game.startedAt = performance.now();
     updateStatus(data);
   } catch (error) {
     game.running = false;
+    game.playing = false;
     message(error.message, true);
   }
 }
@@ -191,6 +209,7 @@ async function stopGame() {
 function finishGame() {
   if (!game.running) return;
   game.running = false;
+  game.playing = false;
   message(`Jeu terminé. Score : ${game.score}.`, false, true);
   saveTrainingSummary();
 }
@@ -249,7 +268,7 @@ function drawCar(width, height) {
 }
 
 function drawObstacles(width, height, dt) {
-  if (game.running && performance.now() - game.lastObstacleAt > 950) {
+  if (game.playing && performance.now() - game.lastObstacleAt > 950) {
     game.lastObstacleAt = performance.now();
     game.obstacles.push({
       lane: Math.floor(Math.random() * 3),
@@ -297,7 +316,7 @@ function draw() {
   drawObstacles(width, height, dt);
   drawCar(width, height);
 
-  if (game.running && game.startedAt) {
+  if (game.playing && game.startedAt) {
     const elapsed = (now - game.startedAt) / 1000;
     const minutes = Math.floor(elapsed / 60).toString().padStart(2, "0");
     const seconds = Math.floor(elapsed % 60).toString().padStart(2, "0");
