@@ -383,6 +383,14 @@ button, input, select { font: inherit; }
   gap: 18px;
 }
 
+.session-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .patient-panel label,
 .patient-form label {
   display: grid;
@@ -583,6 +591,7 @@ button { border: 0; border-radius: 11px; padding: 11px 20px; font-weight: 800; c
 button:disabled { opacity: .45; cursor: default; }
 .primary { background: var(--teal); color: #fff; }
 .secondary { background: #e8efec; color: var(--ink); }
+.danger { background: #fde7e5; color: #8d2c28; }
 .download {
   border-radius: 11px;
   padding: 11px 18px;

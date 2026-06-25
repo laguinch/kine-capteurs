@@ -63,6 +63,10 @@ class EvaluationApiTest(unittest.TestCase):
                 results = evaluations_routes.list_patient_evaluations(patient.id, db=db)
                 self.assertEqual(len(results), 1)
                 self.assertEqual(results[0].test_name, "CMJ")
+
+                evaluations_routes.delete_evaluation(evaluation.id, db=db)
+                results = evaluations_routes.list_patient_evaluations(patient.id, db=db)
+                self.assertEqual(results, [])
             finally:
                 db.close()
 

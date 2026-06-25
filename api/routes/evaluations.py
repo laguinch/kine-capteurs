@@ -56,3 +56,12 @@ def create_evaluation(payload: EvaluationCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(evaluation)
     return evaluation
+
+
+@router.delete("/{evaluation_id}", status_code=204)
+def delete_evaluation(evaluation_id: int, db: Session = Depends(get_db)):
+    evaluation = db.get(Evaluation, evaluation_id)
+    if evaluation is None:
+        raise HTTPException(status_code=404, detail="Test introuvable.")
+    db.delete(evaluation)
+    db.commit()

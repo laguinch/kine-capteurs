@@ -5,6 +5,7 @@ const sessionList = document.getElementById("sessionList");
 const selectedPatient = document.getElementById("selectedPatient");
 const newSessionLink = document.getElementById("newSessionLink");
 const params = new URLSearchParams(window.location.search);
+let currentPatient = null;
 
 function formatDate(value) {
   if (!value) return "Date non renseignée";
@@ -49,9 +50,36 @@ function sessionCard(session) {
       <small>${formatDateTime(session.created_at)} · ${session.sensor} · ${formatSessionType(session.session_type)}</small>
       ${session.summary ? `<p class="session-summary">${session.summary}</p>` : ""}
     </div>
-    ${session.csv_path ? `<span class="badge neutral">Données brutes</span>` : `<span class="badge neutral">Résumé</span>`}
+    <div class="session-actions">
+      ${session.csv_path ? `<span class="badge neutral">Données brutes</span>` : `<span class="badge neutral">Résumé</span>`}
+      <button class="danger" type="button">Supprimer</button>
+    </div>
   `;
+  article.querySelector(".danger").addEventListener("click", () => deleteSession(session));
   return article;
+}
+
+async function deleteSession(session) {
+  const label = session.display_name || session.test_name || "ce test";
+  const firstConfirmation = window.confirm(
+    `Supprimer "${label}" du dossier patient ?`
+  );
+  if (!firstConfirmation) return;
+  const secondConfirmation = window.confirm(
+    "Confirmation définitive : ce test sera retiré du dossier patient. Continuer ?"
+  );
+  if (!secondConfirmation) return;
+
+  const response = await fetch(`/api/evaluations/${session.id}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    window.alert("Le test n’a pas pu être supprimé.");
+    return;
+  }
+  if (currentPatient) {
+    loadSessions(currentPatient);
+  }
 }
 
 async function loadPatients() {
@@ -80,6 +108,7 @@ async function loadPatients() {
 }
 
 async function loadSessions(patient) {
+  currentPatient = patient;
   selectedPatient.textContent = `${patient.nom} ${patient.prenom}`;
   newSessionLink.href = `/session/patient/${patient.id}?context=patient`;
   sessionPanel.classList.remove("hidden");
