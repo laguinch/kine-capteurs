@@ -1,7 +1,10 @@
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from api.schemas.evaluation import EvaluationCreate, EvaluationRead
+from app.config import BASE_DIR
 from database.database import get_db
 from database.models.evaluation import Evaluation
 from database.models.patient import Patient
@@ -14,6 +17,23 @@ def _clean(value: str | None) -> str | None:
         return None
     value = value.strip()
     return value or None
+
+
+def _delete_project_file(value: str | None):
+    if not value:
+        return
+    try:
+        path = Path(value).expanduser()
+        if not path.is_absolute():
+            path = BASE_DIR / path
+        resolved = path.resolve()
+        storage_root = (BASE_DIR / "storage").resolve()
+        if not resolved.is_relative_to(storage_root):
+            return
+        if resolved.is_file():
+            resolved.unlink()
+    except OSError:
+        return
 
 
 @router.get("/patient/{patient_id}", response_model=list[EvaluationRead])
@@ -63,5 +83,7 @@ def delete_evaluation(evaluation_id: int, db: Session = Depends(get_db)):
     evaluation = db.get(Evaluation, evaluation_id)
     if evaluation is None:
         raise HTTPException(status_code=404, detail="Test introuvable.")
+    _delete_project_file(evaluation.csv_path)
+    _delete_project_file(evaluation.report_path)
     db.delete(evaluation)
     db.commit()

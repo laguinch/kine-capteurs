@@ -62,11 +62,11 @@ function sessionCard(session) {
 async function deleteSession(session) {
   const label = session.display_name || session.test_name || "ce test";
   const firstConfirmation = window.confirm(
-    `Supprimer "${label}" du dossier patient ?`
+    `Supprimer "${label}" du dossier patient et les données brutes liées ?`
   );
   if (!firstConfirmation) return;
   const secondConfirmation = window.confirm(
-    "Confirmation définitive : ce test sera retiré du dossier patient. Continuer ?"
+    "Confirmation définitive : le test et ses fichiers bruts seront supprimés. Continuer ?"
   );
   if (!secondConfirmation) return;
 

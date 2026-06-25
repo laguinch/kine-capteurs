@@ -16,7 +16,13 @@ class EvaluationApiTest(unittest.TestCase):
         from database.database import Base
 
         with tempfile.TemporaryDirectory() as directory:
+            old_base_dir = evaluations_routes.BASE_DIR
+            evaluations_routes.BASE_DIR = Path(directory)
             path = Path(directory) / "evaluations.db"
+            raw_dir = Path(directory) / "storage" / "raw_data"
+            raw_dir.mkdir(parents=True)
+            csv_path = raw_dir / "cmj.csv"
+            csv_path.write_text("timestamp,total_kg\n", encoding="utf-8")
             engine = database_module.create_engine(
                 f"sqlite:///{path}",
                 connect_args={"check_same_thread": False},
@@ -41,7 +47,7 @@ class EvaluationApiTest(unittest.TestCase):
                         test_name="CMJ",
                         display_name="CMJ — saut vertical",
                         summary="Hauteur 15 cm",
-                        csv_path="/tmp/cmj.csv",
+                        csv_path=str(csv_path),
                     ),
                     db=db,
                 )
@@ -53,7 +59,7 @@ class EvaluationApiTest(unittest.TestCase):
                         test_name="CMJ",
                         display_name="CMJ — saut vertical",
                         summary="Hauteur 15 cm",
-                        csv_path="/tmp/cmj.csv",
+                        csv_path=str(csv_path),
                     ),
                     db=db,
                 )
@@ -67,7 +73,9 @@ class EvaluationApiTest(unittest.TestCase):
                 evaluations_routes.delete_evaluation(evaluation.id, db=db)
                 results = evaluations_routes.list_patient_evaluations(patient.id, db=db)
                 self.assertEqual(results, [])
+                self.assertFalse(csv_path.exists())
             finally:
+                evaluations_routes.BASE_DIR = old_base_dir
                 db.close()
 
 
