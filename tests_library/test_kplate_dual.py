@@ -1,5 +1,6 @@
 import importlib.util
 import csv
+import json
 import struct
 import tempfile
 import time
@@ -41,6 +42,51 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(values["asymmetry"], -20.0)
         self.assertAlmostEqual(values["global_x"], -0.2)
         self.assertAlmostEqual(values["global_y"], 0.08)
+
+    def test_consumes_finished_start_command(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "control.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "action": "start",
+                        "generation": "finished-test",
+                        "duration": 60,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            self.module.DualKinventClient.consume_control_command(
+                path,
+                "finished-test",
+            )
+            command = json.loads(path.read_text(encoding="utf-8"))
+
+        self.assertEqual(command["action"], "idle")
+        self.assertEqual(command["generation"], "finished-test")
+
+    def test_keeps_newer_control_command(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "control.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "action": "start",
+                        "generation": "new-test",
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            self.module.DualKinventClient.consume_control_command(
+                path,
+                "old-test",
+            )
+            command = json.loads(path.read_text(encoding="utf-8"))
+
+        self.assertEqual(command["action"], "start")
+        self.assertEqual(command["generation"], "new-test")
 
     def test_ignores_small_negative_zero_drift(self):
         client = self.module.DualKinventClient(

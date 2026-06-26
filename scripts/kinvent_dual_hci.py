@@ -1523,6 +1523,27 @@ class DualKinventClient:
         )
         temporary.replace(target)
 
+    @staticmethod
+    def consume_control_command(path, generation):
+        target = Path(path)
+        try:
+            command = json.loads(target.read_text(encoding="utf-8"))
+        except (OSError, ValueError, json.JSONDecodeError):
+            return
+        if command.get("generation") != generation:
+            return
+        if command.get("action") not in {"start", "stop"}:
+            return
+        temporary = target.with_suffix(".tmp")
+        temporary.write_text(
+            json.dumps(
+                {"action": "idle", "generation": generation},
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        temporary.replace(target)
+
     def run_persistent(
         self,
         scan_timeout,
@@ -1819,6 +1840,10 @@ class DualKinventClient:
                                 ),
                             )
                             active_generation = None
+                            self.consume_control_command(
+                                control_path,
+                                generation,
+                            )
                             continue
                         print(f"{exc} Arrêt anticipé du CMJ.")
                         try:
@@ -1857,6 +1882,10 @@ class DualKinventClient:
                             ),
                         )
                         active_generation = None
+                        self.consume_control_command(
+                            control_path,
+                            generation,
+                        )
                         continue
                     except RuntimeError as exc:
                         self.park_measurement_streams(commands=3)
@@ -1869,6 +1898,10 @@ class DualKinventClient:
                             error=str(exc),
                         )
                         active_generation = None
+                        self.consume_control_command(
+                            control_path,
+                            generation,
+                        )
                         continue
                     self.close_csv()
                     sample_count = (
@@ -1892,6 +1925,10 @@ class DualKinventClient:
                                 "relancer le test."
                             ),
                         )
+                        self.consume_control_command(
+                            control_path,
+                            generation,
+                        )
                     else:
                         idle_streams_active = self.finish_acquisition_streams(
                             acquisition_mode
@@ -1908,6 +1945,10 @@ class DualKinventClient:
                             result_available=(
                                 acquisition_mode == "cmj"
                             ),
+                        )
+                        self.consume_control_command(
+                            control_path,
+                            generation,
                         )
                     next_idle_keepalive = time.monotonic() + 10.0
                     active_generation = None
