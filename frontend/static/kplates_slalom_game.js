@@ -11,7 +11,7 @@ const patientId = flowContext.startsWith("patient:")
 const game = {
   running: false,
   playing: false,
-  countdownStartedAt: null,
+  stopping: false,
   level: "easy",
   x: 0.5,
   targetX: 0.5,
@@ -30,6 +30,7 @@ const game = {
 const movementThreshold = 10;
 const fullSteeringAsymmetry = 45;
 const playerYRatio = 0.86;
+const gameDurationSeconds = 60;
 const levels = {
   easy: {
     label: "Facile",
@@ -116,33 +117,17 @@ function updateStatus(data) {
   }
 }
 
-function armCountdown() {
-  if (game.countdownStartedAt) return;
-  game.countdownStartedAt = performance.now();
-  message("Plateformes prêtes. Décompte : 3…", false, true);
-}
-
-function updateCountdown(now) {
-  if (!game.countdownStartedAt || game.playing) return;
-  const remaining = Math.ceil(3 - ((now - game.countdownStartedAt) / 1000));
-  if (remaining > 0) {
-    message(`Décompte : ${remaining}…`, false, true);
-    return;
-  }
-  game.playing = true;
-  game.startedAt = performance.now();
-  game.lastGateAt = performance.now();
-  message("Slalom lancé : passez entre les portes.", false, true);
-}
-
 function updateControls(measurement) {
   if (
     game.running
-    && !game.countdownStartedAt
+    && !game.playing
     && measurement.timestamp_utc
     && measurement.timestamp_utc !== game.lastMeasurementTimestamp
   ) {
-    armCountdown();
+    game.playing = true;
+    game.startedAt = performance.now();
+    game.lastGateAt = performance.now();
+    message("Slalom lancé : passez entre les portes.", false, true);
   }
   game.lastMeasurementTimestamp = measurement.timestamp_utc || null;
 
@@ -203,24 +188,24 @@ async function connect() {
 async function startGame() {
   game.score = 0;
   game.startedAt = null;
-  game.countdownStartedAt = null;
   game.lastGateAt = 0;
   game.gates = [];
   game.x = 0.5;
   game.targetX = 0.5;
   game.playing = false;
+  game.stopping = false;
   game.lastMeasurementTimestamp = null;
   game.saved = false;
   game.csvPath = null;
   $("scoreValue").textContent = "0";
   $("gameTimer").textContent = "00:00";
-  message("Préparation du slalom : attente des premières mesures des plateformes.");
+  message("Préparation du jeu : attente des premières mesures des plateformes.");
   try {
     const response = await fetch("/api/kplates/dual/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        duration: 60,
+        duration: gameDurationSeconds,
         mode: "balance",
         recalibrate: false,
         filename: `kplates_slalom_${game.level}_${new Date().toISOString().replace(/[:.]/g, "-")}.csv`,
@@ -249,9 +234,19 @@ function finishGame() {
   if (!game.running) return;
   game.running = false;
   game.playing = false;
-  game.countdownStartedAt = null;
+  game.gates = [];
   message(`Slalom terminé. Score : ${game.score}.`, false, true);
   saveTrainingSummary();
+}
+
+async function finishGameAndStopAcquisition() {
+  if (!game.running || game.stopping) return;
+  game.stopping = true;
+  try {
+    await fetch("/api/kplates/dual/stop", { method: "POST" });
+  } finally {
+    finishGame();
+  }
 }
 
 async function saveTrainingSummary() {
@@ -317,7 +312,9 @@ function drawGates(width, height, dt) {
   const speed = (210 + Math.min(180, game.score * 4)) * level.speedFactor;
   const playerY = height * playerYRatio;
   game.gates.forEach((gate) => {
-    gate.y += speed * dt;
+    if (game.playing) {
+      gate.y += speed * dt;
+    }
     const gapHalfWidth = width * level.gateWidth * 0.5;
     const centerX = width * gate.center;
     const leftPole = centerX - gapHalfWidth;
@@ -351,7 +348,9 @@ function drawGates(width, height, dt) {
 }
 
 function drawPlayer(width, height) {
-  game.x += (game.targetX - game.x) * levels[game.level].steeringEase;
+  if (game.running) {
+    game.x += (game.targetX - game.x) * levels[game.level].steeringEase;
+  }
   game.x = Math.max(0.18, Math.min(0.82, game.x));
   const x = width * game.x;
   const y = height * playerYRatio;
@@ -377,7 +376,6 @@ function draw() {
   const width = rect.width;
   const height = rect.height;
 
-  updateCountdown(now);
   drawTrack(width, height);
   spawnGates(now);
   drawGates(width, height, dt);
@@ -385,8 +383,12 @@ function draw() {
 
   if (game.playing && game.startedAt) {
     const elapsed = (now - game.startedAt) / 1000;
-    const minutes = Math.floor(elapsed / 60).toString().padStart(2, "0");
-    const seconds = Math.floor(elapsed % 60).toString().padStart(2, "0");
+    if (elapsed >= gameDurationSeconds) {
+      finishGameAndStopAcquisition();
+    }
+    const displayedElapsed = Math.min(elapsed, gameDurationSeconds);
+    const minutes = Math.floor(displayedElapsed / 60).toString().padStart(2, "0");
+    const seconds = Math.floor(displayedElapsed % 60).toString().padStart(2, "0");
     $("gameTimer").textContent = `${minutes}:${seconds}`;
   }
 
