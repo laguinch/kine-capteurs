@@ -31,6 +31,7 @@ class KPlateApiTest(unittest.TestCase):
         self.assertIn("/kforceplates", paths)
         self.assertIn("/kforceplates/jeux", paths)
         self.assertIn("/kforceplates/jeux/voiture", paths)
+        self.assertIn("/kforceplates/jeux/slalom", paths)
         self.assertIn("/kpush", paths)
         self.assertIn("/kpush/test", paths)
         self.assertIn("/kpull", paths)

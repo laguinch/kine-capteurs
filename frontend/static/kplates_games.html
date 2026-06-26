@@ -34,11 +34,11 @@
           <strong>Voiture</strong>
           <small>Éviter les obstacles en déplaçant la voiture avec les transferts d’appui.</small>
         </a>
-        <article class="choice-card disabled-card">
-          <span class="choice-kicker">Prochain jeu</span>
+        <a id="slalomGameLink" class="choice-card" href="/kforceplates/jeux/slalom">
+          <span class="choice-kicker">Gauche / droite</span>
           <strong>Slalom</strong>
           <small>Passer entre des portes avec des appuis alternés gauche/droite.</small>
-        </article>
+        </a>
       </section>
     </main>
     <script src="/static/flow.js?v=6"></script>
@@ -46,6 +46,8 @@
       const params = new URLSearchParams(window.location.search);
       document.getElementById("carGameLink").href =
         `/kforceplates/jeux/voiture?${params.toString()}`;
+      document.getElementById("slalomGameLink").href =
+        `/kforceplates/jeux/slalom?${params.toString()}`;
     </script>
   </body>
 </html>
