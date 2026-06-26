@@ -11,10 +11,9 @@ const patientId = flowContext.startsWith("patient:")
 const game = {
   running: false,
   playing: false,
-  stopping: false,
   level: "easy",
-  x: 0.5,
-  targetX: 0.5,
+  position: 0.5,
+  targetPosition: 0.5,
   score: 0,
   startedAt: null,
   lastFrameAt: performance.now(),
@@ -29,9 +28,7 @@ const game = {
 
 const movementThreshold = 10;
 const fullSteeringAsymmetry = 45;
-const playerYRatio = 0.86;
-const gameDurationSeconds = 60;
-const acquisitionStartupMarginSeconds = 5;
+const playerYRatio = 0.90;
 const levels = {
   easy: {
     label: "Facile",
@@ -111,7 +108,7 @@ function updateStatus(data) {
     updateControls(data.measurement);
   }
   if (!running && game.running) {
-    finishGame();
+    finishGame(data.last_error || null);
   }
   if (data.last_error) {
     message(data.last_error, true);
@@ -144,7 +141,7 @@ function updateControls(measurement) {
     -1,
     Math.min(1, asymmetry / fullSteeringAsymmetry)
   );
-  game.targetX = 0.5 + normalizedSteering * 0.34;
+  game.targetPosition = 0.5 + normalizedSteering * 0.34;
   if (asymmetry < -movementThreshold) {
     game.direction = "left";
   } else if (asymmetry > movementThreshold) {
@@ -191,10 +188,9 @@ async function startGame() {
   game.startedAt = null;
   game.lastGateAt = 0;
   game.gates = [];
-  game.x = 0.5;
-  game.targetX = 0.5;
+  game.position = 0.5;
+  game.targetPosition = 0.5;
   game.playing = false;
-  game.stopping = false;
   game.lastMeasurementTimestamp = null;
   game.saved = false;
   game.csvPath = null;
@@ -206,7 +202,7 @@ async function startGame() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        duration: gameDurationSeconds + acquisitionStartupMarginSeconds,
+        duration: 60,
         mode: "balance",
         recalibrate: false,
         filename: `kplates_slalom_${game.level}_${new Date().toISOString().replace(/[:.]/g, "-")}.csv`,
@@ -231,23 +227,17 @@ async function stopGame() {
   }
 }
 
-function finishGame() {
+function finishGame(error = null) {
   if (!game.running) return;
   game.running = false;
   game.playing = false;
   game.gates = [];
-  message(`Slalom terminé. Score : ${game.score}.`, false, true);
-  saveTrainingSummary();
-}
-
-async function finishGameAndStopAcquisition() {
-  if (!game.running || game.stopping) return;
-  game.stopping = true;
-  try {
-    await fetch("/api/kplates/dual/stop", { method: "POST" });
-  } finally {
-    finishGame();
+  if (error) {
+    message(error, true);
+  } else {
+    message(`Slalom terminé. Score : ${game.score}.`, false, true);
   }
+  saveTrainingSummary();
 }
 
 async function saveTrainingSummary() {
@@ -276,54 +266,62 @@ function drawTrack(width, height) {
   ctx.fillStyle = "#172629";
   ctx.fillRect(0, 0, width, height);
   ctx.fillStyle = "#24383c";
-  ctx.fillRect(width * 0.12, 0, width * 0.76, height);
-  ctx.strokeStyle = "rgba(255,255,255,.14)";
-  ctx.lineWidth = 2;
-  ctx.setLineDash([18, 18]);
-  for (let index = 1; index < 4; index += 1) {
-    const x = width * (0.12 + index * 0.19);
+  ctx.fillRect(width * 0.10, 0, width * 0.80, height);
+  ctx.strokeStyle = "rgba(255,255,255,.18)";
+  ctx.lineWidth = 3;
+  ctx.setLineDash([24, 18]);
+  [0.25, 0.40, 0.55, 0.70].forEach((ratio) => {
     ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
+    ctx.moveTo(width * ratio, 0);
+    ctx.lineTo(width * ratio, height);
     ctx.stroke();
-  }
+  });
   ctx.setLineDash([]);
 }
 
 function gateCenterFor(index) {
-  const wave = Math.sin(index * 1.35) * 0.24;
+  const wave = Math.sin(index * 1.25) * 0.24;
   const alternate = index % 2 === 0 ? -0.08 : 0.08;
-  return Math.max(0.28, Math.min(0.72, 0.5 + wave + alternate));
+  return Math.max(0.26, Math.min(0.74, 0.5 + wave + alternate));
 }
 
-function spawnGates(now) {
-  const level = levels[game.level];
-  if (!game.playing || now - game.lastGateAt <= level.gateEveryMs) return;
-  game.lastGateAt = now;
-  const index = game.gates.length + game.score;
-  game.gates.push({
-    center: gateCenterFor(index),
-    y: -55,
-    checked: false,
-  });
+function drawPlayer(width, height) {
+  game.position += (game.targetPosition - game.position) * levels[game.level].steeringEase;
+  game.position = Math.max(0.16, Math.min(0.84, game.position));
+  const x = width * game.position;
+  const y = height * playerYRatio;
+  ctx.fillStyle = "#147c75";
+  ctx.beginPath();
+  ctx.arc(x, y, 30, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#dff4ec";
+  ctx.beginPath();
+  ctx.arc(x, y, 13, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function drawGates(width, height, dt) {
   const level = levels[game.level];
-  const speed = (210 + Math.min(180, game.score * 4)) * level.speedFactor;
+  if (game.playing && performance.now() - game.lastGateAt > level.gateEveryMs) {
+    game.lastGateAt = performance.now();
+    game.gates.push({
+      center: gateCenterFor(game.gates.length + game.score),
+      y: -80,
+      counted: false,
+    });
+  }
+  const speed = (230 + Math.min(180, game.score * 5)) * level.speedFactor;
   const playerY = height * playerYRatio;
   game.gates.forEach((gate) => {
-    if (game.playing) {
-      gate.y += speed * dt;
-    }
+    gate.y += speed * dt;
     const gapHalfWidth = width * level.gateWidth * 0.5;
     const centerX = width * gate.center;
     const leftPole = centerX - gapHalfWidth;
     const rightPole = centerX + gapHalfWidth;
     ctx.fillStyle = "#df7b37";
     ctx.beginPath();
-    ctx.roundRect(leftPole - 14, gate.y - 34, 28, 68, 8);
-    ctx.roundRect(rightPole - 14, gate.y - 34, 28, 68, 8);
+    ctx.roundRect(leftPole - 13, gate.y - 34, 26, 68, 8);
+    ctx.roundRect(rightPole - 13, gate.y - 34, 26, 68, 8);
     ctx.fill();
     ctx.strokeStyle = "rgba(223,123,55,.35)";
     ctx.lineWidth = 3;
@@ -332,9 +330,9 @@ function drawGates(width, height, dt) {
     ctx.lineTo(rightPole - 16, gate.y);
     ctx.stroke();
 
-    if (!gate.checked && gate.y > playerY) {
-      gate.checked = true;
-      const playerX = width * game.x;
+    if (!gate.counted && gate.y > playerY) {
+      gate.counted = true;
+      const playerX = width * game.position;
       if (playerX > leftPole && playerX < rightPole) {
         game.score += 1;
         message("Porte franchie.", false, true);
@@ -346,23 +344,6 @@ function drawGates(width, height, dt) {
     }
   });
   game.gates = game.gates.filter((gate) => gate.y < height + 90);
-}
-
-function drawPlayer(width, height) {
-  if (game.running) {
-    game.x += (game.targetX - game.x) * levels[game.level].steeringEase;
-  }
-  game.x = Math.max(0.18, Math.min(0.82, game.x));
-  const x = width * game.x;
-  const y = height * playerYRatio;
-  ctx.fillStyle = "#147c75";
-  ctx.beginPath();
-  ctx.arc(x, y, 28, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#dff4ec";
-  ctx.beginPath();
-  ctx.arc(x, y, 12, 0, Math.PI * 2);
-  ctx.fill();
 }
 
 function draw() {
@@ -378,18 +359,13 @@ function draw() {
   const height = rect.height;
 
   drawTrack(width, height);
-  spawnGates(now);
   drawGates(width, height, dt);
   drawPlayer(width, height);
 
   if (game.playing && game.startedAt) {
     const elapsed = (now - game.startedAt) / 1000;
-    if (elapsed >= gameDurationSeconds) {
-      finishGameAndStopAcquisition();
-    }
-    const displayedElapsed = Math.min(elapsed, gameDurationSeconds);
-    const minutes = Math.floor(displayedElapsed / 60).toString().padStart(2, "0");
-    const seconds = Math.floor(displayedElapsed % 60).toString().padStart(2, "0");
+    const minutes = Math.floor(elapsed / 60).toString().padStart(2, "0");
+    const seconds = Math.floor(elapsed % 60).toString().padStart(2, "0");
     $("gameTimer").textContent = `${minutes}:${seconds}`;
   }
 
