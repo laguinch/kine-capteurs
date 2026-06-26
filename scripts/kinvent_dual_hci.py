@@ -1327,6 +1327,27 @@ class DualKinventClient:
         self.park_measurement_streams(commands=3)
         return False
 
+    def mark_full_reconnect_required(self, state_file, generation, command, exc):
+        """Après une coupure 0x08, la session officielle repart complète."""
+        try:
+            self.disconnect_all()
+        except (OSError, RuntimeError, TimeoutError, PlateDisconnected):
+            pass
+        self.clear_connection_state()
+        self.write_worker_state(
+            state_file,
+            phase="disconnected",
+            generation=generation,
+            csv_path=command.get("csv_path"),
+            mode=command.get("mode", "balance"),
+            connected_sides=[],
+            result_available=(
+                command.get("mode") == "cmj"
+                and bool(command.get("csv_path"))
+            ),
+            error=f"{exc}. Reconnectez les plateformes.",
+        )
+
     def validate_live_streams(self, timeout=3.0, attempts=1):
         """Exige une nouvelle trame de mesure valide de chaque plateforme."""
         if any(plate.handle is None for plate in self.plates):
@@ -1970,32 +1991,11 @@ class DualKinventClient:
                     print(f"Session inactive interrompue: {exc}")
                     idle_streams_active = False
                     self.reconnect_not_before = time.monotonic() + 10.0
-                    connected_sides = [
-                        plate.side
-                        for plate in self.plates
-                        if plate.handle is not None
-                    ]
-                    self.write_worker_state(
+                    self.mark_full_reconnect_required(
                         state_file,
-                        phase=(
-                            "degraded"
-                            if connected_sides
-                            else "disconnected"
-                        ),
-                        generation=generation,
-                        csv_path=command.get("csv_path"),
-                        mode=command.get("mode", "balance"),
-                        connected_sides=connected_sides,
-                        result_available=(
-                            command.get("mode") == "cmj"
-                            and bool(command.get("csv_path"))
-                        ),
-                        error=(
-                            f"{exc}. La plateforme restante demeure "
-                            "connectée."
-                            if connected_sides
-                            else str(exc)
-                        ),
+                        generation,
+                        command,
+                        exc,
                     )
                 except (TimeoutError, RuntimeError) as exc:
                     print(f"Session inactive interrompue: {exc}")
