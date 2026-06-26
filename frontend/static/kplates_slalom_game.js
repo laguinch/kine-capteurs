@@ -31,6 +31,7 @@ const movementThreshold = 10;
 const fullSteeringAsymmetry = 45;
 const playerYRatio = 0.86;
 const gameDurationSeconds = 60;
+const acquisitionStartupMarginSeconds = 5;
 const levels = {
   easy: {
     label: "Facile",
@@ -205,7 +206,7 @@ async function startGame() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        duration: gameDurationSeconds,
+        duration: gameDurationSeconds + acquisitionStartupMarginSeconds,
         mode: "balance",
         recalibrate: false,
         filename: `kplates_slalom_${game.level}_${new Date().toISOString().replace(/[:.]/g, "-")}.csv`,
