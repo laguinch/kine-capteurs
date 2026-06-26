@@ -116,9 +116,50 @@ class KinventBluetoothManager:
 
     def start(self):
         RAW_DIR.mkdir(parents=True, exist_ok=True)
-        self.controller.open()
-        self.controller.reset()
+        try:
+            self.controller.open()
+            self.controller.reset()
+        except (OSError, RuntimeError, TimeoutError) as exc:
+            self.state(
+                "error",
+                error=f"Contrôleur Bluetooth indisponible: {exc}",
+            )
+            self.controller.close()
+            raise
         self.state("idle")
+
+    def recover_controller_after_failure(self, failed_target, return_code):
+        """Récupère le dongle uniquement après une panne réelle du pilote."""
+        last_error = None
+        for attempt in range(1, 3):
+            try:
+                self.state(
+                    "recovering",
+                    failed_target=failed_target,
+                    return_code=return_code,
+                    attempt=attempt,
+                )
+                self.controller.reset()
+                return True
+            except (OSError, RuntimeError, TimeoutError) as exc:
+                last_error = exc
+                try:
+                    self.controller.close()
+                except OSError:
+                    pass
+                time.sleep(1.0)
+                try:
+                    self.controller.open()
+                except OSError as open_error:
+                    last_error = open_error
+                    time.sleep(1.0)
+        self.state(
+            "error",
+            failed_target=failed_target,
+            return_code=return_code,
+            error=f"Contrôleur Bluetooth non récupéré: {last_error}",
+        )
+        return False
 
     def stop_child(self):
         if self.child is None or self.target is None:
@@ -191,7 +232,14 @@ class KinventBluetoothManager:
                             # Une sortie anormale du pilote constitue la panne
                             # réelle pour laquelle une nouvelle initialisation
                             # du contrôleur est autorisée.
-                            self.controller.reset()
+                            recovered = self.recover_controller_after_failure(
+                                failed_target,
+                                return_code,
+                            )
+                            if not recovered:
+                                raise RuntimeError(
+                                    "Contrôleur Bluetooth non récupéré"
+                                )
                         self.state(
                             "error" if return_code else "idle",
                             return_code=return_code,

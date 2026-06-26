@@ -34,6 +34,42 @@ class BluetoothManagerTest(unittest.TestCase):
         bluetooth.controller.reset.assert_called_once_with()
         bluetooth.state.assert_called_once_with("idle")
 
+    def test_start_reports_bluetooth_controller_error(self):
+        bluetooth = KinventBluetoothManager(0)
+        bluetooth.controller.open = mock.Mock()
+        bluetooth.controller.reset = mock.Mock(
+            side_effect=TimeoutError("Pas de réponse HCI")
+        )
+        bluetooth.controller.close = mock.Mock()
+        bluetooth.state = mock.Mock()
+
+        with self.assertRaises(TimeoutError):
+            bluetooth.start()
+
+        bluetooth.state.assert_called_once()
+        self.assertEqual(bluetooth.state.call_args.args[0], "error")
+        self.assertIn(
+            "Contrôleur Bluetooth indisponible",
+            bluetooth.state.call_args.kwargs["error"],
+        )
+        bluetooth.controller.close.assert_called_once_with()
+
+    def test_recovers_controller_after_failed_child(self):
+        bluetooth = KinventBluetoothManager(0)
+        bluetooth.controller.reset = mock.Mock(
+            side_effect=[TimeoutError("reset muet"), None]
+        )
+        bluetooth.controller.close = mock.Mock()
+        bluetooth.controller.open = mock.Mock()
+        bluetooth.state = mock.Mock()
+
+        recovered = bluetooth.recover_controller_after_failure("kplates", 1)
+
+        self.assertTrue(recovered)
+        self.assertEqual(bluetooth.controller.reset.call_count, 2)
+        bluetooth.controller.close.assert_called_once_with()
+        bluetooth.controller.open.assert_called_once_with()
+
     def test_process_waits_for_its_exact_manager_generation(self):
         process = manager.ManagedSensorProcess("kmove", "request-2")
         with mock.patch.object(
