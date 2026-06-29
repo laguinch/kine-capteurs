@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/kmove", tags=["K-Move"])
 
 
 class KMoveRequest(BaseModel):
-    duration: float = Field(default=30.0, ge=5.0, le=300.0)
+    duration: float | None = Field(default=30.0, ge=5.0, le=300.0)
     filename: str | None = None
 
 

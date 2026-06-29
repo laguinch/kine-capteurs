@@ -172,6 +172,8 @@ function setupGlobalProtocol() {
   const choices = $("globalProtocolChoices");
   const title = $("globalProtocolTitle");
   if (!panel || !choices || !isGlobalProtocol || !protocolConfig()) return;
+  $("durationControl")?.classList.add("hidden");
+  $("timerBlock")?.classList.add("hidden");
   const config = protocolConfig();
   panel.classList.remove("hidden");
   title.textContent = [
@@ -426,8 +428,6 @@ function update(data) {
   }
   if (!active && data.finished_at && (!isGlobalProtocol || state.guided.complete)) {
     maybeSave(data);
-  } else if (!active && data.finished_at && isGlobalProtocol && !state.guided.complete) {
-    message("Durée terminée avant la fin du protocole global. Relancez le test ou augmentez la durée.", true);
   }
   updateGuidedRunner();
 }
@@ -507,7 +507,7 @@ async function start() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        duration: Number($("duration").value),
+        duration: isGlobalProtocol ? null : Number($("duration").value),
         filename: $("filename").value.trim() || null,
       }),
     });

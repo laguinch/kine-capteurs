@@ -104,7 +104,7 @@ class KMoveAcquisitionService:
             self._csv_path = BASE_DIR / "storage" / "raw_data" / filename
             self._started_at = None
             self._finished_at = None
-            self._duration = float(duration)
+            self._duration = float(duration) if duration else None
             self._recording = False
             self._armed = False
             self._calibrating = True

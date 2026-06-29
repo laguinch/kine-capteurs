@@ -175,6 +175,22 @@ class KMoveApiTest(unittest.TestCase):
         self.assertEqual(status["phase"], "ready")
         self.assertIn('"action": "stop"', control)
 
+    def test_start_without_duration_does_not_auto_stop(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = self.make_ready_service(directory)
+            self.write_live_rows(service._live_path)
+            service.start(duration=None, filename="guided.csv")
+            service._calibrating = False
+            service._armed = False
+            service._recording = True
+            service._started_at = "2026-06-22T08:00:00+00:00"
+            service._duration = None
+
+            status = service.status()
+
+        self.assertTrue(status["running"])
+        self.assertEqual(status["phase"], "active")
+
     def test_disconnect_after_stop_does_not_fail_saved_test(self):
         with tempfile.TemporaryDirectory() as directory:
             service = self.make_ready_service(directory)

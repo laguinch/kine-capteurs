@@ -33,7 +33,7 @@
       </section>
 
       <section class="control-panel">
-        <label>
+        <label id="durationControl">
           Durée
           <select id="duration">
             <option value="15">15 secondes</option>
@@ -50,7 +50,7 @@
         <button id="connectButton" class="secondary">Connecter le K‑Move</button>
         <button id="disconnectButton" class="secondary" disabled>Déconnecter</button>
         <a id="downloadButton" class="download disabled" href="/api/kmove/download">Télécharger</a>
-        <div class="timer">
+        <div id="timerBlock" class="timer">
           <span>Temps</span>
           <strong id="timer">00:00</strong>
         </div>
@@ -148,7 +148,7 @@
       </section>
     </main>
     <script src="/static/patient_save.js?v=3"></script>
-    <script src="/static/kmove.js?v=12"></script>
+    <script src="/static/kmove.js?v=13"></script>
     <script src="/static/flow.js?v=5"></script>
   </body>
 </html>
