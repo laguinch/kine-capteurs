@@ -70,6 +70,16 @@ class BluetoothManagerTest(unittest.TestCase):
         bluetooth.controller.close.assert_called_once_with()
         bluetooth.controller.open.assert_called_once_with()
 
+    def test_recovered_child_failure_returns_manager_to_idle(self):
+        self.assertEqual(
+            KinventBluetoothManager.child_exit_phase(1, recovered=True),
+            "idle",
+        )
+        self.assertEqual(
+            KinventBluetoothManager.child_exit_phase(1, recovered=False),
+            "error",
+        )
+
     def test_process_waits_for_its_exact_manager_generation(self):
         process = manager.ManagedSensorProcess("kmove", "request-2")
         with mock.patch.object(

@@ -207,6 +207,12 @@ class KinventBluetoothManager:
         self.target = target
         self.state("active")
 
+    @staticmethod
+    def child_exit_phase(return_code, recovered):
+        if return_code and not recovered:
+            return "error"
+        return "idle"
+
     def run(self):
         self.start()
         try:
@@ -241,7 +247,7 @@ class KinventBluetoothManager:
                                     "Contrôleur Bluetooth non récupéré"
                                 )
                         self.state(
-                            "error" if return_code else "idle",
+                            self.child_exit_phase(return_code, True),
                             return_code=return_code,
                             failed_target=failed_target,
                         )
