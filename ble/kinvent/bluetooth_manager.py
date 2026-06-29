@@ -68,8 +68,13 @@ class ManagedSensorProcess:
         except OSError:
             return 1
         if self.generation and state.get("generation") != self.generation:
-            # La commande est encore dans la file du gestionnaire.
-            return None
+            command = _read_json(CONTROL_PATH)
+            if (
+                command.get("generation") == self.generation
+                and command.get("target") == self.target
+            ):
+                # La commande est encore dans la file du gestionnaire.
+                return None
         if state.get("target") == self.target and state.get("phase") in {
             "switching",
             "active",

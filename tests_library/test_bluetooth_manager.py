@@ -82,17 +82,45 @@ class BluetoothManagerTest(unittest.TestCase):
 
     def test_process_waits_for_its_exact_manager_generation(self):
         process = manager.ManagedSensorProcess("kmove", "request-2")
-        with mock.patch.object(
-            manager,
-            "manager_state",
-            return_value={
-                "pid": 123,
-                "generation": "request-1",
-                "target": None,
-                "phase": "idle",
-            },
-        ), mock.patch.object(manager.os, "kill"):
-            self.assertIsNone(process.poll())
+        with tempfile.TemporaryDirectory() as directory:
+            control = Path(directory) / "control.json"
+            control.write_text(
+                '{"generation": "request-2", "target": "kmove"}',
+                encoding="utf-8",
+            )
+            with mock.patch.object(manager, "CONTROL_PATH", control), \
+                    mock.patch.object(
+                        manager,
+                        "manager_state",
+                        return_value={
+                            "pid": 123,
+                            "generation": "request-1",
+                            "target": None,
+                            "phase": "idle",
+                        },
+                    ), mock.patch.object(manager.os, "kill"):
+                self.assertIsNone(process.poll())
+
+    def test_process_ignores_stale_generation_when_command_moved_on(self):
+        process = manager.ManagedSensorProcess("kmove", "request-2")
+        with tempfile.TemporaryDirectory() as directory:
+            control = Path(directory) / "control.json"
+            control.write_text(
+                '{"generation": "request-3", "target": null}',
+                encoding="utf-8",
+            )
+            with mock.patch.object(manager, "CONTROL_PATH", control), \
+                    mock.patch.object(
+                        manager,
+                        "manager_state",
+                        return_value={
+                            "pid": 123,
+                            "generation": "request-3",
+                            "target": None,
+                            "phase": "idle",
+                        },
+                    ), mock.patch.object(manager.os, "kill"):
+                self.assertEqual(process.poll(), 0)
 
     def test_process_stays_alive_for_matching_active_target(self):
         process = manager.ManagedSensorProcess("kmove", "request-2")
