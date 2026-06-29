@@ -245,7 +245,7 @@ function updateGuidedRunner() {
   target.textContent = card.label;
   rep.textContent =
     `Répétition ${state.guided.currentRep} / ${state.guided.repetitions}`;
-  startButton.disabled = state.phase !== "active" || state.guided.repActive;
+  startButton.disabled = !["armed", "active"].includes(state.phase) || state.guided.repActive;
   validateButton.disabled = !state.guided.repActive;
 }
 
@@ -380,6 +380,8 @@ function update(data) {
     message("Maintenez le K‑Move parfaitement immobile pendant la mise à zéro.");
   } else if (phase === "ready") {
     message("Référence enregistrée. Le K‑Move est prêt.");
+  } else if (phase === "armed" && isGlobalProtocol) {
+    message("Protocole prêt. Cliquez sur « Démarrer la répétition », puis faites le mouvement.");
   } else if (phase === "armed") {
     message("Test prêt. Le chrono démarrera au premier mouvement.");
   } else if (phase === "active" && isGlobalProtocol && state.guided.complete) {
@@ -422,7 +424,11 @@ function update(data) {
       draw();
     }
   }
-  if (!active && data.finished_at) maybeSave(data);
+  if (!active && data.finished_at && (!isGlobalProtocol || state.guided.complete)) {
+    maybeSave(data);
+  } else if (!active && data.finished_at && isGlobalProtocol && !state.guided.complete) {
+    message("Durée terminée avant la fin du protocole global. Relancez le test ou augmentez la durée.", true);
+  }
   updateGuidedRunner();
 }
 
