@@ -79,6 +79,11 @@ const format = (value, digits = 1) =>
       })
     : "—";
 
+function setText(id, text) {
+  const element = $(id);
+  if (element) element.textContent = text;
+}
+
 function message(text, error = false, ready = false) {
   $("message").textContent = text || "";
   $("message").classList.toggle("hidden", !text);
@@ -101,6 +106,7 @@ function drawSeries(ctx, values, color, width, height, maximum) {
 
 function draw() {
   const canvas = $("angleChart");
+  if (!canvas) return;
   const rect = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
   canvas.width = Math.max(1, rect.width * dpr);
@@ -454,13 +460,13 @@ function update(data) {
       flexion_extension: m.flexion_extension_deg,
       inclination: m.inclination_deg,
     };
-    $("rotation").textContent = format(m.rotation_deg, 1);
-    $("flexion").textContent = format(m.flexion_extension_deg, 1);
-    $("inclination").textContent = format(m.inclination_deg, 1);
-    $("batteryBadge").textContent = `Batterie ${m.battery_pct} %`;
-    $("rotationRange").textContent = rangeText(m.ranges?.rotation);
-    $("flexionRange").textContent = rangeText(m.ranges?.flexion_extension);
-    $("inclinationRange").textContent = rangeText(m.ranges?.inclination);
+    setText("rotation", format(m.rotation_deg, 1));
+    setText("flexion", format(m.flexion_extension_deg, 1));
+    setText("inclination", format(m.inclination_deg, 1));
+    setText("batteryBadge", `Batterie ${m.battery_pct} %`);
+    setText("rotationRange", rangeText(m.ranges?.rotation));
+    setText("flexionRange", rangeText(m.ranges?.flexion_extension));
+    setText("inclinationRange", rangeText(m.ranges?.inclination));
     updateGuidedRepetition();
     renderGlobalCards();
     if (active) {

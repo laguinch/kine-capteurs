@@ -23,7 +23,10 @@
         </div>
         <div class="connection">
           <span id="statusDot" class="status-dot"></span>
-          <span id="statusText">Prêt</span>
+          <span class="connection-text">
+            <span id="statusText">Prêt</span>
+            <small id="batteryBadge">Batterie —</small>
+          </span>
         </div>
       </header>
 
@@ -112,42 +115,6 @@
         </div>
       </section>
 
-      <section class="metrics-grid kmove-metrics">
-        <article class="metric-card left-card">
-          <span>Rotation droite / gauche</span>
-          <strong><b id="rotation">0,0</b>°</strong>
-          <small id="rotationRange">Min 0,0° · Max 0,0°</small>
-        </article>
-        <article class="metric-card total-card">
-          <span>Flexion / extension</span>
-          <strong><b id="flexion">0,0</b>°</strong>
-          <small id="flexionRange">Min 0,0° · Max 0,0°</small>
-        </article>
-        <article class="metric-card right-card">
-          <span>Inclinaison droite / gauche</span>
-          <strong><b id="inclination">0,0</b>°</strong>
-          <small id="inclinationRange">Min 0,0° · Max 0,0°</small>
-        </article>
-      </section>
-
-      <section class="panel kpush-chart-panel">
-        <div class="panel-heading">
-          <div>
-            <p class="eyebrow">Courbes</p>
-            <h2>Angles au cours du test</h2>
-          </div>
-          <span id="batteryBadge" class="badge neutral">Batterie —</span>
-        </div>
-        <div class="kmove-legend">
-          <span class="rotation-line">Rotation</span>
-          <span class="flexion-line">Flexion-extension</span>
-          <span class="inclination-line">Inclinaison</span>
-        </div>
-        <div class="history-wrap kpush-history">
-          <canvas id="angleChart" width="1000" height="320"></canvas>
-        </div>
-      </section>
-
       <section class="panel footer-panel">
         <div>
           <p class="eyebrow">Acquisition</p>
@@ -156,7 +123,7 @@
       </section>
     </main>
     <script src="/static/patient_save.js?v=3"></script>
-    <script src="/static/kmove.js?v=15"></script>
+    <script src="/static/kmove.js?v=16"></script>
     <script src="/static/flow.js?v=5"></script>
   </body>
 </html>

@@ -112,6 +112,9 @@ function update(data) {
   const m = data.measurement;
   if (!m || m.timestamp_utc === state.lastTimestamp) return;
   state.lastTimestamp = m.timestamp_utc;
+  if (Number.isFinite(Number(m.battery_pct))) {
+    $("batteryBadge").textContent = `Batterie ${Number(m.battery_pct)} %`;
+  }
   state.maxForceKg = Math.max(state.maxForceKg, Number(m.max_force_kg) || 0);
   state.maxForceN = Math.max(state.maxForceN, Number(m.max_force_n) || 0);
   $("forceKg").textContent = format(Math.max(0, m.force_kg), 1);

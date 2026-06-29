@@ -519,6 +519,16 @@ h2 { font-size: 1.15rem; letter-spacing: -0.02em; }
   padding: 10px 15px;
   box-shadow: var(--shadow);
 }
+.connection-text {
+  display: grid;
+  gap: 2px;
+  line-height: 1.05;
+}
+.connection-text small {
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 700;
+}
 
 .flow-banner {
   margin: 22px 0 -8px;
