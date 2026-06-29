@@ -50,12 +50,12 @@ const GLOBAL_PROTOCOLS = {
   "Épaule": {
     title: "Épaule · bilan global",
     cards: [
-      { label: "Flexion", axis: "flexion_extension", side: "positive" },
-      { label: "Extension", axis: "flexion_extension", side: "negative" },
-      { label: "Abduction", axis: "inclination", side: "positive" },
-      { label: "Adduction", axis: "inclination", side: "negative" },
-      { label: "Rotation externe", axis: "rotation", side: "positive" },
-      { label: "Rotation interne", axis: "rotation", side: "negative" },
+      { label: "Flexion", axis: "inclination", side: "negative" },
+      { label: "Extension", axis: "inclination", side: "positive" },
+      { label: "Abduction", axis: "rotation", side: "negative" },
+      { label: "Adduction", axis: "flexion_extension", side: "positive" },
+      { label: "Rotation externe", axis: "rotation", side: "negative" },
+      { label: "Rotation interne", axis: "rotation", side: "positive" },
     ],
   },
   "Hanche": {
