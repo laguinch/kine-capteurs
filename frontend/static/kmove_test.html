@@ -58,6 +58,41 @@
 
       <div id="message" class="message hidden"></div>
 
+      <section id="globalProtocol" class="panel hidden">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Test global guidé</p>
+            <h2 id="globalProtocolTitle">Choisissez les amplitudes à tester</h2>
+          </div>
+          <span class="badge neutral">Répétitions guidées</span>
+        </div>
+        <div id="globalProtocolSetup" class="global-protocol-setup">
+          <div id="globalProtocolChoices" class="global-protocol-choices"></div>
+          <label>
+            Nombre de répétitions par amplitude
+            <select id="globalRepetitions">
+              <option value="1">1 répétition</option>
+              <option value="2">2 répétitions</option>
+              <option value="3" selected>3 répétitions</option>
+              <option value="4">4 répétitions</option>
+              <option value="5">5 répétitions</option>
+            </select>
+          </label>
+          <small>Ensuite, cliquez sur Démarrer, puis validez chaque répétition après le mouvement.</small>
+        </div>
+        <div id="globalProtocolRunner" class="global-protocol-runner hidden">
+          <div>
+            <p class="eyebrow">Amplitude en cours</p>
+            <h3 id="globalCurrentTarget">—</h3>
+            <small id="globalCurrentRep">—</small>
+          </div>
+          <div class="global-protocol-actions">
+            <button id="globalStartRep" class="secondary" type="button">Démarrer la répétition</button>
+            <button id="globalValidateRep" class="primary" type="button" disabled>Valider la répétition</button>
+          </div>
+        </div>
+      </section>
+
       <section id="globalSummary" class="panel hidden">
         <div class="panel-heading">
           <div>
@@ -113,7 +148,7 @@
       </section>
     </main>
     <script src="/static/patient_save.js?v=3"></script>
-    <script src="/static/kmove.js?v=9"></script>
+    <script src="/static/kmove.js?v=10"></script>
     <script src="/static/flow.js?v=5"></script>
   </body>
 </html>

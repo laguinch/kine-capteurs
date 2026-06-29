@@ -610,6 +610,58 @@ button:disabled { opacity: .45; cursor: default; }
 .message.error { background: #fde7e5; color: #8d2c28; }
 .hidden { display: none !important; }
 
+.global-protocol-setup {
+  display: grid;
+  gap: 16px;
+}
+
+.global-protocol-choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.global-protocol-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  background: #f7faf8;
+  font-weight: 850;
+}
+
+.global-protocol-choice input {
+  min-width: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.global-protocol-setup small,
+.global-protocol-runner small {
+  color: var(--muted);
+}
+
+.global-protocol-runner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+}
+
+.global-protocol-runner h3 {
+  margin: 4px 0;
+  font-size: clamp(1.6rem, 3vw, 2.6rem);
+  letter-spacing: -.055em;
+}
+
+.global-protocol-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .metric-card, .panel {
   background: var(--card);
@@ -681,6 +733,8 @@ button:disabled { opacity: .45; cursor: default; }
 
 @media (max-width: 800px) {
   .metrics-grid, .visual-grid, .two-columns, .sensor-choice-grid, .anatomy-grid, .movement-grid, .game-layout { grid-template-columns: 1fr; }
+  .global-protocol-choices { grid-template-columns: 1fr; }
+  .global-protocol-runner { align-items: stretch; flex-direction: column; }
   .form-grid { grid-template-columns: 1fr; }
   .patient-toolbar, .patient-card { align-items: stretch; flex-direction: column; }
   .game-shell { padding-bottom: 88px; }
