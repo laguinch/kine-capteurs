@@ -44,11 +44,16 @@ class KMoveGlobalProtocolTest(unittest.TestCase):
     def test_guided_repetition_uses_delta_from_repetition_baseline(self):
         self.assertIn("function angularDelta(current, baseline)", self.source)
         self.assertIn(
-            "state.guided.repRange = { baseline: current, min: 0, max: 0 };",
+            "state.guided.repRange = { baseline: current, current: 0, min: 0, max: 0 };",
             self.source,
         )
         self.assertIn(
             "const delta = angularDelta(current, Number(state.guided.repRange.baseline) || 0);",
+            self.source,
+        )
+        self.assertIn("state.guided.repRange.current = delta;", self.source)
+        self.assertIn(
+            "amplitudeFromDelta(Number(state.guided.repRange.current) || 0, card.side)",
             self.source,
         )
 

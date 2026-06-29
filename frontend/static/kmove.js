@@ -137,6 +137,12 @@ function amplitudeFromRange(range, side) {
   return Math.max(0, -(Number(range.min) || 0));
 }
 
+function amplitudeFromDelta(delta, side) {
+  if (!Number.isFinite(delta)) return 0;
+  if (side === "positive") return Math.max(0, delta);
+  return Math.max(0, -delta);
+}
+
 function angularDelta(current, baseline) {
   if (!Number.isFinite(current) || !Number.isFinite(baseline)) return 0;
   let delta = current - baseline;
@@ -264,8 +270,8 @@ function startGuidedRepetition() {
   if (!card) return;
   const current = Number(state.currentAngles[card.axis]) || 0;
   state.guided.repActive = true;
-  state.guided.repRange = { baseline: current, min: 0, max: 0 };
-  message(`Répétition en cours : ${card.label}. Validez après le mouvement.`);
+  state.guided.repRange = { baseline: current, current: 0, min: 0, max: 0 };
+  message(`Zéro de ${card.label} enregistré. Faites le mouvement puis revenez au départ.`);
   updateGuidedRunner();
 }
 
@@ -275,6 +281,7 @@ function updateGuidedRepetition() {
   if (!card || !state.guided.repRange) return;
   const current = Number(state.currentAngles[card.axis]) || 0;
   const delta = angularDelta(current, Number(state.guided.repRange.baseline) || 0);
+  state.guided.repRange.current = delta;
   state.guided.repRange.min = Math.min(state.guided.repRange.min, delta);
   state.guided.repRange.max = Math.max(state.guided.repRange.max, delta);
 }
@@ -367,9 +374,12 @@ function renderGlobalLiveValue() {
   }
   label.textContent = card.label;
   if (state.guided.repActive && state.guided.repRange) {
-    value.textContent = format(amplitudeFromRange(state.guided.repRange, card.side), 1);
+    value.textContent = format(
+      amplitudeFromDelta(Number(state.guided.repRange.current) || 0, card.side),
+      1,
+    );
     small.textContent =
-      `Répétition ${state.guided.currentRep} / ${state.guided.repetitions} · variation en direct`;
+      `Répétition ${state.guided.currentRep} / ${state.guided.repetitions} · variation instantanée`;
     return;
   }
   value.textContent = "0,0";
