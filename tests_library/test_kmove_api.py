@@ -109,23 +109,51 @@ class KMoveApiTest(unittest.TestCase):
         self.assertEqual(measurement["ranges"]["rotation"]["min"], -20.0)
         self.assertEqual(measurement["ranges"]["rotation"]["max"], 65.0)
 
-    def test_start_arms_then_first_movement_starts_recording(self):
+    def test_start_calibrates_then_first_movement_starts_recording(self):
         with tempfile.TemporaryDirectory() as directory:
             service = self.make_ready_service(directory)
 
             status = service.start(duration=1_000_000_000, filename="armed.csv")
             initial_control = service._control_path.read_text()
             self.assertFalse(status["running"])
-            self.assertEqual(status["phase"], "armed")
+            self.assertEqual(status["phase"], "reference")
             self.assertIn('"action": "start"', initial_control)
 
-            self.write_live_rows(service._live_path)
+            service._calibration_started_at = "2026-06-22T08:00:00+00:00"
+            with service._live_path.open("w", newline="", encoding="utf-8") as target:
+                writer = csv.writer(target)
+                writer.writerow(FIELDS)
+                writer.writerow(
+                    [
+                        "2026-06-22T08:00:01+00:00", 1,
+                        1, 0, 0, 0, 10, 20, -5, 0, 0, 0, 60,
+                    ]
+                )
+                writer.writerow(
+                    [
+                        "2026-06-22T08:00:02.2+00:00", 2,
+                        1, 0, 0, 0, 10, 20, -5, 0, 0, 0, 60,
+                    ]
+                )
+            armed = service.latest()
+            self.assertFalse(armed["running"])
+            self.assertEqual(armed["phase"], "armed")
+
+            with service._live_path.open("a", newline="", encoding="utf-8") as target:
+                writer = csv.writer(target)
+                writer.writerow(
+                    [
+                        "2026-06-22T08:00:03+00:00", 3,
+                        1, 0, 0, 0, 30, 20, -5, 0, 0, 0, 59,
+                    ]
+                )
             latest = service.latest()
             control = service._control_path.read_text()
 
         self.assertTrue(latest["running"])
         self.assertEqual(latest["phase"], "active")
-        self.assertEqual(latest["started_at"], "2026-06-22T08:00:02+00:00")
+        self.assertEqual(latest["started_at"], "2026-06-22T08:00:03+00:00")
+        self.assertEqual(latest["measurement"]["rotation_deg"], 20.0)
         self.assertIn('"action": "start"', control)
 
     def test_stop_keeps_kmove_connected(self):

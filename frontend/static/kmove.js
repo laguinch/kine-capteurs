@@ -377,7 +377,7 @@ function update(data) {
   } else if (phase === "connecting") {
     message("Recherche et connexion au K‑Move…");
   } else if (phase === "reference") {
-    message("Maintenez le K‑Move parfaitement immobile pendant la mise à zéro.");
+    message("Merci de ne pas bouger, étalonnage en cours.");
   } else if (phase === "ready") {
     message("Référence enregistrée. Le K‑Move est prêt.");
   } else if (phase === "armed" && isGlobalProtocol) {
