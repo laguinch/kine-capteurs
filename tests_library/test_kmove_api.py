@@ -79,6 +79,26 @@ class KMoveApiTest(unittest.TestCase):
         request.assert_called_once_with("kmove")
         self.assertTrue(status["connected"])
 
+    def test_ignores_stale_idle_manager_state(self):
+        service = KMoveAcquisitionService()
+        service._calibrating = True
+        service._armed = True
+        service._recording = True
+        with mock.patch(
+            "ble.kinvent.kmove.acquisition_service.manager_state",
+            return_value={
+                "target": "kmove",
+                "phase": "idle",
+                "generation": "old",
+                "pid": 123,
+            },
+        ):
+            status = service.status()
+
+        self.assertFalse(status["connected"])
+        self.assertFalse(status["running"])
+        self.assertEqual(status["phase"], "disconnected")
+
     def test_reports_reference_then_ready(self):
         with tempfile.TemporaryDirectory() as directory:
             service = self.make_ready_service(directory)
