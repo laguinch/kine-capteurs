@@ -137,6 +137,14 @@ function amplitudeFromRange(range, side) {
   return Math.max(0, -(Number(range.min) || 0));
 }
 
+function angularDelta(current, baseline) {
+  if (!Number.isFinite(current) || !Number.isFinite(baseline)) return 0;
+  let delta = current - baseline;
+  while (delta > 180) delta -= 360;
+  while (delta < -180) delta += 360;
+  return delta;
+}
+
 function protocolConfig() {
   return GLOBAL_PROTOCOLS[selection.articulation] || null;
 }
@@ -256,7 +264,7 @@ function startGuidedRepetition() {
   if (!card) return;
   const current = Number(state.currentAngles[card.axis]) || 0;
   state.guided.repActive = true;
-  state.guided.repRange = { min: current, max: current };
+  state.guided.repRange = { baseline: current, min: 0, max: 0 };
   message(`Répétition en cours : ${card.label}. Validez après le mouvement.`);
   updateGuidedRunner();
 }
@@ -266,8 +274,9 @@ function updateGuidedRepetition() {
   const card = activeGuidedCard();
   if (!card || !state.guided.repRange) return;
   const current = Number(state.currentAngles[card.axis]) || 0;
-  state.guided.repRange.min = Math.min(state.guided.repRange.min, current);
-  state.guided.repRange.max = Math.max(state.guided.repRange.max, current);
+  const delta = angularDelta(current, Number(state.guided.repRange.baseline) || 0);
+  state.guided.repRange.min = Math.min(state.guided.repRange.min, delta);
+  state.guided.repRange.max = Math.max(state.guided.repRange.max, delta);
 }
 
 function validateGuidedRepetition() {
