@@ -24,6 +24,12 @@ const MOVEMENT_VARIANTS = {
   "Rotation externe": ["RE 1", "RE 2", "RE 3"],
 };
 
+const KMOVE_GLOBAL_JOINTS = new Set([
+  "Rachis cervical",
+  "Épaule",
+  "Hanche",
+]);
+
 const SIDED_JOINTS = new Set([
   "Épaule",
   "Coude",
@@ -123,6 +129,19 @@ function targetUrl(movement, variant = null) {
   return `${testPath}?${next.toString()}`;
 }
 
+function globalTargetUrl() {
+  const next = new URLSearchParams(params);
+  next.set("articulation", selectedJoint);
+  if (selectedSide) {
+    next.set("cote", selectedSide);
+  } else {
+    next.delete("cote");
+  }
+  next.set("mouvement", "Bilan global");
+  next.set("protocole", "global");
+  return `${testPath}?${next.toString()}`;
+}
+
 function renderMovements() {
   if (!selectedJoint) {
     movementStep.classList.add("hidden");
@@ -130,6 +149,17 @@ function renderMovements() {
   }
   selectedJointTitle.textContent = selectedLabel();
   movementChoices.innerHTML = "";
+  if (root.dataset.sensor === "kmove" && KMOVE_GLOBAL_JOINTS.has(selectedJoint)) {
+    const globalCard = document.createElement("a");
+    globalCard.className = "choice-card setup-card primary-choice";
+    globalCard.href = globalTargetUrl();
+    globalCard.innerHTML = `
+      <span class="choice-kicker">Une seule acquisition</span>
+      <strong>Bilan global</strong>
+      <small>Mesurer plusieurs amplitudes à la suite depuis le même placement du K‑Move.</small>
+    `;
+    movementChoices.appendChild(globalCard);
+  }
   MOVEMENTS.forEach((movement) => {
     const variants = MOVEMENT_VARIANTS[movement] || [];
     const card = document.createElement(variants.length ? "div" : "a");

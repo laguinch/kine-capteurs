@@ -58,6 +58,17 @@
 
       <div id="message" class="message hidden"></div>
 
+      <section id="globalSummary" class="panel hidden">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Bilan global</p>
+            <h2 id="globalTitle">Amplitudes déduites</h2>
+          </div>
+          <span class="badge neutral">Depuis une seule acquisition</span>
+        </div>
+        <div id="globalCards" class="metrics-grid kmove-metrics"></div>
+      </section>
+
       <section class="metrics-grid kmove-metrics">
         <article class="metric-card left-card">
           <span>Rotation droite / gauche</span>
@@ -102,7 +113,7 @@
       </section>
     </main>
     <script src="/static/patient_save.js?v=3"></script>
-    <script src="/static/kmove.js?v=7"></script>
+    <script src="/static/kmove.js?v=8"></script>
     <script src="/static/flow.js?v=5"></script>
   </body>
 </html>

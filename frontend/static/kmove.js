@@ -1,4 +1,12 @@
 const $ = (id) => document.getElementById(id);
+const params = new URLSearchParams(window.location.search);
+const selection = {
+  articulation: params.get("articulation") || "",
+  cote: params.get("cote") || "",
+  mouvement: params.get("mouvement") || "",
+  protocole: params.get("protocole") || "",
+};
+const isGlobalProtocol = selection.protocole === "global";
 const state = {
   history: { rotation: [], flexion: [], inclination: [] },
   lastTimestamp: null,
@@ -8,6 +16,43 @@ const state = {
     inclination: { min: 0, max: 0 },
   },
 };
+
+const GLOBAL_PROTOCOLS = {
+  "Rachis cervical": {
+    title: "Rachis cervical · bilan global",
+    cards: [
+      { label: "Flexion", axis: "flexion_extension", side: "positive" },
+      { label: "Extension", axis: "flexion_extension", side: "negative" },
+      { label: "Inclinaison droite", axis: "inclination", side: "positive" },
+      { label: "Inclinaison gauche", axis: "inclination", side: "negative" },
+      { label: "Rotation droite", axis: "rotation", side: "positive" },
+      { label: "Rotation gauche", axis: "rotation", side: "negative" },
+    ],
+  },
+  "Épaule": {
+    title: "Épaule · bilan global",
+    cards: [
+      { label: "Flexion", axis: "flexion_extension", side: "positive" },
+      { label: "Extension", axis: "flexion_extension", side: "negative" },
+      { label: "Abduction", axis: "inclination", side: "positive" },
+      { label: "Adduction", axis: "inclination", side: "negative" },
+      { label: "Rotation externe", axis: "rotation", side: "positive" },
+      { label: "Rotation interne", axis: "rotation", side: "negative" },
+    ],
+  },
+  "Hanche": {
+    title: "Hanche · bilan global",
+    cards: [
+      { label: "Flexion", axis: "flexion_extension", side: "positive" },
+      { label: "Extension", axis: "flexion_extension", side: "negative" },
+      { label: "Abduction", axis: "inclination", side: "positive" },
+      { label: "Adduction", axis: "inclination", side: "negative" },
+      { label: "Rotation externe", axis: "rotation", side: "positive" },
+      { label: "Rotation interne", axis: "rotation", side: "negative" },
+    ],
+  },
+};
+
 const format = (value, digits = 1) =>
   Number.isFinite(value)
     ? value.toLocaleString("fr-FR", {
@@ -66,6 +111,41 @@ function draw() {
 
 function rangeText(range) {
   return `Min ${format(range?.min || 0, 1)}° · Max ${format(range?.max || 0, 1)}°`;
+}
+
+function amplitudeFromRange(range, side) {
+  if (!range) return 0;
+  if (side === "positive") return Math.max(0, Number(range.max) || 0);
+  return Math.max(0, -(Number(range.min) || 0));
+}
+
+function protocolConfig() {
+  return GLOBAL_PROTOCOLS[selection.articulation] || null;
+}
+
+function renderGlobalCards() {
+  const panel = $("globalSummary");
+  const target = $("globalCards");
+  if (!panel || !target || !isGlobalProtocol || !protocolConfig()) return;
+  const config = protocolConfig();
+  panel.classList.remove("hidden");
+  $("globalTitle").textContent = [
+    config.title,
+    selection.cote,
+  ].filter(Boolean).join(" · ");
+  target.innerHTML = "";
+  config.cards.forEach((card, index) => {
+    const range = state.ranges[card.axis];
+    const value = amplitudeFromRange(range, card.side);
+    const article = document.createElement("article");
+    article.className = `metric-card ${index % 3 === 0 ? "left-card" : index % 3 === 1 ? "total-card" : "right-card"}`;
+    article.innerHTML = `
+      <span>${card.label}</span>
+      <strong><b>${format(value, 1)}</b>°</strong>
+      <small>${card.side === "positive" ? "Maximum positif" : "Maximum négatif"}</small>
+    `;
+    target.appendChild(article);
+  });
 }
 
 function update(data) {
@@ -128,6 +208,7 @@ function update(data) {
   $("rotationRange").textContent = rangeText(m.ranges?.rotation);
   $("flexionRange").textContent = rangeText(m.ranges?.flexion_extension);
   $("inclinationRange").textContent = rangeText(m.ranges?.inclination);
+  renderGlobalCards();
   if (active) {
     state.history.rotation.push(m.rotation_deg);
     state.history.flexion.push(m.flexion_extension_deg);
@@ -141,17 +222,23 @@ function update(data) {
 
 async function maybeSave(data) {
   if (!window.KinePatientSave) return;
-  const selection = window.KinePatientSave.selection();
-  const label = [selection.articulation, selection.cote, selection.mouvement].filter(Boolean).join(" · ");
+  const patientSelection = window.KinePatientSave.selection();
+  const label = [patientSelection.articulation, patientSelection.cote, patientSelection.mouvement].filter(Boolean).join(" · ");
   const rotation = state.ranges.rotation || {};
   const flexion = state.ranges.flexion_extension || {};
   const inclination = state.ranges.inclination || {};
+  const config = protocolConfig();
+  const globalSummary = config
+    ? config.cards
+        .map((card) => `${card.label} ${format(amplitudeFromRange(state.ranges[card.axis], card.side), 1)}°`)
+        .join(" · ")
+    : null;
   try {
     const saved = await window.KinePatientSave.saveEvaluation(data, {
       sensor: "K-Move",
-      test_name: selection.mouvement || "Mobilité",
+      test_name: patientSelection.mouvement || "Mobilité",
       display_name: label || "Mobilité tridimensionnelle",
-      summary:
+      summary: globalSummary ||
         `Rotation ${format(rotation.min, 1)}° à ${format(rotation.max, 1)}° · ` +
         `flexion ${format(flexion.min, 1)}° à ${format(flexion.max, 1)}° · ` +
         `inclinaison ${format(inclination.min, 1)}° à ${format(inclination.max, 1)}°`,
@@ -238,4 +325,5 @@ $("startButton").addEventListener("click", start);
 $("stopButton").addEventListener("click", stopTest);
 window.addEventListener("resize", draw);
 poll();
+renderGlobalCards();
 setInterval(poll, 150);
