@@ -332,11 +332,9 @@ function setupGlobalCards() {
     const row = document.createElement("div");
     row.className = "global-recap-row";
     row.innerHTML = `
-      <div>
-        <strong>${card.label}</strong>
-        <small id="globalSmall${card.index}">En attente</small>
-      </div>
-      <strong><span id="globalValue${card.index}">—</span>°</strong>
+      <strong>${card.label}</strong>
+      <b><span id="globalValue${card.index}">—</span>°</b>
+      <small id="globalSmall${card.index}">En attente</small>
     `;
     target.appendChild(row);
   });
