@@ -10,6 +10,7 @@ const isGlobalProtocol = selection.protocole === "global";
 const state = {
   history: { rotation: [], flexion: [], inclination: [] },
   lastTimestamp: null,
+  globalCardsReady: false,
   ranges: {
     rotation: { min: 0, max: 0 },
     flexion_extension: { min: 0, max: 0 },
@@ -123,7 +124,7 @@ function protocolConfig() {
   return GLOBAL_PROTOCOLS[selection.articulation] || null;
 }
 
-function renderGlobalCards() {
+function setupGlobalCards() {
   const panel = $("globalSummary");
   const target = $("globalCards");
   if (!panel || !target || !isGlobalProtocol || !protocolConfig()) return;
@@ -135,16 +136,26 @@ function renderGlobalCards() {
   ].filter(Boolean).join(" · ");
   target.innerHTML = "";
   config.cards.forEach((card, index) => {
-    const range = state.ranges[card.axis];
-    const value = amplitudeFromRange(range, card.side);
     const article = document.createElement("article");
     article.className = `metric-card ${index % 3 === 0 ? "left-card" : index % 3 === 1 ? "total-card" : "right-card"}`;
     article.innerHTML = `
       <span>${card.label}</span>
-      <strong><b>${format(value, 1)}</b>°</strong>
+      <strong><b id="globalValue${index}">0,0</b>°</strong>
       <small>${card.side === "positive" ? "Maximum positif" : "Maximum négatif"}</small>
     `;
     target.appendChild(article);
+  });
+  state.globalCardsReady = true;
+}
+
+function renderGlobalCards() {
+  const config = protocolConfig();
+  if (!isGlobalProtocol || !config) return;
+  if (!state.globalCardsReady) setupGlobalCards();
+  config.cards.forEach((card, index) => {
+    const value = amplitudeFromRange(state.ranges[card.axis], card.side);
+    const element = $(`globalValue${index}`);
+    if (element) element.textContent = format(value, 1);
   });
 }
 
@@ -195,29 +206,29 @@ function update(data) {
   } else if (phase === "disconnected") {
     message("Cliquez sur « Connecter le K‑Move ».");
   }
-  maybeSave(data);
-
   const m = data.measurement;
-  if (!m || m.timestamp_utc === state.lastTimestamp) return;
-  state.lastTimestamp = m.timestamp_utc;
-  state.ranges = m.ranges || state.ranges;
-  $("rotation").textContent = format(m.rotation_deg, 1);
-  $("flexion").textContent = format(m.flexion_extension_deg, 1);
-  $("inclination").textContent = format(m.inclination_deg, 1);
-  $("batteryBadge").textContent = `Batterie ${m.battery_pct} %`;
-  $("rotationRange").textContent = rangeText(m.ranges?.rotation);
-  $("flexionRange").textContent = rangeText(m.ranges?.flexion_extension);
-  $("inclinationRange").textContent = rangeText(m.ranges?.inclination);
-  renderGlobalCards();
-  if (active) {
-    state.history.rotation.push(m.rotation_deg);
-    state.history.flexion.push(m.flexion_extension_deg);
-    state.history.inclination.push(m.inclination_deg);
-    for (const values of Object.values(state.history)) {
-      if (values.length > 300) values.shift();
+  if (m && m.timestamp_utc !== state.lastTimestamp) {
+    state.lastTimestamp = m.timestamp_utc;
+    state.ranges = m.ranges || state.ranges;
+    $("rotation").textContent = format(m.rotation_deg, 1);
+    $("flexion").textContent = format(m.flexion_extension_deg, 1);
+    $("inclination").textContent = format(m.inclination_deg, 1);
+    $("batteryBadge").textContent = `Batterie ${m.battery_pct} %`;
+    $("rotationRange").textContent = rangeText(m.ranges?.rotation);
+    $("flexionRange").textContent = rangeText(m.ranges?.flexion_extension);
+    $("inclinationRange").textContent = rangeText(m.ranges?.inclination);
+    renderGlobalCards();
+    if (active) {
+      state.history.rotation.push(m.rotation_deg);
+      state.history.flexion.push(m.flexion_extension_deg);
+      state.history.inclination.push(m.inclination_deg);
+      for (const values of Object.values(state.history)) {
+        if (values.length > 300) values.shift();
+      }
+      draw();
     }
-    draw();
   }
+  if (!active && data.finished_at) maybeSave(data);
 }
 
 async function maybeSave(data) {
@@ -325,5 +336,6 @@ $("startButton").addEventListener("click", start);
 $("stopButton").addEventListener("click", stopTest);
 window.addEventListener("resize", draw);
 poll();
+setupGlobalCards();
 renderGlobalCards();
 setInterval(poll, 150);
