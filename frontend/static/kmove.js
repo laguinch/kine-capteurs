@@ -418,9 +418,10 @@ function update(data) {
   $("stopButton").disabled = !(active || armed);
   const downloadable = Boolean(data.csv_path && data.finished_at && !active && !armed);
   $("downloadButton").classList.toggle("disabled", !downloadable);
-  $("fileLabel").textContent = data.csv_path
-    ? data.csv_path.split("/").pop()
-    : "Aucun fichier en cours";
+  setText(
+    "fileLabel",
+    data.csv_path ? data.csv_path.split("/").pop() : "Aucun fichier en cours",
+  );
 
   const elapsed = active || data.finished_at ? data.elapsed_seconds || 0 : 0;
   $("timer").textContent =
