@@ -66,6 +66,9 @@ class KMoveApiTest(unittest.TestCase):
             service._log_path = root / "worker.log"
             service._control_path = root / "control.json"
             with mock.patch(
+                "ble.kinvent.kmove.acquisition_service.manager_state",
+                return_value={},
+            ), mock.patch(
                 "ble.kinvent.kmove.acquisition_service.request_sensor"
             ) as request, mock.patch(
                 "ble.kinvent.kmove.acquisition_service.ManagedSensorProcess",
