@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>K‑Move — Kine Capteurs</title>
-    <link rel="stylesheet" href="/static/styles.css?v=12">
+    <link rel="stylesheet" href="/static/styles.css?v=13">
   </head>
   <body>
     <main class="shell">
@@ -97,11 +97,19 @@
         <div class="panel-heading">
           <div>
             <p class="eyebrow">Bilan global</p>
-            <h2 id="globalTitle">Amplitudes déduites</h2>
+            <h2 id="globalTitle">Amplitude en cours</h2>
           </div>
-          <span class="badge neutral">Depuis une seule acquisition</span>
+          <span class="badge neutral">Mesure guidée</span>
         </div>
-        <div id="globalCards" class="metrics-grid kmove-metrics"></div>
+        <article class="metric-card total-card global-current-card">
+          <span id="globalLiveLabel">Répétition non démarrée</span>
+          <strong><b id="globalLiveValue">0,0</b>°</strong>
+          <small id="globalLiveSmall">Cliquez sur « Démarrer la répétition ».</small>
+        </article>
+        <div class="global-recap">
+          <h3>Récapitulatif final</h3>
+          <div id="globalCards" class="global-recap-list"></div>
+        </div>
       </section>
 
       <section class="metrics-grid kmove-metrics">
@@ -148,7 +156,7 @@
       </section>
     </main>
     <script src="/static/patient_save.js?v=3"></script>
-    <script src="/static/kmove.js?v=13"></script>
+    <script src="/static/kmove.js?v=14"></script>
     <script src="/static/flow.js?v=5"></script>
   </body>
 </html>

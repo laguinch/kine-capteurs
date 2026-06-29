@@ -306,15 +306,17 @@ function setupGlobalCards() {
   const cards = isGlobalProtocol && state.guided.configured
     ? selectedGuidedCards()
     : config.cards.map((card, index) => ({ ...card, index }));
-  cards.forEach((card, visualIndex) => {
-    const article = document.createElement("article");
-    article.className = `metric-card ${visualIndex % 3 === 0 ? "left-card" : visualIndex % 3 === 1 ? "total-card" : "right-card"}`;
-    article.innerHTML = `
-      <span>${card.label}</span>
-      <strong><b id="globalValue${card.index}">0,0</b>°</strong>
-      <small id="globalSmall${card.index}">${card.side === "positive" ? "Maximum positif" : "Maximum négatif"}</small>
+  cards.forEach((card) => {
+    const row = document.createElement("div");
+    row.className = "global-recap-row";
+    row.innerHTML = `
+      <div>
+        <strong>${card.label}</strong>
+        <small id="globalSmall${card.index}">En attente</small>
+      </div>
+      <strong><span id="globalValue${card.index}">—</span>°</strong>
     `;
-    target.appendChild(article);
+    target.appendChild(row);
   });
   state.globalCardsReady = true;
 }
@@ -328,17 +330,42 @@ function renderGlobalCards() {
     : config.cards.map((card, index) => ({ ...card, index }));
   cards.forEach((card) => {
     const result = guidedResultValue(card);
-    const value = result === null
-      ? amplitudeFromRange(state.ranges[card.axis], card.side)
-      : result;
     const element = $(`globalValue${card.index}`);
     const small = $(`globalSmall${card.index}`);
-    if (element) element.textContent = format(value, 1);
-    if (small && result !== null) {
+    if (element) element.textContent = result === null ? "—" : format(result, 1);
+    if (small) {
       const reps = state.guided.results[card.index]?.length || 0;
-      small.textContent = `Meilleure valeur · ${reps} rep.`;
+      small.textContent = reps
+        ? `Meilleure valeur · ${reps} rep.`
+        : "En attente";
     }
   });
+  renderGlobalLiveValue();
+}
+
+function renderGlobalLiveValue() {
+  if (!isGlobalProtocol) return;
+  const label = $("globalLiveLabel");
+  const value = $("globalLiveValue");
+  const small = $("globalLiveSmall");
+  if (!label || !value || !small) return;
+  const card = activeGuidedCard();
+  if (!card || state.guided.complete) {
+    label.textContent = "Protocole terminé";
+    value.textContent = "—";
+    small.textContent = "Le récapitulatif contient les meilleures valeurs.";
+    return;
+  }
+  label.textContent = card.label;
+  if (state.guided.repActive && state.guided.repRange) {
+    value.textContent = format(amplitudeFromRange(state.guided.repRange, card.side), 1);
+    small.textContent =
+      `Répétition ${state.guided.currentRep} / ${state.guided.repetitions} · variation en direct`;
+    return;
+  }
+  value.textContent = "0,0";
+  small.textContent =
+    `Répétition ${state.guided.currentRep} / ${state.guided.repetitions} · démarrez la répétition`;
 }
 
 function update(data) {
@@ -364,7 +391,8 @@ function update(data) {
   $("disconnectButton").disabled = !data.connected || active || armed;
   $("startButton").disabled = !ready;
   $("stopButton").disabled = !(active || armed);
-  $("downloadButton").classList.toggle("disabled", !data.csv_path);
+  const downloadable = Boolean(data.csv_path && data.finished_at && !active && !armed);
+  $("downloadButton").classList.toggle("disabled", !downloadable);
   $("fileLabel").textContent = data.csv_path
     ? data.csv_path.split("/").pop()
     : "Aucun fichier en cours";
@@ -430,6 +458,7 @@ function update(data) {
     maybeSave(data);
   }
   updateGuidedRunner();
+  renderGlobalLiveValue();
 }
 
 async function maybeSave(data) {

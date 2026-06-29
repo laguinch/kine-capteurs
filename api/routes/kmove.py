@@ -61,6 +61,16 @@ def download_kmove():
     csv_path = status.get("csv_path")
     if not csv_path or not Path(csv_path).exists():
         raise HTTPException(status_code=404, detail="Aucun fichier disponible.")
+    if status.get("running") or status.get("phase") in {"active", "armed", "reference"}:
+        raise HTTPException(
+            status_code=409,
+            detail="Arrêtez le test avant de télécharger le fichier.",
+        )
+    if not status.get("finished_at"):
+        raise HTTPException(
+            status_code=409,
+            detail="Aucun test terminé disponible au téléchargement.",
+        )
     return FileResponse(
         csv_path,
         media_type="text/csv",

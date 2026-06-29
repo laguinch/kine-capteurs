@@ -662,6 +662,46 @@ button:disabled { opacity: .45; cursor: default; }
   flex-wrap: wrap;
 }
 
+.global-current-card {
+  margin-top: 12px;
+}
+
+.global-current-card strong b {
+  font-size: clamp(3rem, 8vw, 5rem);
+}
+
+.global-recap {
+  margin-top: 18px;
+}
+
+.global-recap h3 {
+  margin: 0 0 10px;
+}
+
+.global-recap-list {
+  display: grid;
+  gap: 8px;
+}
+
+.global-recap-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #f7faf8;
+}
+
+.global-recap-row strong {
+  font-size: 1.15rem;
+}
+
+.global-recap-row small {
+  color: var(--muted);
+}
+
 .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .metric-card, .panel {
   background: var(--card);
