@@ -110,10 +110,12 @@ class KMoveAcquisitionService:
             if self._armed:
                 self._armed = False
                 self._finished_at = None
+                self._stop_requested = True
                 self._write_control("stop", self._test_generation)
             elif self._recording:
                 self._recording = False
                 self._finished_at = now_iso()
+                self._stop_requested = True
                 self._write_control("stop", self._test_generation)
                 self._write_recording_csv()
             return self.status()

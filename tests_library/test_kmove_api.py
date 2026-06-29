@@ -144,6 +144,28 @@ class KMoveApiTest(unittest.TestCase):
         self.assertEqual(status["phase"], "ready")
         self.assertIn('"action": "stop"', control)
 
+    def test_disconnect_after_stop_does_not_fail_saved_test(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = self.make_ready_service(directory)
+            self.write_live_rows(service._live_path)
+            service._started_at = "2026-06-22T08:00:00+00:00"
+            service._recording = True
+            service._csv_path = Path(directory) / "test.csv"
+            service.stop()
+            service._process.poll.return_value = 1
+            service._log_path.write_text(
+                "Flux de test arrêté; liaison Bluetooth conservée.\n"
+                "ConnectionError: Capteur déconnecté, raison HCI 0x08\n",
+                encoding="utf-8",
+            )
+
+            status = service.status()
+
+        self.assertFalse(status["connected"])
+        self.assertEqual(status["phase"], "disconnected")
+        self.assertIsNone(status["last_error"])
+        self.assertIsNotNone(status["finished_at"])
+
 
 if __name__ == "__main__":
     unittest.main()
