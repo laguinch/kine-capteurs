@@ -79,7 +79,7 @@ function setLevelControlsDisabled(disabled) {
 }
 
 function updateStatus(data) {
-  const connected = Boolean(data.bluetooth_connected);
+  const connected = Boolean(data.bluetooth_connected || data.worker_ready);
   const running = Boolean(data.running);
   $("gameStatusDot").className = `status-dot ${running || connected ? "running" : data.last_error ? "error" : ""}`;
   $("gameStatusText").textContent = running
