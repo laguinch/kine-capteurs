@@ -65,6 +65,26 @@ class KPushApiTest(unittest.TestCase):
         self.assertTrue(status["connected"])
         self.assertFalse(status["running"])
 
+    def test_ignores_stale_idle_manager_state(self):
+        service = KPushAcquisitionService()
+        service._recording = True
+        service._armed = True
+        service._sensor_ready = True
+        with mock.patch(
+            "ble.kinvent.kpush.acquisition_service.manager_state",
+            return_value={
+                "target": "kpush",
+                "phase": "idle",
+                "generation": "old",
+                "pid": 123,
+            },
+        ):
+            status = service.status()
+
+        self.assertFalse(status["connected"])
+        self.assertFalse(status["running"])
+        self.assertEqual(status["phase"], "disconnected")
+
     def test_reports_connection_and_tare_phases_from_worker_log(self):
         with tempfile.TemporaryDirectory() as directory:
             service = self.make_ready_service(directory)
@@ -93,7 +113,7 @@ class KPushApiTest(unittest.TestCase):
             self.write_live_rows(service._live_path)
             service._started_at = "2026-06-19T15:00:00+00:00"
             service._recording = True
-            service._duration = 1_000_000
+            service._duration = 1_000_000_000
             service._csv_path = Path(directory) / "test.csv"
 
             latest = service.latest()

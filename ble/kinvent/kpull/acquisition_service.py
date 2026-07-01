@@ -197,13 +197,20 @@ class KPullAcquisitionService:
         return max(0.0, (end - start).total_seconds())
 
     def _refresh(self):
-        if self._process is None and manager_state().get("target") == "kpull":
-            state = manager_state()
+        state = manager_state()
+        if (
+            self._process is None
+            and state.get("target") == "kpull"
+            and state.get("phase") in {"switching", "active"}
+        ):
             self._process = ManagedSensorProcess(
                 "kpull",
                 state.get("generation"),
             )
         if self._process is None:
+            self._recording = False
+            self._armed = False
+            self._sensor_ready = False
             return
         return_code = self._process.poll()
         if return_code is None:

@@ -119,7 +119,7 @@ class KMoveApiTest(unittest.TestCase):
             self.write_live_rows(service._live_path)
             service._started_at = "2026-06-22T08:00:00+00:00"
             service._recording = True
-            service._duration = 1_000_000
+            service._duration = 1_000_000_000
             service._csv_path = Path(directory) / "test.csv"
 
             latest = service.latest()
