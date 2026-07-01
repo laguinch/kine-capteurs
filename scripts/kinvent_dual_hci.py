@@ -357,6 +357,7 @@ class DualKinventClient:
         # pendant le repos comme pendant les mesures.
         self.keepalive_interval = 10.0
         self.next_keepalive = None
+        self.last_keepalive_at = None
         self.paired_samples = 0
         self.dropped_samples = {"gauche": 0, "droite": 0}
         self.csv_file = None
@@ -1095,6 +1096,12 @@ class DualKinventClient:
             or current - plate.last_notification_at > timeout
         ]
 
+    def send_keepalive(self):
+        for plate in self.plates:
+            if plate.handle is not None:
+                self.send_write_command(plate, b"\xff")
+        self.last_keepalive_at = time.monotonic()
+
     def pump(
         self,
         duration,
@@ -1107,7 +1114,12 @@ class DualKinventClient:
         started_at = time.monotonic()
         next_progress = time.monotonic()
         if progress:
-            self.next_keepalive = time.monotonic() + self.keepalive_interval
+            now = time.monotonic()
+            self.next_keepalive = (
+                now + self.keepalive_interval
+                if self.last_keepalive_at is None
+                else self.last_keepalive_at + self.keepalive_interval
+            )
         while time.monotonic() < deadline:
             if stop_requested is not None and stop_requested():
                 return False
@@ -1136,10 +1148,10 @@ class DualKinventClient:
                 and self.next_keepalive is not None
                 and time.monotonic() >= self.next_keepalive
             ):
-                for plate in self.plates:
-                    if plate.handle is not None:
-                        self.send_write_command(plate, b"\xff")
-                self.next_keepalive = time.monotonic() + self.keepalive_interval
+                self.send_keepalive()
+                self.next_keepalive = (
+                    self.last_keepalive_at + self.keepalive_interval
+                )
             if progress and show_progress and time.monotonic() >= next_progress:
                 print(f"Temps restant: {max(0, deadline-time.monotonic()):.1f} s")
                 next_progress = time.monotonic() + 5
@@ -1993,10 +2005,10 @@ class DualKinventClient:
                         and not idle_streams_active
                         and time.monotonic() >= next_idle_keepalive
                     ):
-                        for plate in self.plates:
-                            if plate.handle is not None:
-                                self.send_write_command(plate, b"\xff")
-                        next_idle_keepalive = time.monotonic() + 10.0
+                        self.send_keepalive()
+                        next_idle_keepalive = (
+                            self.last_keepalive_at + self.keepalive_interval
+                        )
                 except PlateDisconnected as exc:
                     print(f"Session inactive interrompue: {exc}")
                     idle_streams_active = False

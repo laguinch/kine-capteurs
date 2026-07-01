@@ -342,6 +342,33 @@ class KPlateDualTest(unittest.TestCase):
 
         self.assertEqual(client.keepalive_interval, 10.0)
 
+    def test_game_keepalive_keeps_official_continuous_cadence(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        sent = []
+        for index, plate in enumerate(client.plates, start=0x10):
+            plate.handle = index
+        client.receive = lambda: None
+        client.send_write_command = (
+            lambda plate, value: sent.append((plate.side, value))
+        )
+        client.last_keepalive_at = (
+            time.monotonic() - client.keepalive_interval - 0.1
+        )
+
+        client.pump(0.01, progress=True, show_progress=False)
+
+        self.assertEqual(
+            sent[:2],
+            [("gauche", b"\xff"), ("droite", b"\xff")],
+        )
+
     def test_cmj_parks_streams_after_acquisition(self):
         client = self.module.DualKinventClient(
             1,
