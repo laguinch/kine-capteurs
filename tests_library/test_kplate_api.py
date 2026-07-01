@@ -12,6 +12,9 @@ from ble.kinvent.kplates.acquisition_service import DualPlateAcquisitionService
 
 
 class KPlateApiTest(unittest.TestCase):
+    def no_manager_state(self):
+        return mock.patch.object(acquisition_module, "manager_state", return_value={})
+
     @unittest.skipUnless(
         importlib.util.find_spec("fastapi"),
         "FastAPI est installé dans l'environnement serveur.",
@@ -147,7 +150,8 @@ class KPlateApiTest(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            latest = service.latest()
+            with self.no_manager_state():
+                latest = service.latest()
 
         self.assertIsNone(latest["measurement"])
         self.assertFalse(latest["cmj_preparation"]["ready"])
@@ -177,7 +181,11 @@ class KPlateApiTest(unittest.TestCase):
                 f'{{"phase":"idle","pid":{os.getpid()}}}',
                 encoding="utf-8",
             )
-            with mock.patch.object(acquisition_module, "BASE_DIR", root):
+            with self.no_manager_state(), mock.patch.object(
+                acquisition_module,
+                "BASE_DIR",
+                root,
+            ):
                 status = service.start(filename="session")
 
         self.assertTrue(status["csv_path"].endswith("/session.csv"))
@@ -192,7 +200,11 @@ class KPlateApiTest(unittest.TestCase):
                 f'{{"phase":"idle","pid":{os.getpid()}}}',
                 encoding="utf-8",
             )
-            with mock.patch.object(acquisition_module, "BASE_DIR", root):
+            with self.no_manager_state(), mock.patch.object(
+                acquisition_module,
+                "BASE_DIR",
+                root,
+            ):
                 service.start(filename="cmj.csv", mode="cmj")
             control = json.loads(
                 service._control_path.read_text(encoding="utf-8")
@@ -213,7 +225,8 @@ class KPlateApiTest(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            status = service.status()
+            with self.no_manager_state():
+                status = service.status()
 
         self.assertEqual(status["last_error"], "Connexion Bluetooth impossible")
 
@@ -230,7 +243,8 @@ class KPlateApiTest(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            status = service.status()
+            with self.no_manager_state():
+                status = service.status()
 
         self.assertFalse(status["running"])
         self.assertEqual(status["last_error"], "Flux absent")
@@ -252,9 +266,10 @@ class KPlateApiTest(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            first = service.status()
+            with self.no_manager_state():
+                first = service.status()
+                second = service.status()
             frozen = first["elapsed_seconds"]
-            second = service.status()
 
         self.assertFalse(first["running"])
         self.assertEqual(second["elapsed_seconds"], frozen)
@@ -269,7 +284,11 @@ class KPlateApiTest(unittest.TestCase):
                 f'{{"phase":"idle","pid":{os.getpid()}}}',
                 encoding="utf-8",
             )
-            with mock.patch.object(acquisition_module, "BASE_DIR", root):
+            with self.no_manager_state(), mock.patch.object(
+                acquisition_module,
+                "BASE_DIR",
+                root,
+            ):
                 status = service.start(filename="second-test.csv")
 
             control = json.loads(service._control_path.read_text(encoding="utf-8"))
@@ -302,7 +321,8 @@ class KPlateApiTest(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            service.stop()
+            with self.no_manager_state():
+                service.stop()
             command = json.loads(
                 service._control_path.read_text(encoding="utf-8")
             )
@@ -339,7 +359,8 @@ class KPlateApiTest(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            service.connect()
+            with self.no_manager_state():
+                service.connect()
             command = json.loads(
                 service._control_path.read_text(encoding="utf-8")
             )
@@ -366,7 +387,8 @@ class KPlateApiTest(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            status = service.status()
+            with self.no_manager_state():
+                status = service.status()
 
         self.assertFalse(status["running"])
         self.assertTrue(status["bluetooth_connected"])
@@ -384,7 +406,8 @@ class KPlateApiTest(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            status = service.status()
+            with self.no_manager_state():
+                status = service.status()
 
         self.assertFalse(status["running"])
         self.assertEqual(status["connected_sides"], ["droite"])
@@ -406,7 +429,8 @@ class KPlateApiTest(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            status = service.status()
+            with self.no_manager_state():
+                status = service.status()
 
         self.assertTrue(status["bluetooth_connected"])
         self.assertTrue(status["worker_ready"])
