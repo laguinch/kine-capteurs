@@ -129,6 +129,8 @@ l'application officielle :
   `0x10`, tandis que le maintien de liaison `0xFF` est envoyé toutes les
   dix secondes ;
 - au démarrage d'un test, le flux est relancé sans recréer la connexion ;
+- après l'initialisation observée dans le jeu plateformes, deux commandes
+  `0x10` placent les flux au repos avant le maintien de liaison ;
 - à la fin du test, trois commandes `0x10` remettent le capteur au repos sans
   fermer la liaison Bluetooth.
 

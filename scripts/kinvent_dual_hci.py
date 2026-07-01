@@ -88,6 +88,7 @@ KPLATE_INIT_STEPS = [
     (bytes.fromhex("ac 01 04 a9"), 0.06),
     (b"\x11", 0.20),
 ]
+KPLATE_INITIAL_IDLE_COMMANDS = 2
 CSV_FIELDS = [
     "timestamp_utc",
     "sync_delta_ms",
@@ -1276,8 +1277,9 @@ class DualKinventClient:
         ]
         if not connected:
             return
-        # Après un test, Kinvent envoie trois 0x10. Juste après
-        # l'initialisation, un seul 0x10 suffit à placer le flux au repos.
+        # Après un test, Kinvent envoie trois 0x10. Dans la capture officielle
+        # du jeu, juste après l'initialisation, deux 0x10 placent le flux au
+        # repos avant le maintien 0xFF.
         for _ in range(commands):
             for plate in connected:
                 self.send_write_command(plate, b"\x10")
@@ -1624,7 +1626,9 @@ class DualKinventClient:
                             # immédiat laisse ensuite les deux firmwares muets.
                             missing_streams = self.settle_initial_streams()
                             if not missing_streams:
-                                self.park_measurement_streams(commands=1)
+                                self.park_measurement_streams(
+                                    commands=KPLATE_INITIAL_IDLE_COMMANDS
+                                )
                             idle_streams_active = False
                         except (
                             OSError,
@@ -1712,7 +1716,9 @@ class DualKinventClient:
                         )
                         missing_streams = self.settle_initial_streams()
                         if not missing_streams:
-                            self.park_measurement_streams(commands=1)
+                            self.park_measurement_streams(
+                                commands=KPLATE_INITIAL_IDLE_COMMANDS
+                            )
                         idle_streams_active = False
                     except (
                         OSError,

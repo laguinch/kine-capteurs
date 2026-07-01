@@ -728,6 +728,37 @@ class KPlateDualTest(unittest.TestCase):
         )
         self.assertTrue(all(plate.handle is not None for plate in client.plates))
 
+    def test_initial_idle_park_matches_official_game_capture(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        sent = []
+        for index, plate in enumerate(client.plates, start=0x10):
+            plate.handle = index
+        client.send_write_command = (
+            lambda plate, value: sent.append((plate.side, value))
+        )
+        client.pump = lambda duration: None
+
+        client.park_measurement_streams(
+            commands=self.module.KPLATE_INITIAL_IDLE_COMMANDS
+        )
+
+        self.assertEqual(
+            sent,
+            [
+                ("droite", b"\x10"),
+                ("gauche", b"\x10"),
+                ("droite", b"\x10"),
+                ("gauche", b"\x10"),
+            ],
+        )
+
     def test_idle_session_rejects_stale_notifications(self):
         client = self.module.DualKinventClient(
             1,
