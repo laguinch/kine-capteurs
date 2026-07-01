@@ -738,15 +738,17 @@ class KPlateDualTest(unittest.TestCase):
             1,
         )
         sent = []
+        pumped = []
         for index, plate in enumerate(client.plates, start=0x10):
             plate.handle = index
         client.send_write_command = (
             lambda plate, value: sent.append((plate.side, value))
         )
-        client.pump = lambda duration: None
+        client.pump = lambda duration: pumped.append(duration)
 
         client.park_measurement_streams(
-            commands=self.module.KPLATE_INITIAL_IDLE_COMMANDS
+            commands=self.module.KPLATE_INITIAL_IDLE_COMMANDS,
+            delay=self.module.KPLATE_INITIAL_IDLE_DELAY,
         )
 
         self.assertEqual(
@@ -756,6 +758,13 @@ class KPlateDualTest(unittest.TestCase):
                 ("gauche", b"\x10"),
                 ("droite", b"\x10"),
                 ("gauche", b"\x10"),
+            ],
+        )
+        self.assertEqual(
+            pumped,
+            [
+                self.module.KPLATE_INITIAL_IDLE_DELAY,
+                self.module.KPLATE_INITIAL_IDLE_DELAY,
             ],
         )
 

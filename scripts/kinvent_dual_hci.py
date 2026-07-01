@@ -89,6 +89,8 @@ KPLATE_INIT_STEPS = [
     (b"\x11", 0.20),
 ]
 KPLATE_INITIAL_IDLE_COMMANDS = 2
+KPLATE_INITIAL_IDLE_DELAY = 1.5
+KPLATE_PARK_DELAY = 0.05
 CSV_FIELDS = [
     "timestamp_utc",
     "sync_delta_ms",
@@ -1269,7 +1271,7 @@ class DualKinventClient:
         self.pump(0.25)
         self.streams_parked_at = None
 
-    def park_measurement_streams(self, commands=3):
+    def park_measurement_streams(self, commands=3, delay=KPLATE_PARK_DELAY):
         """Met les mesures au repos sans fermer les liaisons BLE."""
         connected = [
             plate for plate in self.connection_order()
@@ -1283,7 +1285,7 @@ class DualKinventClient:
         for _ in range(commands):
             for plate in connected:
                 self.send_write_command(plate, b"\x10")
-            self.pump(0.05)
+            self.pump(delay)
         self.streams_parked_at = time.monotonic()
         print("Flux de mesure au repos; connexions Bluetooth conservées.")
 
@@ -1627,7 +1629,8 @@ class DualKinventClient:
                             missing_streams = self.settle_initial_streams()
                             if not missing_streams:
                                 self.park_measurement_streams(
-                                    commands=KPLATE_INITIAL_IDLE_COMMANDS
+                                    commands=KPLATE_INITIAL_IDLE_COMMANDS,
+                                    delay=KPLATE_INITIAL_IDLE_DELAY,
                                 )
                             idle_streams_active = False
                         except (
@@ -1717,7 +1720,8 @@ class DualKinventClient:
                         missing_streams = self.settle_initial_streams()
                         if not missing_streams:
                             self.park_measurement_streams(
-                                commands=KPLATE_INITIAL_IDLE_COMMANDS
+                                commands=KPLATE_INITIAL_IDLE_COMMANDS,
+                                delay=KPLATE_INITIAL_IDLE_DELAY,
                             )
                         idle_streams_active = False
                     except (
