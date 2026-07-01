@@ -56,6 +56,7 @@ class BluetoothManagerTest(unittest.TestCase):
 
     def test_recovers_controller_after_failed_child(self):
         bluetooth = KinventBluetoothManager(0)
+        bluetooth.controller.sock = object()
         bluetooth.controller.reset = mock.Mock(
             side_effect=[TimeoutError("reset muet"), None]
         )
@@ -69,6 +70,23 @@ class BluetoothManagerTest(unittest.TestCase):
         self.assertEqual(bluetooth.controller.reset.call_count, 2)
         bluetooth.controller.close.assert_called_once_with()
         bluetooth.controller.open.assert_called_once_with()
+
+    def test_recovery_reopens_closed_controller_before_reset(self):
+        bluetooth = KinventBluetoothManager(0)
+        bluetooth.controller.sock = None
+
+        def reopen():
+            bluetooth.controller.sock = object()
+
+        bluetooth.controller.open = mock.Mock(side_effect=reopen)
+        bluetooth.controller.reset = mock.Mock()
+        bluetooth.state = mock.Mock()
+
+        recovered = bluetooth.recover_controller_after_failure("kplates", 1)
+
+        self.assertTrue(recovered)
+        bluetooth.controller.open.assert_called_once_with()
+        bluetooth.controller.reset.assert_called_once_with()
 
     def test_recovered_child_failure_returns_manager_to_idle(self):
         self.assertEqual(

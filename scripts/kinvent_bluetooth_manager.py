@@ -139,6 +139,8 @@ class KinventBluetoothManager:
                     return_code=return_code,
                     attempt=attempt,
                 )
+                if self.controller.sock is None:
+                    self.controller.open()
                 self.controller.reset()
                 return True
             except (OSError, RuntimeError, TimeoutError) as exc:

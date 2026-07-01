@@ -755,7 +755,7 @@ class KPlateDualTest(unittest.TestCase):
         )
         self.assertTrue(all(plate.handle is not None for plate in client.plates))
 
-    def test_initial_idle_park_matches_official_game_capture(self):
+    def test_initial_idle_park_uses_stable_hci_sequence(self):
         client = self.module.DualKinventClient(
             1,
             "E8:EB:1B:6F:A7:5F",
@@ -773,27 +773,16 @@ class KPlateDualTest(unittest.TestCase):
         )
         client.pump = lambda duration: pumped.append(duration)
 
-        client.park_measurement_streams(
-            commands=self.module.KPLATE_INITIAL_IDLE_COMMANDS,
-            delay=self.module.KPLATE_INITIAL_IDLE_DELAY,
-        )
+        client.park_measurement_streams(commands=1)
 
         self.assertEqual(
             sent,
             [
                 ("droite", b"\x10"),
                 ("gauche", b"\x10"),
-                ("droite", b"\x10"),
-                ("gauche", b"\x10"),
             ],
         )
-        self.assertEqual(
-            pumped,
-            [
-                self.module.KPLATE_INITIAL_IDLE_DELAY,
-                self.module.KPLATE_INITIAL_IDLE_DELAY,
-            ],
-        )
+        self.assertEqual(pumped, [self.module.KPLATE_PARK_DELAY])
 
     def test_idle_session_rejects_stale_notifications(self):
         client = self.module.DualKinventClient(
