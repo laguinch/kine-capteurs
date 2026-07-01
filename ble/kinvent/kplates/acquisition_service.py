@@ -45,7 +45,8 @@ class DualPlateAcquisitionService:
             if mode == "cmj":
                 duration = 10.0
             worker = self._read_worker_state()
-            if not self._worker_alive(worker.get("pid")):
+            manager = manager_state()
+            if not self._worker_managed_alive(worker, manager):
                 raise RuntimeError(
                     "Le service Bluetooth permanent n'est pas démarré."
                 )
@@ -113,7 +114,11 @@ class DualPlateAcquisitionService:
     def connect(self):
         with self._lock:
             worker = self._read_worker_state()
-            if worker.get("phase") == "active":
+            manager = manager_state()
+            if (
+                self._worker_managed_alive(worker, manager)
+                and worker.get("phase") == "active"
+            ):
                 raise RuntimeError(
                     "Arrêtez le test avant de modifier la connexion."
                 )
@@ -131,7 +136,11 @@ class DualPlateAcquisitionService:
     def disconnect(self):
         with self._lock:
             worker = self._read_worker_state()
-            if worker.get("phase") == "active":
+            manager = manager_state()
+            if (
+                self._worker_managed_alive(worker, manager)
+                and worker.get("phase") == "active"
+            ):
                 raise RuntimeError(
                     "Arrêtez le test avant de déconnecter les capteurs."
                 )
@@ -145,8 +154,8 @@ class DualPlateAcquisitionService:
         with self._lock:
             worker = self._read_worker_state()
             manager = manager_state()
-            worker_alive = self._worker_alive(worker.get("pid"))
-            phase = worker.get("phase", "offline")
+            worker_alive = self._worker_managed_alive(worker, manager)
+            phase = worker.get("phase", "offline") if worker_alive else "offline"
             generation_matches = (
                 self._generation is not None
                 and worker.get("generation") == self._generation
@@ -300,6 +309,19 @@ class DualPlateAcquisitionService:
         except PermissionError:
             return True
         return True
+
+    @classmethod
+    def _worker_managed_alive(cls, worker, manager):
+        if not cls._worker_alive(worker.get("pid")):
+            return False
+        if not manager:
+            return True
+        if manager.get("target") != "kplates":
+            return False
+        if manager.get("phase") not in {"switching", "active"}:
+            return False
+        child_pid = manager.get("child_pid")
+        return child_pid in {None, worker.get("pid")}
 
     @staticmethod
     def _write_json(path, data):

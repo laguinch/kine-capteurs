@@ -80,6 +80,32 @@ class KPlateApiTest(unittest.TestCase):
         self.assertIsNone(status["pid"])
         self.assertIsNone(status["csv_path"])
 
+    def test_ignores_stale_worker_when_manager_is_idle(self):
+        service = DualPlateAcquisitionService()
+        with tempfile.TemporaryDirectory() as directory:
+            service._worker_state_path = Path(directory) / "state.json"
+            service._worker_state_path.write_text(
+                f'{{"phase":"connecting","pid":{os.getpid()}}}',
+                encoding="utf-8",
+            )
+            with mock.patch.object(
+                acquisition_module,
+                "manager_state",
+                return_value={
+                    "pid": os.getpid(),
+                    "phase": "idle",
+                    "target": None,
+                    "child_pid": None,
+                },
+            ):
+                status = service.status()
+
+        self.assertFalse(status["running"])
+        self.assertFalse(status["bluetooth_connected"])
+        self.assertFalse(status["worker_ready"])
+        self.assertIsNone(status["pid"])
+        self.assertEqual(status["worker_phase"], "offline")
+
     def test_latest_reads_last_complete_measurement(self):
         service = DualPlateAcquisitionService()
         with tempfile.TemporaryDirectory() as directory:
