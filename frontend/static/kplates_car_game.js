@@ -83,6 +83,10 @@ function bothPlatformsConnected(data) {
   return sides.includes("gauche") && sides.includes("droite");
 }
 
+function platformsReady(data) {
+  return data.worker_phase === "idle" && !data.last_error && bothPlatformsConnected(data);
+}
+
 function syncAvailabilityMessage(data, ready, running) {
   if (running) return;
   const box = $("gameMessage");
@@ -110,7 +114,7 @@ function syncAvailabilityMessage(data, ready, running) {
 
 function updateStatus(data) {
   const connected = Boolean(data.bluetooth_connected);
-  const ready = bothPlatformsConnected(data);
+  const ready = platformsReady(data);
   const running = Boolean(data.running);
   $("gameStatusDot").className = `status-dot ${running || ready ? "running" : data.last_error ? "error" : ""}`;
   $("gameStatusText").textContent = running

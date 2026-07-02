@@ -36,12 +36,16 @@ function bothPlatformsConnected(data) {
   return sides.includes("gauche") && sides.includes("droite");
 }
 
+function platformsReady(data) {
+  return data.worker_phase === "idle" && !data.last_error && bothPlatformsConnected(data);
+}
+
 function updateStatus(data) {
   const running = Boolean(data.running);
   const validating = Boolean(data.validating_streams);
   const connecting = ["connecting", "recovering"].includes(data.worker_phase);
   const degraded = data.worker_phase === "degraded";
-  const ready = bothPlatformsConnected(data);
+  const ready = platformsReady(data);
   const cmjMode = data.mode === "cmj";
   const cmjResultAvailable = Boolean(
     cmjMode
