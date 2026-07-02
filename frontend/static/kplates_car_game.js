@@ -101,6 +101,10 @@ function syncAvailabilityMessage(data, ready, running) {
   }
   if (!ready && data.last_error) {
     message(data.last_error, true);
+    return;
+  }
+  if (!ready && text.includes("Vous pouvez démarrer le jeu")) {
+    message("Connexion des plateformes en cours…");
   }
 }
 
@@ -204,7 +208,6 @@ async function connect() {
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || "Connexion impossible");
     updateStatus(data);
-    message("Plateformes connectées. Vous pouvez démarrer le jeu.", false, true);
   } catch (error) {
     message(error.message, true);
   }
