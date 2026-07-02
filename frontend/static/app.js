@@ -41,12 +41,27 @@ function platformsReady(data) {
   return data.worker_phase === "idle" && !data.last_error && bothPlatformsConnected(data);
 }
 
+function waitingForInitialMeasurements(data) {
+  return (
+    bothPlatformsConnected(data)
+    && typeof data.last_error === "string"
+    && data.last_error.includes("aucune mesure initiale reçue")
+  );
+}
+
+function missingMeasurementText(data) {
+  const match = data.last_error.match(/pour : (.+)\.$/);
+  const sides = match ? match[1] : "les plateformes";
+  return `Plateformes connectées en Bluetooth. En attente des mesures pour : ${sides}.`;
+}
+
 function updateStatus(data) {
   const running = Boolean(data.running);
   const validating = Boolean(data.validating_streams);
   const connecting = state.bluetoothChanging || ["connecting", "recovering"].includes(data.worker_phase);
   const degraded = data.worker_phase === "degraded";
   const ready = platformsReady(data);
+  const waitingForMeasures = waitingForInitialMeasurements(data);
   const cmjMode = data.mode === "cmj";
   const cmjResultAvailable = Boolean(
     cmjMode
@@ -54,7 +69,7 @@ function updateStatus(data) {
     && data.csv_path
     && (!data.last_error || data.result_available)
   );
-  $("statusDot").className = `status-dot ${running || ready ? "running" : data.last_error ? "error" : ""}`;
+  $("statusDot").className = `status-dot ${running || ready || waitingForMeasures ? "running" : data.last_error ? "error" : ""}`;
   $("statusText").textContent = running
     ? validating
       ? "Vérification des plateformes"
@@ -62,7 +77,9 @@ function updateStatus(data) {
     : connecting
       ? "Connexion des capteurs"
       : degraded
-        ? "Connexion partielle"
+        ? waitingForMeasures
+          ? "Mesures en attente"
+          : "Connexion partielle"
       : cmjMode && data.finished_at && data.csv_path && !data.last_error
         ? "CMJ enregistré"
       : data.last_error
@@ -108,7 +125,11 @@ function updateStatus(data) {
     state.awaitingTare = false;
     state.awaitingReady = false;
     if (!running) resetMeasurement();
-    setMessage(data.last_error, true);
+    if (waitingForInitialMeasurements(data)) {
+      setMessage(missingMeasurementText(data), false);
+    } else {
+      setMessage(data.last_error, true);
+    }
   } else if (data.worker_phase === "disconnected") {
     state.awaitingTare = false;
     state.awaitingReady = false;

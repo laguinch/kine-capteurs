@@ -88,6 +88,20 @@ function platformsReady(data) {
   return data.worker_phase === "idle" && !data.last_error && bothPlatformsConnected(data);
 }
 
+function waitingForInitialMeasurements(data) {
+  return (
+    bothPlatformsConnected(data)
+    && typeof data.last_error === "string"
+    && data.last_error.includes("aucune mesure initiale reçue")
+  );
+}
+
+function missingMeasurementText(data) {
+  const match = data.last_error.match(/pour : (.+)\.$/);
+  const sides = match ? match[1] : "les plateformes";
+  return `Plateformes connectées en Bluetooth. En attente des mesures pour : ${sides}.`;
+}
+
 function syncAvailabilityMessage(data, ready, running) {
   if (running) return;
   const box = $("gameMessage");
@@ -104,6 +118,10 @@ function syncAvailabilityMessage(data, ready, running) {
     }
     return;
   }
+  if (waitingForInitialMeasurements(data)) {
+    message(missingMeasurementText(data));
+    return;
+  }
   if (!ready && data.last_error) {
     message(data.last_error, true);
     return;
@@ -118,13 +136,16 @@ function updateStatus(data) {
   const ready = platformsReady(data);
   const running = Boolean(data.running);
   const connecting = game.connecting || data.worker_phase === "connecting";
-  $("gameStatusDot").className = `status-dot ${running || ready || connecting ? "running" : data.last_error ? "error" : ""}`;
+  const waitingForMeasures = waitingForInitialMeasurements(data);
+  $("gameStatusDot").className = `status-dot ${running || ready || connecting || waitingForMeasures ? "running" : data.last_error ? "error" : ""}`;
   $("gameStatusText").textContent = running
     ? "Jeu en cours"
     : connecting
       ? "Connexion des plateformes"
     : ready
       ? "Plateformes connectées"
+      : waitingForMeasures
+        ? "Mesures en attente"
       : connected
         ? "Connexion partielle"
       : data.last_error
