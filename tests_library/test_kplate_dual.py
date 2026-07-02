@@ -366,7 +366,7 @@ class KPlateDualTest(unittest.TestCase):
 
         self.assertEqual(
             sent[:2],
-            [("gauche", b"\xff"), ("droite", b"\xff")],
+            [("droite", b"\xff"), ("gauche", b"\xff")],
         )
 
     def test_cmj_parks_streams_after_acquisition(self):
@@ -1093,12 +1093,11 @@ class KPlateDualTest(unittest.TestCase):
             lambda plate, value: sent.append((plate.side, value))
         )
 
-        for plate in client.plates:
-            client.send_write_command(plate, b"\xff")
+        client.send_keepalive()
 
         self.assertEqual(
             sent,
-            [("gauche", b"\xff"), ("droite", b"\xff")],
+            [("droite", b"\xff"), ("gauche", b"\xff")],
         )
 
     def test_disconnects_both_plates_before_closing(self):
