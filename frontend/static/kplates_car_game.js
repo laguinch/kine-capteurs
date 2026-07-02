@@ -111,6 +111,9 @@ function syncAvailabilityMessage(data, ready, running) {
       box.classList.contains("error")
       || !text
       || text.startsWith("Connectez les plateformes")
+      || text.startsWith("Connexion aux plateformes")
+      || text.includes("Connexion des plateformes")
+      || text.includes("En attente des mesures")
       || text.includes("Reconnectez les plateformes")
       || text.includes("déconnectée")
     ) {
@@ -152,13 +155,13 @@ function updateStatus(data) {
         ? "Erreur"
         : "Déconnecté";
   $("connectButton").disabled = connecting || ready || running;
-  $("startGameButton").disabled = running || !ready;
+  $("startGameButton").disabled = connecting || running || !ready;
   $("stopGameButton").disabled = !running;
   document.querySelectorAll(".connect-action").forEach((button) => {
     button.disabled = connecting || ready || running;
   });
   document.querySelectorAll(".start-action").forEach((button) => {
-    button.disabled = running || !ready;
+    button.disabled = connecting || running || !ready;
   });
   document.querySelectorAll(".stop-action").forEach((button) => {
     button.disabled = !running;
@@ -234,7 +237,11 @@ async function connect() {
   game.connecting = true;
   message("Connexion aux plateformes…");
   $("connectButton").disabled = true;
+  $("startGameButton").disabled = true;
   document.querySelectorAll(".connect-action").forEach((button) => {
+    button.disabled = true;
+  });
+  document.querySelectorAll(".start-action").forEach((button) => {
     button.disabled = true;
   });
   try {
