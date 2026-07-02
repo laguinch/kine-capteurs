@@ -89,6 +89,13 @@ def write_json(path, data):
     temporary.replace(target)
 
 
+def describe_command(command):
+    action = command.get("action") or "inconnue"
+    target = command.get("target")
+    generation = command.get("generation") or "sans génération"
+    return f"action={action}, cible={target}, génération={generation}"
+
+
 class KinventBluetoothManager:
     def __init__(self, adapter):
         self.adapter = adapter
@@ -168,6 +175,11 @@ class KinventBluetoothManager:
             return
         config = TARGETS[self.target]
         control_path = RAW_DIR / config["control"]
+        print(
+            "Arrêt du pilote capteur demandé par le gestionnaire: "
+            f"{self.target}.",
+            flush=True,
+        )
         write_json(
             control_path,
             {
@@ -215,6 +227,10 @@ class KinventBluetoothManager:
             return "error"
         return "idle"
 
+    @staticmethod
+    def is_manager_command(command):
+        return command.get("action") in {"select", "disconnect"}
+
     def run(self):
         self.start()
         try:
@@ -222,8 +238,22 @@ class KinventBluetoothManager:
                 command = read_json(CONTROL_PATH)
                 generation = command.get("generation")
                 if generation and generation != self.generation:
+                    action = command.get("action")
+                    if not self.is_manager_command(command):
+                        print(
+                            "Commande Bluetooth globale ignorée: "
+                            f"{describe_command(command)}.",
+                            flush=True,
+                        )
+                        time.sleep(0.2)
+                        continue
                     self.generation = generation
                     requested = command.get("target")
+                    print(
+                        "Commande Bluetooth globale reçue: "
+                        f"{describe_command(command)}.",
+                        flush=True,
+                    )
                     self.state("switching", requested_target=requested)
                     self.stop_child()
                     if requested:

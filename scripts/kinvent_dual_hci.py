@@ -1803,6 +1803,10 @@ class DualKinventClient:
                     continue
 
                 if action == "disconnect":
+                    print(
+                        "Commande de déconnexion reçue "
+                        f"(managed_shutdown={bool(command.get('managed_shutdown'))})."
+                    )
                     self.disconnect_all()
                     self.clear_connection_state()
                     idle_streams_active = False

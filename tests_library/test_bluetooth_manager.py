@@ -98,6 +98,28 @@ class BluetoothManagerTest(unittest.TestCase):
             "error",
         )
 
+    def test_manager_ignores_non_global_control_actions(self):
+        self.assertTrue(
+            KinventBluetoothManager.is_manager_command(
+                {"action": "select", "target": "kplates"}
+            )
+        )
+        self.assertTrue(
+            KinventBluetoothManager.is_manager_command(
+                {"action": "disconnect", "target": None}
+            )
+        )
+        self.assertFalse(
+            KinventBluetoothManager.is_manager_command(
+                {"action": "idle", "target": None}
+            )
+        )
+        self.assertFalse(
+            KinventBluetoothManager.is_manager_command(
+                {"action": "start", "target": None}
+            )
+        )
+
     def test_process_waits_for_its_exact_manager_generation(self):
         process = manager.ManagedSensorProcess("kmove", "request-2")
         with tempfile.TemporaryDirectory() as directory:
