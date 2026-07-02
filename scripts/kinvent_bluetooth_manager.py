@@ -231,6 +231,11 @@ class KinventBluetoothManager:
     def is_manager_command(command):
         return command.get("action") in {"select", "disconnect"}
 
+    def current_target_is_active(self, requested):
+        if requested != self.target or self.child is None:
+            return False
+        return self.child.poll() is None
+
     def run(self):
         self.start()
         try:
@@ -254,6 +259,18 @@ class KinventBluetoothManager:
                         f"{describe_command(command)}.",
                         flush=True,
                     )
+                    if (
+                        action == "select"
+                        and self.current_target_is_active(requested)
+                    ):
+                        print(
+                            "Capteur déjà actif; conservation du pilote: "
+                            f"{requested}.",
+                            flush=True,
+                        )
+                        self.state("active")
+                        time.sleep(0.2)
+                        continue
                     self.state("switching", requested_target=requested)
                     self.stop_child()
                     if requested:
