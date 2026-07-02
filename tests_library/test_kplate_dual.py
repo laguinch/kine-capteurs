@@ -407,7 +407,7 @@ class KPlateDualTest(unittest.TestCase):
         self.assertFalse(streams_active)
         self.assertEqual(parked, [3])
 
-    def test_disconnect_requires_full_reconnect_after_idle_drop(self):
+    def test_idle_drop_preserves_remaining_connected_plate(self):
         client = self.module.DualKinventClient(
             1,
             "E8:EB:1B:6F:A7:5F",
@@ -419,11 +419,12 @@ class KPlateDualTest(unittest.TestCase):
         for index, plate in enumerate(client.plates, start=0x10):
             plate.handle = index
         states = []
-        client.disconnect_all = lambda: states.append({"disconnect_all": True})
         client.write_worker_state = (
             lambda path, **state: states.append(state)
         )
-        exc = self.module.PlateDisconnected(client.plates[0], 0x08)
+        disconnected = client.plates[0]
+        disconnected.handle = None
+        exc = self.module.PlateDisconnected(disconnected, 0x08)
 
         client.mark_full_reconnect_required(
             "state.json",
@@ -433,11 +434,10 @@ class KPlateDualTest(unittest.TestCase):
         )
 
         self.assertIsNone(client.plates[0].handle)
-        self.assertIsNone(client.plates[1].handle)
-        self.assertEqual(states[0], {"disconnect_all": True})
-        self.assertEqual(states[1]["phase"], "disconnected")
-        self.assertEqual(states[1]["connected_sides"], [])
-        self.assertIn("Reconnectez les plateformes", states[1]["error"])
+        self.assertEqual(client.plates[1].handle, 0x11)
+        self.assertEqual(states[0]["phase"], "degraded")
+        self.assertEqual(states[0]["connected_sides"], ["droite"])
+        self.assertIn("Reconnectez les plateformes", states[0]["error"])
 
     def test_disconnect_identifies_plate_and_clears_handle(self):
         client = self.module.DualKinventClient(

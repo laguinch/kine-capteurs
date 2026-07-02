@@ -1381,19 +1381,17 @@ class DualKinventClient:
         return False
 
     def mark_full_reconnect_required(self, state_file, generation, command, exc):
-        """Après une coupure 0x08, la session officielle repart complète."""
-        try:
-            self.disconnect_all()
-        except (OSError, RuntimeError, TimeoutError, PlateDisconnected):
-            pass
-        self.clear_connection_state()
+        """Signale une coupure sans fermer la plateforme encore connectée."""
+        connected_sides = [
+            plate.side for plate in self.plates if plate.handle is not None
+        ]
         self.write_worker_state(
             state_file,
-            phase="disconnected",
+            phase="degraded",
             generation=generation,
             csv_path=command.get("csv_path"),
             mode=command.get("mode", "balance"),
-            connected_sides=[],
+            connected_sides=connected_sides,
             result_available=(
                 command.get("mode") == "cmj"
                 and bool(command.get("csv_path"))
