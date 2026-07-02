@@ -1754,19 +1754,12 @@ class DualKinventClient:
                         plate for plate in self.plates if plate.handle is None
                     ]
                     if not missing:
-                        idle_streams_active = (
-                            idle_streams_active
-                            and self.write_idle_or_degraded_state(
-                                state_file,
-                                generation,
-                                missing_streams=[],
-                            )
+                        self.write_worker_state(
+                            state_file,
+                            phase="idle",
+                            generation=generation,
+                            connected_sides=self.connected_sides(),
                         )
-                        if not idle_streams_active:
-                            idle_streams_active = self.write_idle_or_degraded_state(
-                                state_file,
-                                generation,
-                            )
                         continue
                     self.write_worker_state(
                         state_file,
