@@ -1097,6 +1097,7 @@ class DualKinventClient:
     def send_keepalive(self):
         for plate in self.plates:
             if plate.handle is not None:
+                print(f"SEND {plate.side} ff")
                 self.send_write_command(plate, b"\xff")
         self.last_keepalive_at = time.monotonic()
 
