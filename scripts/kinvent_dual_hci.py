@@ -1380,18 +1380,20 @@ class DualKinventClient:
         self.park_measurement_streams(commands=3)
         return False
 
-    def mark_full_reconnect_required(self, state_file, generation, command, exc):
-        """Signale une coupure sans fermer la plateforme encore connectée."""
-        connected_sides = [
+    def connected_sides(self):
+        return [
             plate.side for plate in self.plates if plate.handle is not None
         ]
+
+    def mark_full_reconnect_required(self, state_file, generation, command, exc):
+        """Signale une coupure sans fermer la plateforme encore connectée."""
         self.write_worker_state(
             state_file,
             phase="degraded",
             generation=generation,
             csv_path=command.get("csv_path"),
             mode=command.get("mode", "balance"),
-            connected_sides=connected_sides,
+            connected_sides=self.connected_sides(),
             result_available=(
                 command.get("mode") == "cmj"
                 and bool(command.get("csv_path"))
@@ -1713,6 +1715,7 @@ class DualKinventClient:
                                     state_file,
                                     phase="idle",
                                     generation=generation,
+                                    connected_sides=self.connected_sides(),
                                 )
                     else:
                         time.sleep(0.25)
@@ -1732,6 +1735,7 @@ class DualKinventClient:
                             state_file,
                             phase="idle",
                             generation=generation,
+                            connected_sides=self.connected_sides(),
                         )
                         continue
                     self.write_worker_state(
@@ -1797,6 +1801,7 @@ class DualKinventClient:
                                 state_file,
                                 phase="idle",
                                 generation=generation,
+                                connected_sides=self.connected_sides(),
                             )
                     continue
 
@@ -2012,6 +2017,7 @@ class DualKinventClient:
                             paired_samples=self.paired_samples,
                             cmj_samples=self.cmj_samples,
                             mode=acquisition_mode,
+                            connected_sides=self.connected_sides(),
                             stopped=not completed,
                             result_available=(
                                 acquisition_mode == "cmj"

@@ -439,6 +439,24 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(states[0]["connected_sides"], ["droite"])
         self.assertIn("Reconnectez les plateformes", states[0]["error"])
 
+    def test_connected_sides_reflects_open_hci_handles(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        for index, plate in enumerate(client.plates, start=0x10):
+            plate.handle = index
+
+        self.assertEqual(client.connected_sides(), ["gauche", "droite"])
+
+        client.plates[0].handle = None
+
+        self.assertEqual(client.connected_sides(), ["droite"])
+
     def test_disconnect_identifies_plate_and_clears_handle(self):
         client = self.module.DualKinventClient(
             1,
