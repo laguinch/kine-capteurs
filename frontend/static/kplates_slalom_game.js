@@ -83,6 +83,27 @@ function bothPlatformsConnected(data) {
   return sides.includes("gauche") && sides.includes("droite");
 }
 
+function syncAvailabilityMessage(data, ready, running) {
+  if (running) return;
+  const box = $("gameMessage");
+  const text = box.textContent || "";
+  if (ready && !data.last_error) {
+    if (
+      box.classList.contains("error")
+      || !text
+      || text.startsWith("Connectez les plateformes")
+      || text.includes("Reconnectez les plateformes")
+      || text.includes("déconnectée")
+    ) {
+      message("Plateformes connectées. Vous pouvez démarrer le jeu.", false, true);
+    }
+    return;
+  }
+  if (!ready && data.last_error) {
+    message(data.last_error, true);
+  }
+}
+
 function updateStatus(data) {
   const connected = Boolean(data.bluetooth_connected);
   const ready = bothPlatformsConnected(data);
@@ -118,9 +139,7 @@ function updateStatus(data) {
   if (!running && game.running) {
     finishGame();
   }
-  if (data.last_error) {
-    message(data.last_error, true);
-  }
+  syncAvailabilityMessage(data, ready, running);
 }
 
 function updateControls(measurement) {
