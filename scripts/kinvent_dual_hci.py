@@ -1632,14 +1632,11 @@ class DualKinventClient:
                                 require_measurements=False,
                                 reset_controller=not managed,
                             )
-                            # Dans la capture officielle, les flux tournent
-                            # environ deux secondes après la fin de
-                            # l'initialisation avant le premier 0x10. Un repos
-                            # immédiat laisse ensuite les deux firmwares muets.
+                            # Après connexion, l'application officielle garde
+                            # les mesures disponibles pour les écrans de
+                            # préparation et de répartition d'appui.
                             missing_streams = self.settle_initial_streams()
-                            if not missing_streams:
-                                self.park_measurement_streams(commands=1)
-                            idle_streams_active = False
+                            idle_streams_active = not missing_streams
                         except (
                             OSError,
                             PlateDisconnected,
@@ -1725,9 +1722,7 @@ class DualKinventClient:
                             reset_controller=not managed,
                         )
                         missing_streams = self.settle_initial_streams()
-                        if not missing_streams:
-                            self.park_measurement_streams(commands=1)
-                        idle_streams_active = False
+                        idle_streams_active = not missing_streams
                     except (
                         OSError,
                         PlateDisconnected,
@@ -1994,7 +1989,6 @@ class DualKinventClient:
                     self.pump(1.0, progress=False, show_progress=False)
                     if (
                         self.sock is not None
-                        and not idle_streams_active
                         and time.monotonic() >= next_idle_keepalive
                     ):
                         self.send_keepalive()

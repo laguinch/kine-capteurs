@@ -755,7 +755,7 @@ class KPlateDualTest(unittest.TestCase):
         )
         self.assertTrue(all(plate.handle is not None for plate in client.plates))
 
-    def test_initial_idle_park_uses_stable_hci_sequence(self):
+    def test_single_park_command_keeps_handles_when_explicitly_requested(self):
         client = self.module.DualKinventClient(
             1,
             "E8:EB:1B:6F:A7:5F",

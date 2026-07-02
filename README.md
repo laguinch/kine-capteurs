@@ -125,13 +125,12 @@ l'application officielle :
 
 - la connexion BLE et les notifications restent configurées tant que
   l'utilisateur ne clique pas sur « Déconnecter » ;
-- hors test, le flux de mesure est mis au repos avec la commande Kinvent
-  `0x10`, tandis que le maintien de liaison `0xFF` est envoyé toutes les
-  dix secondes ;
+- après connexion, le flux de mesure reste disponible pour les écrans de
+  préparation et de répartition d'appui, tandis que le maintien de liaison
+  `0xFF` est envoyé toutes les dix secondes ;
 - au démarrage d'un test, le flux est relancé sans recréer la connexion ;
-- après l'initialisation des plateformes, la branche stable du service HCI
-  direct place les flux au repos avec une seule commande `0x10`, puis garde la
-  liaison avec `0xFF` ;
+- les plateformes ne sont mises au repos avec `0x10` qu'après un test, pas
+  juste après la connexion ;
 - à la fin du test, trois commandes `0x10` remettent le capteur au repos sans
   fermer la liaison Bluetooth.
 
