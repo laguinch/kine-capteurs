@@ -24,6 +24,7 @@ const game = {
   lastMeasurementTimestamp: null,
   saved: false,
   csvPath: null,
+  connecting: false,
 };
 
 const movementThreshold = 10;
@@ -116,9 +117,12 @@ function updateStatus(data) {
   const connected = Boolean(data.bluetooth_connected);
   const ready = platformsReady(data);
   const running = Boolean(data.running);
-  $("gameStatusDot").className = `status-dot ${running || ready ? "running" : data.last_error ? "error" : ""}`;
+  const connecting = game.connecting || data.worker_phase === "connecting";
+  $("gameStatusDot").className = `status-dot ${running || ready || connecting ? "running" : data.last_error ? "error" : ""}`;
   $("gameStatusText").textContent = running
     ? "Jeu en cours"
+    : connecting
+      ? "Connexion des plateformes"
     : ready
       ? "Plateformes connectées"
       : connected
@@ -126,11 +130,11 @@ function updateStatus(data) {
       : data.last_error
         ? "Erreur"
         : "Déconnecté";
-  $("connectButton").disabled = ready || running;
+  $("connectButton").disabled = connecting || ready || running;
   $("startGameButton").disabled = running || !ready;
   $("stopGameButton").disabled = !running;
   document.querySelectorAll(".connect-action").forEach((button) => {
-    button.disabled = ready || running;
+    button.disabled = connecting || ready || running;
   });
   document.querySelectorAll(".start-action").forEach((button) => {
     button.disabled = running || !ready;
@@ -206,14 +210,22 @@ async function poll() {
 }
 
 async function connect() {
+  game.connecting = true;
   message("Connexion aux plateformes…");
+  $("connectButton").disabled = true;
+  document.querySelectorAll(".connect-action").forEach((button) => {
+    button.disabled = true;
+  });
   try {
     const response = await fetch("/api/kplates/dual/connect", { method: "POST" });
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || "Connexion impossible");
+    game.connecting = false;
     updateStatus(data);
   } catch (error) {
+    game.connecting = false;
     message(error.message, true);
+    poll();
   }
 }
 

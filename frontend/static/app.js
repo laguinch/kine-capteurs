@@ -10,6 +10,7 @@ const state = {
   cmjResultLoaded: false,
   cmjReady: false,
   savedEvaluations: new Set(),
+  bluetoothChanging: false,
 };
 
 const flowParams = new URLSearchParams(window.location.search);
@@ -43,7 +44,7 @@ function platformsReady(data) {
 function updateStatus(data) {
   const running = Boolean(data.running);
   const validating = Boolean(data.validating_streams);
-  const connecting = ["connecting", "recovering"].includes(data.worker_phase);
+  const connecting = state.bluetoothChanging || ["connecting", "recovering"].includes(data.worker_phase);
   const degraded = data.worker_phase === "degraded";
   const ready = platformsReady(data);
   const cmjMode = data.mode === "cmj";
@@ -413,20 +414,26 @@ async function stop() {
 }
 
 async function setBluetoothConnection(action) {
+  state.bluetoothChanging = true;
   setMessage(
     action === "connect"
       ? "Connexion aux plateformes…"
       : "Déconnexion des plateformes…"
   );
+  $("connectButton").disabled = true;
+  $("disconnectButton").disabled = true;
   try {
     const response = await fetch(`/api/kplates/dual/${action}`, {
       method: "POST",
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || "Commande impossible");
+    state.bluetoothChanging = false;
     updateStatus(data);
   } catch (error) {
+    state.bluetoothChanging = false;
     setMessage(error.message, true);
+    poll();
   }
 }
 
