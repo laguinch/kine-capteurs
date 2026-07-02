@@ -31,11 +31,17 @@ function setMessage(text, error = false, ready = false) {
   box.classList.toggle("ready", ready);
 }
 
+function bothPlatformsConnected(data) {
+  const sides = Array.isArray(data.connected_sides) ? data.connected_sides : [];
+  return sides.includes("gauche") && sides.includes("droite");
+}
+
 function updateStatus(data) {
   const running = Boolean(data.running);
   const validating = Boolean(data.validating_streams);
   const connecting = ["connecting", "recovering"].includes(data.worker_phase);
   const degraded = data.worker_phase === "degraded";
+  const ready = bothPlatformsConnected(data);
   const cmjMode = data.mode === "cmj";
   const cmjResultAvailable = Boolean(
     cmjMode
@@ -43,7 +49,7 @@ function updateStatus(data) {
     && data.csv_path
     && (!data.last_error || data.result_available)
   );
-  $("statusDot").className = `status-dot ${running || data.worker_ready ? "running" : data.last_error ? "error" : ""}`;
+  $("statusDot").className = `status-dot ${running || ready ? "running" : data.last_error ? "error" : ""}`;
   $("statusText").textContent = running
     ? validating
       ? "Vérification des plateformes"
@@ -56,12 +62,12 @@ function updateStatus(data) {
         ? "CMJ enregistré"
       : data.last_error
         ? "Erreur"
-        : data.worker_ready
+        : ready
           ? "Plateformes connectées"
           : "Service Bluetooth arrêté";
-  $("startButton").disabled = running;
+  $("startButton").disabled = running || !ready;
   $("stopButton").disabled = !running;
-  $("connectButton").disabled = running || connecting || data.bluetooth_connected;
+  $("connectButton").disabled = running || connecting || ready;
   $("disconnectButton").disabled = running || connecting || (!data.bluetooth_connected && !degraded);
   $("fileLabel").textContent = data.csv_path ? data.csv_path.split("/").pop() : "Aucun fichier en cours";
   $("downloadButton").classList.toggle("disabled", !data.csv_path);

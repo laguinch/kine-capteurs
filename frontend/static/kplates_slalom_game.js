@@ -78,25 +78,33 @@ function setLevelControlsDisabled(disabled) {
   });
 }
 
+function bothPlatformsConnected(data) {
+  const sides = Array.isArray(data.connected_sides) ? data.connected_sides : [];
+  return sides.includes("gauche") && sides.includes("droite");
+}
+
 function updateStatus(data) {
   const connected = Boolean(data.bluetooth_connected);
+  const ready = bothPlatformsConnected(data);
   const running = Boolean(data.running);
-  $("gameStatusDot").className = `status-dot ${running || connected ? "running" : data.last_error ? "error" : ""}`;
+  $("gameStatusDot").className = `status-dot ${running || ready ? "running" : data.last_error ? "error" : ""}`;
   $("gameStatusText").textContent = running
     ? "Jeu en cours"
-    : connected
+    : ready
       ? "Plateformes connectées"
+      : connected
+        ? "Connexion partielle"
       : data.last_error
         ? "Erreur"
         : "Déconnecté";
-  $("connectButton").disabled = connected || running;
-  $("startGameButton").disabled = running || !connected;
+  $("connectButton").disabled = ready || running;
+  $("startGameButton").disabled = running || !ready;
   $("stopGameButton").disabled = !running;
   document.querySelectorAll(".connect-action").forEach((button) => {
-    button.disabled = connected || running;
+    button.disabled = ready || running;
   });
   document.querySelectorAll(".start-action").forEach((button) => {
-    button.disabled = running || !connected;
+    button.disabled = running || !ready;
   });
   document.querySelectorAll(".stop-action").forEach((button) => {
     button.disabled = !running;
