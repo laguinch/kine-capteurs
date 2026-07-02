@@ -231,6 +231,7 @@ function finishGame() {
   if (!game.running) return;
   game.running = false;
   game.playing = false;
+  game.gates = [];
   message(`Slalom terminé. Score : ${game.score}.`, false, true);
   saveTrainingSummary();
 }
@@ -311,7 +312,9 @@ function drawGates(width, height, dt) {
   const speed = (230 + Math.min(180, game.score * 5)) * level.speedFactor;
   const playerY = height * playerYRatio;
   game.gates.forEach((gate) => {
-    gate.y += speed * dt;
+    if (game.playing) {
+      gate.y += speed * dt;
+    }
     const gapHalfWidth = width * level.gateWidth * 0.5;
     const centerX = width * gate.center;
     const leftPole = centerX - gapHalfWidth;
@@ -328,7 +331,7 @@ function drawGates(width, height, dt) {
     ctx.lineTo(rightPole - 16, gate.y);
     ctx.stroke();
 
-    if (!gate.counted && gate.y > playerY) {
+    if (game.playing && !gate.counted && gate.y > playerY) {
       gate.counted = true;
       const playerX = width * game.position;
       if (playerX > leftPole && playerX < rightPole) {

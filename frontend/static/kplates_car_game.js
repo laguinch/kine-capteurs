@@ -231,6 +231,7 @@ function finishGame() {
   if (!game.running) return;
   game.running = false;
   game.playing = false;
+  game.obstacles = [];
   message(`Jeu terminé. Score : ${game.score}.`, false, true);
   saveTrainingSummary();
 }
@@ -305,13 +306,15 @@ function drawObstacles(width, height, dt) {
   const speed = (250 + Math.min(220, game.score * 5)) * level.speedFactor;
   const carLane = Math.round(game.lane);
   game.obstacles.forEach((obstacle) => {
-    obstacle.y += speed * dt;
+    if (game.playing) {
+      obstacle.y += speed * dt;
+    }
     const x = width * lanes[obstacle.lane];
     ctx.fillStyle = "#df7b37";
     ctx.beginPath();
     ctx.roundRect(x - 20, obstacle.y - 32, 40, 64, 10);
     ctx.fill();
-    if (!obstacle.counted && obstacle.y > height * carYRatio) {
+    if (game.playing && !obstacle.counted && obstacle.y > height * carYRatio) {
       obstacle.counted = true;
       if (obstacle.lane === carLane) {
         game.score = Math.max(0, game.score - 3);
