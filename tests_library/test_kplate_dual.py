@@ -945,6 +945,13 @@ class KPlateDualTest(unittest.TestCase):
             0,
             1,
         )
+        for plate in client.plates:
+            plate.offsets = {
+                "av_d": 0,
+                "av_g": 0,
+                "ar_g": 0,
+                "ar_d": 0,
+            }
         pumped = []
         client.pump = pumped.append
 
@@ -962,6 +969,13 @@ class KPlateDualTest(unittest.TestCase):
             0,
             1,
         )
+        for plate in client.plates:
+            plate.offsets = {
+                "av_d": 0,
+                "av_g": 0,
+                "ar_g": 0,
+                "ar_d": 0,
+            }
 
         def pump(duration):
             del duration
@@ -973,6 +987,37 @@ class KPlateDualTest(unittest.TestCase):
 
         self.assertEqual(client.settle_initial_streams(), [])
 
+    def test_initial_settle_waits_for_both_tares_before_measuring(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        calls = []
+
+        def pump(duration):
+            calls.append(duration)
+            if len(calls) == 2:
+                for plate in client.plates:
+                    plate.offsets = {
+                        "av_d": 0,
+                        "av_g": 0,
+                        "ar_g": 0,
+                        "ar_d": 0,
+                    }
+            if duration == 2.0:
+                for plate in client.plates:
+                    plate.notifications += 10
+                    plate.measurements += 8
+
+        client.pump = pump
+
+        self.assertEqual(client.settle_initial_streams(), [])
+        self.assertEqual(calls, [0.25, 0.25, 2.0])
+
     def test_initial_settle_rejects_incoherent_saved_tare(self):
         client = self.module.DualKinventClient(
             1,
@@ -983,6 +1028,13 @@ class KPlateDualTest(unittest.TestCase):
             1,
         )
         client.calibration_saved = True
+        for plate in client.plates:
+            plate.offsets = {
+                "av_d": 0,
+                "av_g": 0,
+                "ar_g": 0,
+                "ar_d": 0,
+            }
 
         def pump(duration):
             del duration
@@ -1008,6 +1060,13 @@ class KPlateDualTest(unittest.TestCase):
             1,
         )
         client.calibration_saved = True
+        for plate in client.plates:
+            plate.offsets = {
+                "av_d": 0,
+                "av_g": 0,
+                "ar_g": 0,
+                "ar_d": 0,
+            }
 
         def pump(duration):
             del duration

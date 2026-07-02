@@ -1303,6 +1303,7 @@ class DualKinventClient:
 
     def settle_initial_streams(self, duration=2.0):
         """Vérifie les données initiales avant toute commande de repos."""
+        self.wait_for_initial_tare()
         print(
             "Stabilisation initiale des flux pendant "
             f"{duration:.0f} secondes..."
@@ -1337,6 +1338,27 @@ class DualKinventClient:
         if not missing:
             self.validate_loaded_calibration_at_rest()
         return missing
+
+    def wait_for_initial_tare(self, timeout=8.0):
+        """Attend la fin de la tare automatique avant la validation du flux."""
+        if all(plate.offsets is not None for plate in self.plates):
+            return
+        print("Tare initiale des plateformes: laissez-les vides.")
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline and any(
+            plate.offsets is None for plate in self.plates
+        ):
+            self.pump(0.25)
+        if any(plate.offsets is None for plate in self.plates):
+            missing = [
+                plate.side
+                for plate in self.plates
+                if plate.offsets is None
+            ]
+            raise RuntimeError(
+                "Tare initiale incomplète pour : " + ", ".join(missing)
+            )
+        self.save_calibration()
 
     def validate_loaded_calibration_at_rest(self):
         """Détecte une tare enregistrée manifestement incohérente."""
