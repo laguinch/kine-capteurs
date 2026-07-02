@@ -89,6 +89,7 @@ KPLATE_INIT_STEPS = [
     (b"\x11", 0.20),
 ]
 KPLATE_PARK_DELAY = 0.05
+KPLATE_REST_SANITY_KG = 20.0
 CSV_FIELDS = [
     "timestamp_utc",
     "sync_delta_ms",
@@ -1333,7 +1334,22 @@ class DualKinventClient:
             )
             if measurement_delta == 0:
                 missing.append(plate.side)
+        if not missing:
+            self.validate_loaded_calibration_at_rest()
         return missing
+
+    def validate_loaded_calibration_at_rest(self):
+        """Détecte une tare enregistrée manifestement incohérente."""
+        if not self.calibration_saved:
+            return
+        values = self.combined_values()
+        if values is None or values["total_kg"] < KPLATE_REST_SANITY_KG:
+            return
+        raise RuntimeError(
+            "Tare enregistrée incohérente: les plateformes semblent mesurer "
+            f"{values['total_kg']:.1f} kg juste après connexion. "
+            "Supprimez/refaites la tare avec les deux plateformes vides."
+        )
 
     def finish_acquisition_streams(self, acquisition_mode):
         """Reproduit la fin de test Kinvent tout en restant connecté."""

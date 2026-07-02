@@ -973,6 +973,53 @@ class KPlateDualTest(unittest.TestCase):
 
         self.assertEqual(client.settle_initial_streams(), [])
 
+    def test_initial_settle_rejects_incoherent_saved_tare(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        client.calibration_saved = True
+
+        def pump(duration):
+            del duration
+            client.plates[0].notifications += 10
+            client.plates[0].measurements += 8
+            client.plates[0].latest = {"force_kg": 93.8}
+            client.plates[1].notifications += 10
+            client.plates[1].measurements += 8
+            client.plates[1].latest = {"force_kg": 0.0}
+
+        client.pump = pump
+
+        with self.assertRaisesRegex(RuntimeError, "Tare enregistrée incohérente"):
+            client.settle_initial_streams()
+
+    def test_initial_settle_accepts_valid_saved_tare_at_rest(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        client.calibration_saved = True
+
+        def pump(duration):
+            del duration
+            for plate in client.plates:
+                plate.notifications += 10
+                plate.measurements += 8
+                plate.latest = {"force_kg": 0.0}
+
+        client.pump = pump
+
+        self.assertEqual(client.settle_initial_streams(), [])
+
     def test_rejected_frame_is_counted_for_diagnostics(self):
         plate = self.module.PlateState(
             "gauche",
