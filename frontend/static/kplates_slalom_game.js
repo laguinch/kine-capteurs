@@ -108,7 +108,7 @@ function updateStatus(data) {
     updateControls(data.measurement);
   }
   if (!running && game.running) {
-    finishGame(data.last_error || null);
+    finishGame();
   }
   if (data.last_error) {
     message(data.last_error, true);
@@ -227,16 +227,11 @@ async function stopGame() {
   }
 }
 
-function finishGame(error = null) {
+function finishGame() {
   if (!game.running) return;
   game.running = false;
   game.playing = false;
-  game.gates = [];
-  if (error) {
-    message(error, true);
-  } else {
-    message(`Slalom terminé. Score : ${game.score}.`, false, true);
-  }
+  message(`Slalom terminé. Score : ${game.score}.`, false, true);
   saveTrainingSummary();
 }
 
@@ -266,16 +261,19 @@ function drawTrack(width, height) {
   ctx.fillStyle = "#172629";
   ctx.fillRect(0, 0, width, height);
   ctx.fillStyle = "#24383c";
-  ctx.fillRect(width * 0.10, 0, width * 0.80, height);
-  ctx.strokeStyle = "rgba(255,255,255,.18)";
+  const roadLeft = width * 0.10;
+  const roadWidth = width * 0.80;
+  ctx.fillRect(roadLeft, 0, roadWidth, height);
+  ctx.strokeStyle = "rgba(255,255,255,.28)";
   ctx.lineWidth = 3;
-  ctx.setLineDash([24, 18]);
-  [0.25, 0.40, 0.55, 0.70].forEach((ratio) => {
+  for (let index = 1; index < 5; index += 1) {
+    const ratio = 0.17 + ((0.83 - 0.17) * (index - 0.5)) / 4;
+    ctx.setLineDash([24, 18]);
     ctx.beginPath();
     ctx.moveTo(width * ratio, 0);
     ctx.lineTo(width * ratio, height);
     ctx.stroke();
-  });
+  }
   ctx.setLineDash([]);
 }
 
@@ -391,7 +389,9 @@ document.querySelectorAll(".level-choice").forEach((button) => {
     document.querySelectorAll(".level-choice").forEach((choice) => {
       choice.classList.toggle("active", choice === button);
     });
-    $("sensitivityLabel").textContent = levels[game.level].description;
+    const level = levels[game.level];
+    $("sensitivityLabel").textContent =
+      `${level.description} · seuil ${movementThreshold} %`;
   });
 });
 
