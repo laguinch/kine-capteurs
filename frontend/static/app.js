@@ -76,8 +76,10 @@ function updateStatus(data) {
       : "Acquisition en cours"
     : connecting
       ? "Connexion des capteurs"
-      : degraded
-        ? waitingForMeasures
+    : degraded
+        ? !data.bluetooth_connected
+          ? "Déconnecté"
+          : waitingForMeasures
           ? "Mesures en attente"
           : "Connexion partielle"
       : cmjMode && data.finished_at && data.csv_path && !data.last_error
