@@ -69,6 +69,7 @@ function format(value, digits = 0) {
 function message(text, error = false, ready = false) {
   const box = $("gameMessage");
   box.textContent = text || "";
+  box.classList.toggle("hidden", !text);
   box.classList.toggle("error", error);
   box.classList.toggle("ready", ready);
 }
@@ -117,7 +118,7 @@ function syncAvailabilityMessage(data, ready, running) {
       || text.includes("Reconnectez les plateformes")
       || text.includes("déconnectée")
     ) {
-      message("Plateformes connectées. Vous pouvez démarrer le jeu.", false, true);
+      message("");
     }
     return;
   }
