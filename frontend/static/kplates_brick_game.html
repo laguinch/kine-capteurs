@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>K‑Force Plates — Casse-brique</title>
+    <link rel="stylesheet" href="/static/styles.css?v=23">
+  </head>
+  <body>
+    <main class="shell game-shell">
+      <nav class="sensor-nav">
+        <a href="/">Accueil</a>
+        <a class="active" href="/kforceplates/jeux">K‑Force Plates</a>
+        <a href="/kpush">K‑Push</a>
+        <a href="/kpull">K‑Pull</a>
+        <a href="/kmove">K‑Move</a>
+      </nav>
+
+      <header class="game-header">
+        <div>
+          <p class="eyebrow">K‑Force Plates · Entraînement</p>
+          <h1>Casse-brique</h1>
+          <p class="subtitle">
+            Déplacez la raquette avec les transferts d’appui gauche/droite.
+          </p>
+        </div>
+        <div class="status-pill">
+          <span id="gameStatusDot" class="status-dot"></span>
+          <span id="gameStatusText">En attente</span>
+        </div>
+      </header>
+
+      <section id="flowBanner" class="flow-banner">
+        <span id="flowMode">Entraînement anonyme</span>
+        <strong id="flowSave">Les jeux resteront anonymes.</strong>
+      </section>
+
+      <section class="game-layout">
+        <div class="game-panel">
+          <canvas id="brickCanvas" width="520" height="720" aria-label="Jeu casse-brique"></canvas>
+        </div>
+        <aside class="game-sidebar panel">
+          <div class="control-actions">
+            <button id="connectButton" type="button">Connecter</button>
+            <button id="startGameButton" class="primary" type="button">Démarrer le jeu</button>
+            <button id="stopGameButton" type="button" disabled>Arrêter</button>
+          </div>
+          <div class="game-score">
+            <span>Score</span>
+            <strong id="scoreValue">0</strong>
+          </div>
+          <div class="game-score">
+            <span>Temps</span>
+            <strong id="gameTimer">00:00</strong>
+          </div>
+          <div class="game-score">
+            <span>Commande</span>
+            <strong id="directionValue">Centre</strong>
+          </div>
+          <div class="game-level">
+            <span>Niveau</span>
+            <div class="level-choice-row" role="group" aria-label="Niveau de difficulté">
+              <button class="level-choice active" type="button" data-level="easy">Facile</button>
+              <button class="level-choice" type="button" data-level="medium">Moyen</button>
+              <button class="level-choice" type="button" data-level="expert">Expert</button>
+            </div>
+            <small id="sensitivityLabel">Déclenchement léger · raquette large · vitesse lente</small>
+          </div>
+          <div class="force-mini">
+            <span>Gauche</span>
+            <div class="mini-bar">
+              <i id="leftForceBar"></i>
+            </div>
+            <span id="leftForceText">0 %</span>
+          </div>
+          <div class="force-mini">
+            <span>Droite</span>
+            <div class="mini-bar right">
+              <i id="rightForceBar"></i>
+            </div>
+            <span id="rightForceText">0 %</span>
+          </div>
+        </aside>
+      </section>
+      <div class="mobile-game-actions" aria-label="Commandes du jeu">
+        <button class="connect-action" type="button">Connecter</button>
+        <button class="start-action primary" type="button">Démarrer</button>
+        <button class="stop-action" type="button" disabled>Arrêter</button>
+      </div>
+    </main>
+    <script src="/static/flow.js?v=6"></script>
+    <script src="/static/kplates_brick_game.js?v=1"></script>
+  </body>
+</html>

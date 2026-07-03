@@ -94,6 +94,11 @@ def kforceplates_slalom_game():
     return frontend_page("kplates_slalom_game.html")
 
 
+@app.get("/kforceplates/jeux/casse-brique")
+def kforceplates_brick_game():
+    return frontend_page("kplates_brick_game.html")
+
+
 @app.get("/kpush")
 def kpush():
     return frontend_page("kpush.html")

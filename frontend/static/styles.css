@@ -114,7 +114,8 @@ button, input, select { font: inherit; }
   box-shadow: var(--shadow);
 }
 #carCanvas,
-#slalomCanvas {
+#slalomCanvas,
+#brickCanvas {
   display: block;
   width: 100%;
   height: 100%;

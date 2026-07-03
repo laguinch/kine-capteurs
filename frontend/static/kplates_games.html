@@ -39,6 +39,11 @@
           <strong>Slalom</strong>
           <small>Passer entre des portes avec des appuis alternés gauche/droite.</small>
         </a>
+        <a id="brickGameLink" class="choice-card" href="/kforceplates/jeux/casse-brique">
+          <span class="choice-kicker">Gauche / droite</span>
+          <strong>Casse-brique</strong>
+          <small>Déplacer la raquette avec les transferts d’appui pour casser 5 étages de briques.</small>
+        </a>
       </section>
     </main>
     <script src="/static/flow.js?v=6"></script>
@@ -48,6 +53,8 @@
         `/kforceplates/jeux/voiture?${params.toString()}`;
       document.getElementById("slalomGameLink").href =
         `/kforceplates/jeux/slalom?${params.toString()}`;
+      document.getElementById("brickGameLink").href =
+        `/kforceplates/jeux/casse-brique?${params.toString()}`;
     </script>
   </body>
 </html>
