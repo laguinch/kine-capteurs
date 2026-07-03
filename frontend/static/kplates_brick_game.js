@@ -14,7 +14,7 @@ const game = {
   level: "easy",
   paddleX: 0.5,
   targetPaddleX: 0.5,
-  score: 0,
+  misses: 0,
   startedAt: null,
   lastFrameAt: performance.now(),
   direction: "center",
@@ -250,7 +250,7 @@ function resetBall() {
 }
 
 async function startGame() {
-  game.score = 0;
+  game.misses = 0;
   game.startedAt = null;
   game.bricks = buildBricks();
   resetBall();
@@ -261,7 +261,7 @@ async function startGame() {
   game.saved = false;
   game.completed = false;
   game.csvPath = null;
-  $("scoreValue").textContent = "0";
+  $("missValue").textContent = "0";
   try {
     const response = await fetch("/api/kplates/dual/start", {
       method: "POST",
@@ -324,7 +324,7 @@ async function saveTrainingSummary() {
         sensor: "K-Force Plates",
         test_name: "Casse-brique",
         display_name: "Casse-brique · contrôle latéral",
-        summary: `Score ${game.score} · niveau ${levels[game.level].label}`,
+        summary: `Échecs ${game.misses} · niveau ${levels[game.level].label}`,
         csv_path: game.csvPath,
       }),
     });
@@ -401,8 +401,8 @@ function updateBall(width, height, dt, paddle) {
     ball.vy = Math.abs(ball.vy);
   }
   if (ball.y > 0.98) {
-    game.score = Math.max(0, game.score - 2);
-    $("scoreValue").textContent = String(game.score);
+    game.misses += 1;
+    $("missValue").textContent = String(game.misses);
     resetBall();
   }
 
@@ -430,8 +430,6 @@ function updateBall(width, height, dt, paddle) {
     if (ballX > x && ballX < x + w && ballY > y && ballY < y + h) {
       brick.alive = false;
       ball.vy *= -1;
-      game.score += 1;
-      $("scoreValue").textContent = String(game.score);
     }
   });
 
