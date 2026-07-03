@@ -1382,22 +1382,22 @@ class DualKinventClient:
 
     def mark_full_reconnect_required(self, state_file, generation, command, exc):
         """Signale une coupure sans fermer la plateforme encore connectée."""
-        connected_sides = [
-            plate.side for plate in self.plates if plate.handle is not None
-        ]
         self.write_worker_state(
             state_file,
             phase="degraded",
             generation=generation,
             csv_path=command.get("csv_path"),
             mode=command.get("mode", "balance"),
-            connected_sides=connected_sides,
+            connected_sides=self.connected_sides(),
             result_available=(
                 command.get("mode") == "cmj"
                 and bool(command.get("csv_path"))
             ),
             error=f"{exc}. Reconnectez les plateformes.",
         )
+
+    def connected_sides(self):
+        return [plate.side for plate in self.plates if plate.handle is not None]
 
     def validate_live_streams(self, timeout=3.0, attempts=1):
         """Exige une nouvelle trame de mesure valide de chaque plateforme."""
@@ -1701,6 +1701,7 @@ class DualKinventClient:
                                     state_file,
                                     phase="degraded",
                                     generation=generation,
+                                    connected_sides=self.connected_sides(),
                                     error=(
                                         "Connexion Bluetooth établie, mais "
                                         "aucune mesure initiale reçue pour : "
@@ -1713,6 +1714,7 @@ class DualKinventClient:
                                     state_file,
                                     phase="idle",
                                     generation=generation,
+                                    connected_sides=self.connected_sides(),
                                 )
                     else:
                         time.sleep(0.25)
@@ -1785,6 +1787,7 @@ class DualKinventClient:
                                 state_file,
                                 phase="degraded",
                                 generation=generation,
+                                connected_sides=self.connected_sides(),
                                 error=(
                                     "Connexion Bluetooth établie, mais "
                                     "aucune mesure initiale reçue pour : "
@@ -1797,6 +1800,7 @@ class DualKinventClient:
                                 state_file,
                                 phase="idle",
                                 generation=generation,
+                                connected_sides=self.connected_sides(),
                             )
                     continue
 
@@ -2048,18 +2052,13 @@ class DualKinventClient:
                     )
                 except (TimeoutError, RuntimeError) as exc:
                     print(f"Session inactive interrompue: {exc}")
-                    connected_sides = [
-                        plate.side
-                        for plate in self.plates
-                        if plate.handle is not None
-                    ]
                     self.write_worker_state(
                         state_file,
                         phase="degraded",
                         generation=generation,
                         csv_path=command.get("csv_path"),
                         mode=command.get("mode", "balance"),
-                        connected_sides=connected_sides,
+                        connected_sides=self.connected_sides(),
                         error=str(exc),
                     )
         except Exception as exc:
