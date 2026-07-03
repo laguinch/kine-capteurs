@@ -113,7 +113,8 @@ button, input, select { font: inherit; }
   background: #172629;
   box-shadow: var(--shadow);
 }
-#carCanvas {
+#carCanvas,
+#slalomCanvas {
   display: block;
   width: 100%;
   height: 100%;
