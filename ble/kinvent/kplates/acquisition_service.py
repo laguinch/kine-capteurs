@@ -204,14 +204,22 @@ class DualPlateAcquisitionService:
                 and worker.get("error")
                 else None
             )
+            connected_sides = worker.get("connected_sides")
+            has_explicit_sides = isinstance(connected_sides, list)
+            has_connected_plate = bool(connected_sides) if has_explicit_sides else True
+            bluetooth_connected = (
+                worker_alive
+                and phase in {"idle", "active", "degraded"}
+                and has_connected_plate
+            )
             return {
                 "running": running,
                 "worker_phase": phase,
                 "validating_streams": command_pending,
-                "worker_ready": worker_alive and phase in {"idle", "degraded"},
-                "bluetooth_connected": worker_alive
-                and phase in {"idle", "active", "degraded"},
-                "connected_sides": worker.get("connected_sides", []),
+                "worker_ready": bluetooth_connected
+                and phase in {"idle", "degraded"},
+                "bluetooth_connected": bluetooth_connected,
+                "connected_sides": connected_sides if has_explicit_sides else [],
                 "pid": worker.get("pid") if worker_alive else None,
                 "manager_pid": manager.get("pid"),
                 "started_at": self._started_at,
