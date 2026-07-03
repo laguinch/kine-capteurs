@@ -67,11 +67,9 @@ function format(value, digits = 0) {
 }
 
 function message(text, error = false, ready = false) {
-  const box = $("gameMessage");
-  box.textContent = text || "";
-  box.classList.toggle("hidden", !text);
-  box.classList.toggle("error", error);
-  box.classList.toggle("ready", ready);
+  void text;
+  void error;
+  void ready;
 }
 
 function setLevelControlsDisabled(disabled) {
@@ -97,42 +95,10 @@ function waitingForInitialMeasurements(data) {
   );
 }
 
-function missingMeasurementText(data) {
-  const match = data.last_error.match(/pour : (.+)\.$/);
-  const sides = match ? match[1] : "les plateformes";
-  return `Plateformes connectées en Bluetooth. En attente des mesures pour : ${sides}.`;
-}
-
 function syncAvailabilityMessage(data, ready, running) {
-  if (running) return;
-  const box = $("gameMessage");
-  const text = box.textContent || "";
-  if (ready && !data.last_error) {
-    if (
-      box.classList.contains("error")
-      || !text
-      || text.startsWith("Connectez les plateformes")
-      || text.startsWith("Connexion aux plateformes")
-      || text.includes("Connexion des plateformes")
-      || text.includes("En attente des mesures")
-      || text.includes("Reconnectez les plateformes")
-      || text.includes("déconnectée")
-    ) {
-      message("");
-    }
-    return;
-  }
-  if (waitingForInitialMeasurements(data)) {
-    message(missingMeasurementText(data));
-    return;
-  }
-  if (!ready && data.last_error) {
-    message(data.last_error, true);
-    return;
-  }
-  if (!ready && text.includes("Vous pouvez démarrer le jeu")) {
-    message("Connexion des plateformes en cours…");
-  }
+  void data;
+  void ready;
+  void running;
 }
 
 function updateStatus(data) {
@@ -237,6 +203,8 @@ async function poll() {
 async function connect() {
   game.connecting = true;
   message("Connexion aux plateformes…");
+  $("gameStatusText").textContent = "Connexion des plateformes";
+  $("gameStatusDot").className = "status-dot running";
   $("connectButton").disabled = true;
   $("startGameButton").disabled = true;
   document.querySelectorAll(".connect-action").forEach((button) => {
