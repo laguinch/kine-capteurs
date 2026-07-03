@@ -22,6 +22,7 @@ const game = {
   lastMeasurementTimestamp: null,
   saved: false,
   csvPath: null,
+  completed: false,
   connecting: false,
   bricks: [],
   ball: { x: 0.5, y: 0.72, vx: 0.34, vy: -0.45 },
@@ -258,15 +259,15 @@ async function startGame() {
   game.playing = false;
   game.lastMeasurementTimestamp = null;
   game.saved = false;
+  game.completed = false;
   game.csvPath = null;
   $("scoreValue").textContent = "0";
-  $("gameTimer").textContent = "00:00";
   try {
     const response = await fetch("/api/kplates/dual/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        duration: 60,
+        duration: 600,
         mode: "balance",
         recalibrate: false,
         filename: `kplates_casse_brique_${game.level}_${new Date().toISOString().replace(/[:.]/g, "-")}.csv`,
@@ -291,10 +292,22 @@ async function stopGame() {
   }
 }
 
+async function completeGame() {
+  if (!game.running || game.completed) return;
+  game.completed = true;
+  try {
+    await fetch("/api/kplates/dual/stop", { method: "POST" });
+  } finally {
+    finishGame();
+  }
+}
+
 function finishGame() {
   if (!game.running) return;
   game.running = false;
   game.playing = false;
+  $("gameStatusDot").className = "status-dot running";
+  $("gameStatusText").textContent = game.completed ? "Casse-brique terminé" : "Jeu arrêté";
   saveTrainingSummary();
 }
 
@@ -423,8 +436,7 @@ function updateBall(width, height, dt, paddle) {
   });
 
   if (game.playing && game.bricks.every((brick) => !brick.alive)) {
-    game.bricks = buildBricks();
-    resetBall();
+    completeGame();
   }
 }
 
@@ -452,13 +464,6 @@ function draw() {
   const paddle = drawPaddle(width, height);
   updateBall(width, height, dt, paddle);
   drawBall(width, height);
-
-  if (game.playing && game.startedAt) {
-    const elapsed = (now - game.startedAt) / 1000;
-    const minutes = Math.floor(elapsed / 60).toString().padStart(2, "0");
-    const seconds = Math.floor(elapsed % 60).toString().padStart(2, "0");
-    $("gameTimer").textContent = `${minutes}:${seconds}`;
-  }
 
   requestAnimationFrame(draw);
 }
