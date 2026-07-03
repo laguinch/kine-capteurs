@@ -4,6 +4,12 @@ from pathlib import Path
 from unittest import mock
 
 import ble.kinvent.bluetooth_manager as manager
+from ble.kinvent.bumble_backend import (
+    BUMBLE_BACKEND,
+    RAW_HCI_BACKEND,
+    BumbleBackendError,
+    normalize_backend,
+)
 from scripts.kinvent_bluetooth_manager import KinventBluetoothManager
 
 
@@ -33,6 +39,32 @@ class BluetoothManagerTest(unittest.TestCase):
         bluetooth.controller.open.assert_called_once_with()
         bluetooth.controller.reset.assert_called_once_with()
         bluetooth.state.assert_called_once_with("idle")
+
+    def test_default_backend_remains_raw_hci(self):
+        bluetooth = KinventBluetoothManager(0)
+
+        self.assertEqual(bluetooth.backend, RAW_HCI_BACKEND)
+
+    def test_rejects_unknown_bluetooth_backend(self):
+        with self.assertRaises(BumbleBackendError):
+            normalize_backend("fantaisie")
+
+    def test_bumble_backend_is_explicitly_guarded_before_production_switch(self):
+        bluetooth = KinventBluetoothManager(0, backend=BUMBLE_BACKEND)
+        bluetooth.state = mock.Mock()
+        with mock.patch(
+            "scripts.kinvent_bluetooth_manager.require_bumble"
+        ) as require_bumble:
+            with self.assertRaises(RuntimeError):
+                bluetooth.start()
+
+        require_bumble.assert_called_once_with()
+        bluetooth.state.assert_called_once()
+        self.assertEqual(bluetooth.state.call_args.args[0], "error")
+        self.assertEqual(
+            bluetooth.state.call_args.kwargs["backend"],
+            BUMBLE_BACKEND,
+        )
 
     def test_start_reports_bluetooth_controller_error(self):
         bluetooth = KinventBluetoothManager(0)

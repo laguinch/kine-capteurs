@@ -19,6 +19,15 @@ from ble.kinvent.bluetooth_manager import (  # noqa: E402
     CONTROL_PATH,
     STATE_PATH,
 )
+from ble.kinvent.bumble_backend import (  # noqa: E402
+    BUMBLE_BACKEND,
+    RAW_HCI_BACKEND,
+    backend_from_environment,
+    bumble_config_from_environment,
+    manager_backend_notice,
+    normalize_backend,
+    require_bumble,
+)
 from scripts.kinvent_raw_hci import RawKinventClient, parse_adapter  # noqa: E402
 
 
@@ -97,8 +106,10 @@ def describe_command(command):
 
 
 class KinventBluetoothManager:
-    def __init__(self, adapter):
+    def __init__(self, adapter, backend=None):
         self.adapter = adapter
+        self.backend = normalize_backend(backend or backend_from_environment())
+        self.bumble_config = bumble_config_from_environment()
         self.controller = RawKinventClient(
             adapter=adapter,
             address="00:00:00:00:00:00",
@@ -123,6 +134,27 @@ class KinventBluetoothManager:
 
     def start(self):
         RAW_DIR.mkdir(parents=True, exist_ok=True)
+        print(
+            manager_backend_notice(self.backend, self.bumble_config),
+            flush=True,
+        )
+        if self.backend == BUMBLE_BACKEND:
+            require_bumble()
+            self.state(
+                "error",
+                backend=self.backend,
+                transport=self.bumble_config.transport,
+                error=(
+                    "Backend Bumble disponible pour diagnostic, mais le "
+                    "gestionnaire permanent Kinvent n'est pas encore basculé. "
+                    "Utilisez scripts/kinvent_bumble_probe.py pour valider le "
+                    "dongle, puis migrez les pilotes capteur par capteur."
+                ),
+            )
+            raise RuntimeError(
+                "Gestionnaire permanent Bumble non activé sans validation "
+                "matérielle."
+            )
         try:
             self.controller.open()
             self.controller.reset()
@@ -309,8 +341,18 @@ class KinventBluetoothManager:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--adapter", type=parse_adapter, default=0)
+    parser.add_argument(
+        "--backend",
+        choices=[RAW_HCI_BACKEND, BUMBLE_BACKEND],
+        default=None,
+        help=(
+            "Backend Bluetooth. Par défaut: KINE_BLUETOOTH_BACKEND ou raw-hci. "
+            "Bumble est réservé au diagnostic tant que le dongle nRF52840 "
+            "n'a pas été validé."
+        ),
+    )
     args = parser.parse_args()
-    KinventBluetoothManager(args.adapter).run()
+    KinventBluetoothManager(args.adapter, backend=args.backend).run()
 
 
 if __name__ == "__main__":

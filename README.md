@@ -118,6 +118,42 @@ Le processus HCI nécessite les droits d'accès au contrôleur Bluetooth brut.
 La variable `KINE_HCI_COMMAND_PREFIX` permet de définir un préfixe de lancement
 fourni par le service système, par exemple `sudo -n` après configuration dédiée.
 
+### Backend Bumble expérimental
+
+Le projet prépare une migration vers Bumble pour remplacer progressivement la
+plomberie HCI maison. Bumble ne change pas le protocole Kinvent : les commandes
+envoyées aux capteurs restent strictement celles observées dans les captures
+officielles du dossier `bug_report/`.
+
+La production reste sur le backend validé `raw-hci` tant que le nouveau dongle
+n'a pas été testé. Le diagnostic Bumble permet de valider un contrôleur HCI,
+par exemple le nRF52840 Dongle flashé en firmware HCI USB :
+
+```bash
+cd /opt/kine-capteurs-staging
+source .venv/bin/activate
+python scripts/kinvent_bumble_probe.py \
+  --transport usb:0 \
+  --address "ADRESSE_DU_CAPTEUR" \
+  --profile force \
+  --duration 30 \
+  --csv storage/raw_data/bumble_probe.csv
+```
+
+Pour le K-Move, utiliser `--profile kmove`. Pour une découverte GATT sans
+commande Kinvent, utiliser `--profile none`.
+
+Les variables prévues pour la suite sont :
+
+- `KINE_BLUETOOTH_BACKEND=raw-hci` par défaut ;
+- `KINE_BLUETOOTH_BACKEND=bumble` uniquement pour les essais préparatoires ;
+- `KINE_BUMBLE_TRANSPORT=usb:0` pour le transport Bumble du dongle.
+
+Le gestionnaire permanent refusera volontairement de basculer en Bumble tant
+que les pilotes capteur n'auront pas été migrés et validés capteur par capteur.
+Ce garde-fou évite d'introduire un comportement non observé dans l'application
+officielle Kinvent.
+
 ## Cycle Bluetooth Kinvent
 
 Les pilotes reproduisent le cycle observé dans les captures HCI de
