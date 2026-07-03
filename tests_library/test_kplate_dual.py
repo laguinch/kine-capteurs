@@ -1391,6 +1391,39 @@ class KPlateDualTest(unittest.TestCase):
 
         self.assertGreaterEqual(sleep.call_args.args[0], 4.0)
 
+    def test_managed_worker_never_reopens_hci_controller(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        client.sock = None
+
+        with mock.patch.object(client, "open") as open_controller:
+            with self.assertRaisesRegex(RuntimeError, "Canal HCI partagé"):
+                client.ensure_persistent_hci_channel(managed=True)
+
+        open_controller.assert_not_called()
+
+    def test_unmanaged_worker_can_reopen_hci_controller(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        client.sock = None
+
+        with mock.patch.object(client, "open") as open_controller:
+            client.ensure_persistent_hci_channel(managed=False)
+
+        open_controller.assert_called_once_with()
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -401,6 +401,17 @@ class DualKinventClient:
             )
             time.sleep(remaining)
 
+    def ensure_persistent_hci_channel(self, managed):
+        """En mode gestionnaire, ne jamais réserver hci0 depuis le worker."""
+        if self.sock is not None:
+            return
+        if managed:
+            raise RuntimeError(
+                "Canal HCI partagé perdu; le gestionnaire Bluetooth doit "
+                "relancer le pilote plateformes."
+            )
+        self.open()
+
     def load_calibration(self):
         if self.calibration_path is None or not self.calibration_path.exists():
             return False
@@ -1698,8 +1709,7 @@ class DualKinventClient:
                         )
                         try:
                             self.wait_for_reconnect_cooldown()
-                            if self.sock is None:
-                                self.open()
+                            self.ensure_persistent_hci_channel(managed)
                             self.initialize_session(
                                 scan_timeout,
                                 connect_timeout,
@@ -1776,7 +1786,7 @@ class DualKinventClient:
                         else:
                             self.shutdown_session()
                             self.wait_for_reconnect_cooldown()
-                            self.open()
+                            self.ensure_persistent_hci_channel(managed)
                         self.initialize_session(
                             scan_timeout,
                             connect_timeout,
