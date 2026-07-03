@@ -1881,6 +1881,7 @@ class DualKinventClient:
                             csv_path=command["csv_path"],
                             started_at=now_iso(),
                             mode=acquisition_mode,
+                            connected_sides=self.connected_sides(),
                         )
                         completed = self.pump(
                             duration,
@@ -1908,6 +1909,7 @@ class DualKinventClient:
                                 generation=generation,
                                 csv_path=command["csv_path"],
                                 mode=acquisition_mode,
+                                connected_sides=self.connected_sides(),
                                 interrupted=True,
                                 error=(
                                     "Un flux de plateforme ne répond plus. "
@@ -1944,6 +1946,7 @@ class DualKinventClient:
                             generation=generation,
                             csv_path=command["csv_path"],
                             mode=acquisition_mode,
+                            connected_sides=self.connected_sides(),
                             interrupted=True,
                             result_available=result_available,
                             error=(
@@ -1970,6 +1973,7 @@ class DualKinventClient:
                             phase="degraded",
                             generation=generation,
                             csv_path=command["csv_path"],
+                            connected_sides=self.connected_sides(),
                             error=str(exc),
                         )
                         active_generation = None
@@ -1992,6 +1996,7 @@ class DualKinventClient:
                             phase="degraded",
                             generation=generation,
                             csv_path=command["csv_path"],
+                            connected_sides=self.connected_sides(),
                             paired_samples=0,
                             cmj_samples=0,
                             error=(
@@ -2013,6 +2018,7 @@ class DualKinventClient:
                             phase="idle",
                             generation=generation,
                             csv_path=command["csv_path"],
+                            connected_sides=self.connected_sides(),
                             paired_samples=self.paired_samples,
                             cmj_samples=self.cmj_samples,
                             mode=acquisition_mode,
