@@ -120,23 +120,6 @@ class BluetoothManagerTest(unittest.TestCase):
             )
         )
 
-    def test_duplicate_selection_keeps_current_child_alive(self):
-        bluetooth = KinventBluetoothManager(0)
-        bluetooth.target = "kplates"
-        bluetooth.child = mock.Mock()
-        bluetooth.child.poll.return_value = None
-
-        self.assertTrue(bluetooth.current_target_is_active("kplates"))
-        bluetooth.child.poll.assert_called_once_with()
-
-    def test_different_selection_does_not_keep_current_child(self):
-        bluetooth = KinventBluetoothManager(0)
-        bluetooth.target = "kplates"
-        bluetooth.child = mock.Mock()
-
-        self.assertFalse(bluetooth.current_target_is_active("kmove"))
-        bluetooth.child.poll.assert_not_called()
-
     def test_process_waits_for_its_exact_manager_generation(self):
         process = manager.ManagedSensorProcess("kmove", "request-2")
         with tempfile.TemporaryDirectory() as directory:

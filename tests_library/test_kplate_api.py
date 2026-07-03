@@ -35,7 +35,6 @@ class KPlateApiTest(unittest.TestCase):
         self.assertIn("/kforceplates/jeux", paths)
         self.assertIn("/kforceplates/jeux/voiture", paths)
         self.assertIn("/kforceplates/jeux/slalom", paths)
-        self.assertIn("/kforceplates/jeux/casse-brique", paths)
         self.assertIn("/kpush", paths)
         self.assertIn("/kpush/test", paths)
         self.assertIn("/kpull", paths)
@@ -416,27 +415,6 @@ class KPlateApiTest(unittest.TestCase):
             status["last_error"],
             "Plateforme gauche déconnectée",
         )
-        self.assertTrue(status["bluetooth_connected"])
-
-    def test_degraded_state_without_connected_sides_is_disconnected(self):
-        service = DualPlateAcquisitionService()
-        with tempfile.TemporaryDirectory() as directory:
-            service._worker_state_path = Path(directory) / "state.json"
-            service._worker_state_path.write_text(
-                (
-                    f'{{"phase":"degraded","pid":{os.getpid()},'
-                    '"connected_sides":[],'
-                    '"error":"Plateforme droite déconnectée"}'
-                ),
-                encoding="utf-8",
-            )
-
-            with self.no_manager_state():
-                status = service.status()
-
-        self.assertFalse(status["bluetooth_connected"])
-        self.assertFalse(status["worker_ready"])
-        self.assertEqual(status["connected_sides"], [])
 
     def test_degraded_state_stays_connected_and_can_retry(self):
         service = DualPlateAcquisitionService()

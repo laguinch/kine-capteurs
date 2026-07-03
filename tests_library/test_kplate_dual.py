@@ -439,52 +439,6 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(states[0]["connected_sides"], ["droite"])
         self.assertIn("Reconnectez les plateformes", states[0]["error"])
 
-    def test_connected_sides_reflects_open_hci_handles(self):
-        client = self.module.DualKinventClient(
-            1,
-            "E8:EB:1B:6F:A7:5F",
-            "E8:EB:1B:79:B1:AB",
-            None,
-            0,
-            1,
-        )
-        for index, plate in enumerate(client.plates, start=0x10):
-            plate.handle = index
-
-        self.assertEqual(client.connected_sides(), ["gauche", "droite"])
-
-        client.plates[0].handle = None
-
-        self.assertEqual(client.connected_sides(), ["droite"])
-
-    def test_idle_state_requires_initial_measurements_from_both_plates(self):
-        client = self.module.DualKinventClient(
-            1,
-            "E8:EB:1B:6F:A7:5F",
-            "E8:EB:1B:79:B1:AB",
-            None,
-            0,
-            1,
-        )
-        for index, plate in enumerate(client.plates, start=0x10):
-            plate.handle = index
-
-        states = []
-        client.write_worker_state = (
-            lambda path, **state: states.append(state)
-        )
-
-        ready = client.write_idle_or_degraded_state(
-            "state.json",
-            "test-generation",
-            missing_streams=["droite"],
-        )
-
-        self.assertFalse(ready)
-        self.assertEqual(states[0]["phase"], "degraded")
-        self.assertEqual(states[0]["connected_sides"], ["gauche", "droite"])
-        self.assertIn("droite", states[0]["error"])
-
     def test_disconnect_identifies_plate_and_clears_handle(self):
         client = self.module.DualKinventClient(
             1,
@@ -1390,39 +1344,6 @@ class KPlateDualTest(unittest.TestCase):
             client.wait_for_reconnect_cooldown()
 
         self.assertGreaterEqual(sleep.call_args.args[0], 4.0)
-
-    def test_managed_worker_never_reopens_hci_controller(self):
-        client = self.module.DualKinventClient(
-            1,
-            "E8:EB:1B:6F:A7:5F",
-            "E8:EB:1B:79:B1:AB",
-            None,
-            0,
-            1,
-        )
-        client.sock = None
-
-        with mock.patch.object(client, "open") as open_controller:
-            with self.assertRaisesRegex(RuntimeError, "Canal HCI partagé"):
-                client.ensure_persistent_hci_channel(managed=True)
-
-        open_controller.assert_not_called()
-
-    def test_unmanaged_worker_can_reopen_hci_controller(self):
-        client = self.module.DualKinventClient(
-            1,
-            "E8:EB:1B:6F:A7:5F",
-            "E8:EB:1B:79:B1:AB",
-            None,
-            0,
-            1,
-        )
-        client.sock = None
-
-        with mock.patch.object(client, "open") as open_controller:
-            client.ensure_persistent_hci_channel(managed=False)
-
-        open_controller.assert_called_once_with()
 
 
 if __name__ == "__main__":

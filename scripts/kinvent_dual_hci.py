@@ -401,17 +401,6 @@ class DualKinventClient:
             )
             time.sleep(remaining)
 
-    def ensure_persistent_hci_channel(self, managed):
-        """En mode gestionnaire, ne jamais réserver hci0 depuis le worker."""
-        if self.sock is not None:
-            return
-        if managed:
-            raise RuntimeError(
-                "Canal HCI partagé perdu; le gestionnaire Bluetooth doit "
-                "relancer le pilote plateformes."
-            )
-        self.open()
-
     def load_calibration(self):
         if self.calibration_path is None or not self.calibration_path.exists():
             return False
@@ -1391,57 +1380,18 @@ class DualKinventClient:
         self.park_measurement_streams(commands=3)
         return False
 
-    def connected_sides(self):
-        return [
-            plate.side for plate in self.plates if plate.handle is not None
-        ]
-
-    def write_idle_or_degraded_state(
-        self,
-        state_file,
-        generation,
-        missing_streams=None,
-        csv_path=None,
-        mode="balance",
-    ):
-        """Expose l'état prêt seulement après réception de mesures réelles."""
-        if missing_streams is None:
-            missing_streams = self.settle_initial_streams()
-        if missing_streams:
-            self.write_worker_state(
-                state_file,
-                phase="degraded",
-                generation=generation,
-                csv_path=csv_path,
-                mode=mode,
-                connected_sides=self.connected_sides(),
-                error=(
-                    "Connexion Bluetooth établie, mais "
-                    "aucune mesure initiale reçue pour : "
-                    + ", ".join(missing_streams)
-                    + "."
-                ),
-            )
-            return False
-        self.write_worker_state(
-            state_file,
-            phase="idle",
-            generation=generation,
-            csv_path=csv_path,
-            mode=mode,
-            connected_sides=self.connected_sides(),
-        )
-        return True
-
     def mark_full_reconnect_required(self, state_file, generation, command, exc):
         """Signale une coupure sans fermer la plateforme encore connectée."""
+        connected_sides = [
+            plate.side for plate in self.plates if plate.handle is not None
+        ]
         self.write_worker_state(
             state_file,
             phase="degraded",
             generation=generation,
             csv_path=command.get("csv_path"),
             mode=command.get("mode", "balance"),
-            connected_sides=self.connected_sides(),
+            connected_sides=connected_sides,
             result_available=(
                 command.get("mode") == "cmj"
                 and bool(command.get("csv_path"))
@@ -1709,7 +1659,8 @@ class DualKinventClient:
                         )
                         try:
                             self.wait_for_reconnect_cooldown()
-                            self.ensure_persistent_hci_channel(managed)
+                            if self.sock is None:
+                                self.open()
                             self.initialize_session(
                                 scan_timeout,
                                 connect_timeout,
@@ -1745,11 +1696,24 @@ class DualKinventClient:
                             )
                         else:
                             next_idle_keepalive = time.monotonic() + 10.0
-                            self.write_idle_or_degraded_state(
-                                state_file,
-                                generation,
-                                missing_streams=missing_streams,
-                            )
+                            if missing_streams:
+                                self.write_worker_state(
+                                    state_file,
+                                    phase="degraded",
+                                    generation=generation,
+                                    error=(
+                                        "Connexion Bluetooth établie, mais "
+                                        "aucune mesure initiale reçue pour : "
+                                        + ", ".join(missing_streams)
+                                        + "."
+                                    ),
+                                )
+                            else:
+                                self.write_worker_state(
+                                    state_file,
+                                    phase="idle",
+                                    generation=generation,
+                                )
                     else:
                         time.sleep(0.25)
                     continue
@@ -1768,7 +1732,6 @@ class DualKinventClient:
                             state_file,
                             phase="idle",
                             generation=generation,
-                            connected_sides=self.connected_sides(),
                         )
                         continue
                     self.write_worker_state(
@@ -1786,7 +1749,7 @@ class DualKinventClient:
                         else:
                             self.shutdown_session()
                             self.wait_for_reconnect_cooldown()
-                            self.ensure_persistent_hci_channel(managed)
+                            self.open()
                         self.initialize_session(
                             scan_timeout,
                             connect_timeout,
@@ -1817,11 +1780,24 @@ class DualKinventClient:
                         )
                     else:
                         next_idle_keepalive = time.monotonic() + 10.0
-                        self.write_idle_or_degraded_state(
-                            state_file,
-                            generation,
-                            missing_streams=missing_streams,
-                        )
+                        if missing_streams:
+                            self.write_worker_state(
+                                state_file,
+                                phase="degraded",
+                                generation=generation,
+                                error=(
+                                    "Connexion Bluetooth établie, mais "
+                                    "aucune mesure initiale reçue pour : "
+                                    + ", ".join(missing_streams)
+                                    + "."
+                                ),
+                            )
+                        else:
+                            self.write_worker_state(
+                                state_file,
+                                phase="idle",
+                                generation=generation,
+                            )
                     continue
 
                 if action == "disconnect":
@@ -2036,7 +2012,6 @@ class DualKinventClient:
                             paired_samples=self.paired_samples,
                             cmj_samples=self.cmj_samples,
                             mode=acquisition_mode,
-                            connected_sides=self.connected_sides(),
                             stopped=not completed,
                             result_available=(
                                 acquisition_mode == "cmj"
