@@ -301,6 +301,22 @@ class KPlateDualTest(unittest.TestCase):
 
         self.assertEqual(silent, ["gauche"])
 
+    def test_missing_initial_stream_is_not_reported_as_usable(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        for index, plate in enumerate(client.plates, start=0x10):
+            plate.handle = index
+
+        connected = client.connected_sides_except(["gauche"])
+
+        self.assertEqual(connected, ["droite"])
+
     def test_sensor_clock_reconstructs_regular_timeline_from_bursts(self):
         plate = self.module.PlateState(
             "gauche",

@@ -1401,6 +1401,14 @@ class DualKinventClient:
     def connected_sides(self):
         return [plate.side for plate in self.plates if plate.handle is not None]
 
+    def connected_sides_except(self, missing_sides):
+        missing = set(missing_sides)
+        return [
+            plate.side
+            for plate in self.plates
+            if plate.handle is not None and plate.side not in missing
+        ]
+
     def validate_live_streams(self, timeout=3.0, attempts=1):
         """Exige une nouvelle trame de mesure valide de chaque plateforme."""
         if any(plate.handle is None for plate in self.plates):
@@ -1703,7 +1711,11 @@ class DualKinventClient:
                                     state_file,
                                     phase="degraded",
                                     generation=generation,
-                                    connected_sides=self.connected_sides(),
+                                    connected_sides=(
+                                        self.connected_sides_except(
+                                            missing_streams
+                                        )
+                                    ),
                                     error=(
                                         "Connexion Bluetooth établie, mais "
                                         "aucune mesure initiale reçue pour : "
@@ -1740,7 +1752,11 @@ class DualKinventClient:
                                 state_file,
                                 phase="degraded",
                                 generation=generation,
-                                connected_sides=self.connected_sides(),
+                                connected_sides=(
+                                    self.connected_sides_except(
+                                        missing_streams
+                                    )
+                                ),
                                 error=(
                                     "Connexion Bluetooth établie, mais "
                                     "aucune mesure initiale reçue pour : "
@@ -1807,7 +1823,11 @@ class DualKinventClient:
                                 state_file,
                                 phase="degraded",
                                 generation=generation,
-                                connected_sides=self.connected_sides(),
+                                connected_sides=(
+                                    self.connected_sides_except(
+                                        missing_streams
+                                    )
+                                ),
                                 error=(
                                     "Connexion Bluetooth établie, mais "
                                     "aucune mesure initiale reçue pour : "
