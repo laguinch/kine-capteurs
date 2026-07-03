@@ -1730,10 +1730,28 @@ class DualKinventClient:
                         plate for plate in self.plates if plate.handle is None
                     ]
                     if not missing:
+                        missing_streams = self.settle_initial_streams()
+                        idle_streams_active = not missing_streams
+                        next_idle_keepalive = time.monotonic() + 10.0
+                        if missing_streams:
+                            self.write_worker_state(
+                                state_file,
+                                phase="degraded",
+                                generation=generation,
+                                connected_sides=self.connected_sides(),
+                                error=(
+                                    "Connexion Bluetooth établie, mais "
+                                    "aucune mesure initiale reçue pour : "
+                                    + ", ".join(missing_streams)
+                                    + "."
+                                ),
+                            )
+                            continue
                         self.write_worker_state(
                             state_file,
                             phase="idle",
                             generation=generation,
+                            connected_sides=self.connected_sides(),
                         )
                         continue
                     self.write_worker_state(
