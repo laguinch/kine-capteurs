@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>K‑Force Plates — Slalom</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20">
+    <link rel="stylesheet" href="/static/styles.css?v=21">
   </head>
   <body>
     <main class="shell game-shell">
@@ -40,6 +40,11 @@
           <canvas id="slalomCanvas" width="520" height="720" aria-label="Jeu slalom"></canvas>
         </div>
         <aside class="game-sidebar panel">
+          <div class="control-actions">
+            <button id="connectButton" type="button">Connecter</button>
+            <button id="startGameButton" class="primary" type="button">Démarrer le jeu</button>
+            <button id="stopGameButton" type="button" disabled>Arrêter</button>
+          </div>
           <div class="game-score">
             <span>Score</span>
             <strong id="scoreValue">0</strong>
@@ -74,11 +79,6 @@
               <i id="rightForceBar"></i>
             </div>
             <span id="rightForceText">0 %</span>
-          </div>
-          <div class="control-actions">
-            <button id="connectButton" type="button">Connecter</button>
-            <button id="startGameButton" class="primary" type="button">Démarrer le jeu</button>
-            <button id="stopGameButton" type="button" disabled>Arrêter</button>
           </div>
         </aside>
       </section>
