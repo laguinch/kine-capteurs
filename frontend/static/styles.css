@@ -520,7 +520,8 @@ h2 { font-size: 1.15rem; letter-spacing: -0.02em; }
   margin-bottom: 7px;
 }
 
-.connection {
+.connection,
+.status-pill {
   display: flex;
   align-items: center;
   gap: 9px;
