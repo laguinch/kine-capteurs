@@ -1304,6 +1304,40 @@ class KPlateDualTest(unittest.TestCase):
         with self.assertRaises(self.module.PlateDisconnected):
             client.pump(0.01, progress=False)
 
+    def test_stop_command_wins_over_silent_stream_detection(self):
+        client = self.module.DualKinventClient(
+            1,
+            "E8:EB:1B:6F:A7:5F",
+            "E8:EB:1B:79:B1:AB",
+            None,
+            0,
+            1,
+        )
+        for plate in client.plates:
+            plate.last_notification_at = 1.0
+        stop_requested = {"value": False}
+
+        def receive():
+            stop_requested["value"] = True
+            return None
+
+        client.receive = receive
+
+        with mock.patch.object(
+            self.module.time,
+            "monotonic",
+            side_effect=[10.0] * 10,
+        ):
+            completed = client.pump(
+                30.0,
+                progress=True,
+                show_progress=False,
+                stop_requested=lambda: stop_requested["value"],
+                stream_silence_timeout=1.0,
+            )
+
+        self.assertFalse(completed)
+
     def test_connection_uses_observed_stable_parameters(self):
         client = self.module.DualKinventClient(
             1,

@@ -1134,6 +1134,8 @@ class DualKinventClient:
                         f"{exc}. Le test est arrêté pour protéger la session "
                         "Bluetooth."
                     ) from exc
+            if stop_requested is not None and stop_requested():
+                return False
             if (
                 stream_silence_timeout is not None
                 and time.monotonic() - started_at >= 2.0
