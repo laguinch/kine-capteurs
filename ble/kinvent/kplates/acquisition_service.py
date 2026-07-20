@@ -68,6 +68,12 @@ class DualPlateAcquisitionService:
                 raise RuntimeError(
                     "Les plateformes sont en cours de connexion."
                 )
+            connected_sides = set(worker.get("connected_sides", []))
+            if connected_sides != {"gauche", "droite"}:
+                raise RuntimeError(
+                    "Les deux plateformes doivent être connectées avant de "
+                    "démarrer le jeu."
+                )
 
             if filename is None:
                 stamp = datetime.now().strftime("%Y%m%d_%H%M%S")

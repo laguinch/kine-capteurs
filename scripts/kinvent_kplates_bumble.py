@@ -841,6 +841,22 @@ class KPlatesBumbleClient:
                         clients = all_clients
                         self.subscribe_measurement_notifications(clients)
                         await self.configure_streams(clients)
+                        sides = self.connected_side_names()
+                        if len(sides) != 2:
+                            connected = bool(sides)
+                            streams_active = False
+                            write_state(
+                                "degraded" if sides else "disconnected",
+                                generation=generation,
+                                connected_sides=sides,
+                                mode="balance",
+                                error=(
+                                    "Une plateforme s'est déconnectée pendant "
+                                    "l'initialisation. Reconnectez les "
+                                    "capteurs."
+                                ),
+                            )
+                            continue
                     except BaseException as exc:
                         self.dual.close_csv()
                         write_state(
@@ -865,14 +881,21 @@ class KPlatesBumbleClient:
                     continue
 
                 if action == "start" and requested and requested != generation:
-                    if not connected or len(self.connected_side_names()) != 2:
+                    sides = self.connected_side_names()
+                    if not connected or len(sides) != 2:
+                        generation = requested
                         write_state(
-                            "disconnected",
+                            "degraded" if sides else "disconnected",
                             generation=requested,
-                            error="Connectez les capteurs avant de démarrer un test.",
+                            connected_sides=sides,
+                            mode="balance",
+                            error=(
+                                "Les deux plateformes doivent être "
+                                "connectées avant de démarrer le jeu."
+                            ),
                         )
+                        self.dual.consume_control_command(control_path, generation)
                         continue
-                    generation = requested
                     duration = float(command["duration"])
                     mode = command.get("mode", "balance")
                     self.dual.paired_samples = 0

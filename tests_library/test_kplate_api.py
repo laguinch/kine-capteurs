@@ -227,7 +227,10 @@ class KPlateApiTest(unittest.TestCase):
             service._control_path = root / "control.json"
             service._worker_state_path = root / "state.json"
             service._worker_state_path.write_text(
-                f'{{"phase":"idle","pid":{os.getpid()}}}',
+                (
+                    f'{{"phase":"idle","pid":{os.getpid()},'
+                    '"connected_sides":["gauche","droite"]}'
+                ),
                 encoding="utf-8",
             )
             with self.no_manager_state(), mock.patch.object(
@@ -246,7 +249,10 @@ class KPlateApiTest(unittest.TestCase):
             service._control_path = root / "control.json"
             service._worker_state_path = root / "state.json"
             service._worker_state_path.write_text(
-                f'{{"phase":"idle","pid":{os.getpid()}}}',
+                (
+                    f'{{"phase":"idle","pid":{os.getpid()},'
+                    '"connected_sides":["gauche","droite"]}'
+                ),
                 encoding="utf-8",
             )
             with self.no_manager_state(), mock.patch.object(
@@ -330,7 +336,10 @@ class KPlateApiTest(unittest.TestCase):
             service._control_path = root / "control.json"
             service._worker_state_path = root / "state.json"
             service._worker_state_path.write_text(
-                f'{{"phase":"idle","pid":{os.getpid()}}}',
+                (
+                    f'{{"phase":"idle","pid":{os.getpid()},'
+                    '"connected_sides":["gauche","droite"]}'
+                ),
                 encoding="utf-8",
             )
             with self.no_manager_state(), mock.patch.object(
@@ -345,6 +354,25 @@ class KPlateApiTest(unittest.TestCase):
         self.assertTrue(status["running"])
         self.assertTrue(status["validating_streams"])
         self.assertEqual(control["action"], "start")
+
+    def test_start_requires_both_connected_sides(self):
+        service = DualPlateAcquisitionService()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            service._control_path = root / "control.json"
+            service._worker_state_path = root / "state.json"
+            service._worker_state_path.write_text(
+                (
+                    f'{{"phase":"idle","pid":{os.getpid()},'
+                    '"connected_sides":["gauche"]}'
+                ),
+                encoding="utf-8",
+            )
+            with self.no_manager_state(), self.assertRaisesRegex(
+                RuntimeError,
+                "deux plateformes",
+            ):
+                service.start(filename="partial.csv")
 
     def test_detects_external_persistent_worker(self):
         service = DualPlateAcquisitionService()
