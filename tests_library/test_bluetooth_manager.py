@@ -1,3 +1,4 @@
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -136,6 +137,36 @@ class BluetoothManagerTest(unittest.TestCase):
             state.write_text('{"pid":999,"phase":"idle"}', encoding="utf-8")
 
             self.assertFalse(bluetooth.current_target_is_active("kplates"))
+
+    def test_stop_child_reports_usb_block_without_crashing(self):
+        bluetooth = KinventBluetoothManager()
+        bluetooth.target = "kplates"
+        bluetooth.generation = "request-1"
+        bluetooth.state = mock.Mock()
+        bluetooth.child = mock.Mock(pid=123)
+
+        timeout = subprocess.TimeoutExpired(["worker"], 1)
+        bluetooth.child.wait.side_effect = [timeout, timeout, timeout]
+
+        with tempfile.TemporaryDirectory() as directory, mock.patch(
+            "scripts.kinvent_bluetooth_manager.RAW_DIR",
+            Path(directory),
+        ):
+            stopped = bluetooth.stop_child()
+
+        self.assertFalse(stopped)
+        bluetooth.child.terminate.assert_called_once_with()
+        bluetooth.child.kill.assert_called_once_with()
+        bluetooth.state.assert_called_once()
+        self.assertEqual(bluetooth.state.call_args.args[0], "error")
+        self.assertEqual(
+            bluetooth.state.call_args.kwargs["blocked_child_pid"],
+            123,
+        )
+        self.assertIn(
+            "dongle nRF52840",
+            bluetooth.state.call_args.kwargs["error"],
+        )
 
     def test_process_waits_for_its_exact_manager_generation(self):
         process = manager.ManagedSensorProcess("kmove", "request-2")

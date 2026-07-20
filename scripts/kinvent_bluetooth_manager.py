@@ -148,12 +148,14 @@ class KinventBluetoothManager:
 
     def stop_child(self):
         if self.child is None or self.target is None:
-            return
+            return True
         config = TARGETS[self.target]
         control_path = RAW_DIR / config["control"]
+        stopping_target = self.target
+        stopping_pid = self.child.pid
         print(
             "Arrêt du pilote capteur demandé par le gestionnaire: "
-            f"{self.target}.",
+            f"{stopping_target}.",
             flush=True,
         )
         write_json(
@@ -168,9 +170,32 @@ class KinventBluetoothManager:
             self.child.wait(timeout=8)
         except subprocess.TimeoutExpired:
             self.child.terminate()
-            self.child.wait(timeout=3)
+            try:
+                self.child.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                self.child.kill()
+                try:
+                    self.child.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    print(
+                        "Pilote capteur bloqué dans le noyau USB; "
+                        "débranchez/rebranchez le dongle nRF52840 puis "
+                        "relancez la connexion.",
+                        flush=True,
+                    )
+                    self.state(
+                        "error",
+                        failed_target=stopping_target,
+                        blocked_child_pid=stopping_pid,
+                        error=(
+                            "Pilote Bluetooth bloqué côté USB. "
+                            "Débranchez/rebranchez le dongle nRF52840."
+                        ),
+                    )
+                    return False
         self.child = None
         self.target = None
+        return True
 
     def launch(self, target):
         config = TARGETS[target]
@@ -268,7 +293,9 @@ class KinventBluetoothManager:
                         time.sleep(0.2)
                         continue
                     self.state("switching", requested_target=requested)
-                    self.stop_child()
+                    if not self.stop_child():
+                        time.sleep(0.2)
+                        continue
                     if requested:
                         self.launch(requested)
                     else:
