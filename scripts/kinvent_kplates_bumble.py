@@ -151,6 +151,18 @@ class KPlatesBumbleClient:
             await self.write_plate(clients[plate], plate, value)
         await asyncio.sleep(delay)
 
+    async def write_timed_side_sequence(self, clients, side_values):
+        plates_by_side = {plate.side: plate for plate in clients}
+        for side, value, delay_after in side_values:
+            plate = plates_by_side.get(side)
+            if (
+                plate is not None
+                and plate not in self.disconnected
+                and plate.handle is not None
+            ):
+                await self.write_plate(clients[plate], plate, value)
+            await asyncio.sleep(delay_after)
+
     async def connect_plate(self, device, plate, Address, connect_timeout):
         from bumble.device import ConnectionParametersPreferences
         from bumble.hci import HCI_LE_1M_PHY
@@ -339,51 +351,26 @@ class KPlatesBumbleClient:
             [("gauche", b"\x11"), ("droite", b"\x11")],
             0.16,
         )
-        await self.write_side_sequence(
+        await self.write_timed_side_sequence(
             clients,
             [
-                ("gauche", b"\x10"),
-                ("gauche", b"\x10"),
-                ("droite", b"\x10"),
-                ("droite", b"\x10"),
+                ("gauche", b"\x10", 0.008),
+                ("gauche", b"\x10", 0.046),
+                ("droite", b"\x10", 0.006),
+                ("droite", b"\x10", 0.354),
+                ("gauche", bytes.fromhex("60 00 19 00 4b 0d 0a"), 0.012),
+                ("gauche", b"\x66", 0.020),
+                ("droite", bytes.fromhex("60 00 19 00 4b 0d 0a"), 0.009),
+                ("droite", b"\x66", 1.646),
+                ("gauche", b"\x56", 0.023),
+                ("droite", b"\x56", 0.033),
+                ("gauche", bytes.fromhex("ac 00 54 f8"), 0.025),
+                ("droite", bytes.fromhex("ac 00 54 f8"), 0.035),
+                ("gauche", bytes.fromhex("ac 01 04 a9"), 0.027),
+                ("droite", bytes.fromhex("ac 01 04 a9"), 0.034),
+                ("gauche", b"\x11", 0.027),
+                ("droite", b"\x11", 0.20),
             ],
-            0.38,
-        )
-        await self.write_side_sequence(
-            clients,
-            [
-                ("gauche", bytes.fromhex("60 00 19 00 4b 0d 0a")),
-                ("gauche", b"\x66"),
-                ("droite", bytes.fromhex("60 00 19 00 4b 0d 0a")),
-                ("droite", b"\x66"),
-            ],
-            1.67,
-        )
-        await self.write_side_sequence(
-            clients,
-            [("gauche", b"\x56"), ("droite", b"\x56")],
-            0.06,
-        )
-        await self.write_side_sequence(
-            clients,
-            [
-                ("gauche", bytes.fromhex("ac 00 54 f8")),
-                ("droite", bytes.fromhex("ac 00 54 f8")),
-            ],
-            0.06,
-        )
-        await self.write_side_sequence(
-            clients,
-            [
-                ("gauche", bytes.fromhex("ac 01 04 a9")),
-                ("droite", bytes.fromhex("ac 01 04 a9")),
-            ],
-            0.06,
-        )
-        await self.write_side_sequence(
-            clients,
-            [("gauche", b"\x11"), ("droite", b"\x11")],
-            0.20,
         )
 
         for plate in connected:

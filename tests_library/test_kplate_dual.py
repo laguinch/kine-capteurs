@@ -1446,7 +1446,10 @@ class KPlateDualTest(unittest.TestCase):
         right.handle = 0x10
         left.handle = 0x11
 
-        async def immediate_sleep(_delay):
+        sleep_calls = []
+
+        async def immediate_sleep(delay):
+            sleep_calls.append(delay)
             return None
 
         with mock.patch(
@@ -1564,6 +1567,9 @@ class KPlateDualTest(unittest.TestCase):
                 ("uart", "gauche", b"\x10"),
             ],
         )
+        self.assertIn(0.046, sleep_calls)
+        self.assertIn(0.354, sleep_calls)
+        self.assertIn(1.646, sleep_calls)
 
     def test_bumble_connect_uses_official_create_connection_preferences(self):
         class FakeConnectionParametersPreferences:
