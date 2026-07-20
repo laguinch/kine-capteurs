@@ -486,6 +486,13 @@ class KPlatesBumbleClient:
             if stop_requested():
                 completed = False
                 break
+            if len(self.connected_side_names()) != 2:
+                completed = False
+                print(
+                    "Flux de plateforme interrompu pendant l'acquisition.",
+                    flush=True,
+                )
+                break
             await asyncio.sleep(0.05)
             now = time.monotonic()
             if self.dual.keepalive_interval > 0 and now >= next_keepalive:
@@ -884,17 +891,36 @@ class KPlatesBumbleClient:
                     )
                     self.dual.close_csv()
                     await self.park_measurement_streams(clients, commands=3)
-                    write_state(
-                        "idle",
-                        generation=generation,
-                        csv_path=command["csv_path"],
-                        connected_sides=self.connected_side_names(),
-                        paired_samples=self.dual.paired_samples,
-                        cmj_samples=self.dual.cmj_samples,
-                        mode=mode,
-                        stopped=not completed,
-                        result_available=(mode == "cmj"),
-                    )
+                    sides = self.connected_side_names()
+                    if len(sides) == 2:
+                        write_state(
+                            "idle",
+                            generation=generation,
+                            csv_path=command["csv_path"],
+                            connected_sides=sides,
+                            paired_samples=self.dual.paired_samples,
+                            cmj_samples=self.dual.cmj_samples,
+                            mode=mode,
+                            stopped=not completed,
+                            result_available=(mode == "cmj"),
+                        )
+                    else:
+                        write_state(
+                            "degraded" if sides else "disconnected",
+                            generation=generation,
+                            csv_path=command["csv_path"],
+                            connected_sides=sides,
+                            paired_samples=self.dual.paired_samples,
+                            cmj_samples=self.dual.cmj_samples,
+                            mode=mode,
+                            stopped=True,
+                            interrupted=True,
+                            result_available=False,
+                            error=(
+                                "Un flux de plateforme ne répond plus. "
+                                "Reconnectez les capteurs."
+                            ),
+                        )
                     self.dual.consume_control_command(control_path, generation)
                     next_idle_keepalive = time.monotonic() + self.dual.keepalive_interval
                     next_idle_state_refresh = time.monotonic()

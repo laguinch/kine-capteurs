@@ -2087,6 +2087,30 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(args.cycles, 1)
         self.assertEqual(args.rest_between_cycles, 0.0)
 
+    def test_bumble_managed_acquisition_stops_when_plate_disconnects(self):
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+        )
+        left, right = client.dual.plates
+        left.handle = 0x10
+        right.handle = None
+        client.disconnected.add(right)
+
+        completed = asyncio.run(
+            client.acquire_once_managed(
+                {left: object(), right: object()},
+                1.0,
+                stop_requested=lambda: False,
+            )
+        )
+
+        self.assertFalse(completed)
+
 
 if __name__ == "__main__":
     unittest.main()

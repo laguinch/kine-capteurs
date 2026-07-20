@@ -273,8 +273,16 @@ class DualPlateAcquisitionService:
             if not lines:
                 return None
             fields = next(csv.reader([header]))
-            values = next(csv.reader([lines[-1]]))
+            data_lines = [
+                line for line in lines
+                if line.strip() != header and line.strip() != ",".join(fields)
+            ]
+            if not data_lines:
+                return None
+            values = next(csv.reader([data_lines[-1]]))
             if len(fields) != len(values):
+                return None
+            if values == fields:
                 return None
             return dict(zip(fields, values))
         except (OSError, csv.Error):

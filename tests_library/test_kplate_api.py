@@ -162,6 +162,23 @@ class KPlateApiTest(unittest.TestCase):
         self.assertEqual(measurement["right_kg"], 55.0)
         self.assertEqual(measurement["total_kg"], 105.0)
 
+    def test_latest_ignores_csv_header_without_measurements(self):
+        service = DualPlateAcquisitionService()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            service._worker_state_path = root / "missing-state.json"
+            service._worker_log_path = root / "missing-worker.log"
+            path = root / "dual.csv"
+            path.write_text(
+                "timestamp_utc,sync_delta_ms,left_kg,right_kg,total_kg\n",
+                encoding="utf-8",
+            )
+            service._csv_path = path
+
+            latest = service.latest()
+
+        self.assertIsNone(latest["measurement"])
+
     def test_cmj_latest_only_reports_weight_readiness(self):
         service = DualPlateAcquisitionService()
         service._mode = "cmj"
