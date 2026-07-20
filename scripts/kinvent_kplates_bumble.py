@@ -72,6 +72,7 @@ class KPlatesBumbleClient:
         )
         self.dual.keepalive_interval = keepalive_interval
         self.connections = {}
+        self.disconnected = set()
 
     def close(self):
         self.dual.close()
@@ -91,6 +92,8 @@ class KPlatesBumbleClient:
                 f"Déconnexion Bumble {plate.side}: {reason!r}",
                 flush=True,
             )
+            plate.handle = None
+            self.disconnected.add(plate)
 
         on_event = getattr(connection, "on", None)
         if not callable(on_event):
@@ -116,6 +119,8 @@ class KPlatesBumbleClient:
         # la couche Bumble transporte le Bluetooth, mais la cadence capteur
         # reste celle observée officiellement.
         for plate, client in clients.items():
+            if plate in self.disconnected or plate.handle is None:
+                continue
             await self.write_plate(client, plate, value)
         await asyncio.sleep(delay)
 
@@ -246,8 +251,17 @@ class KPlatesBumbleClient:
                     print(f"Temps restant: {remaining:4.1f} s", flush=True)
                     next_progress = now + 5.0
 
-            for connection in self.connections.values():
-                await connection.disconnect()
+            for plate, connection in self.connections.items():
+                if plate in self.disconnected or plate.handle is None:
+                    continue
+                try:
+                    await connection.disconnect()
+                except Exception as exc:
+                    print(
+                        f"Déconnexion finale ignorée {plate.side}: "
+                        f"{type(exc).__name__}: {exc}",
+                        flush=True,
+                    )
 
 
 def build_parser():
