@@ -472,6 +472,20 @@ class KPlatesBumbleClient:
             flush=True,
         )
 
+    async def apply_official_discovered_radio_window(self, plate):
+        connection = self.connections.get(plate)
+        if (
+            connection is None
+            or plate in self.disconnected
+            or not hasattr(connection, "update_parameters")
+        ):
+            return
+        print(
+            f"Réglage radio GATT officiel {plate.side}...",
+            flush=True,
+        )
+        await connection.update_parameters(0x0024, 0x0024, 0, 0x01F4)
+
     async def run_official_gatt_preflight(
         self,
         clients,
@@ -518,6 +532,9 @@ class KPlatesBumbleClient:
                     started_discoveries,
                     connect_timeout,
                 )
+
+        for plate in list(clients.keys()):
+            await self.apply_official_discovered_radio_window(plate)
 
         await asyncio.gather(
             *(self.read_official_model(plate, client) for plate, client in clients.items())
