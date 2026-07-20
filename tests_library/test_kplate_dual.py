@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts.kinvent_kplates_bumble import KPlatesBumbleClient
+from scripts.kinvent_kplates_bumble import KPlatesBumbleClient, build_parser
 
 
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "kinvent_dual_hci.py"
@@ -1485,6 +1485,12 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(left.notifications, 1)
         self.assertIsNotNone(left.latest)
         self.assertEqual(left.latest["force_kg"], 0.0)
+
+    def test_bumble_kplates_defaults_match_validated_official_path(self):
+        args = build_parser().parse_args([])
+
+        self.assertEqual(args.connection_order, "left-first")
+        self.assertEqual(args.gatt_preflight, "official-discovery")
 
 
 if __name__ == "__main__":

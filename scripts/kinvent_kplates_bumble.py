@@ -250,10 +250,10 @@ class KPlatesBumbleClient:
         duration,
         connect_timeout=15.0,
         sides="both",
-        connection_order="right-first",
+        connection_order="left-first",
         diagnostic="stream",
         stream_side="both",
-        gatt_preflight="none",
+        gatt_preflight="official-discovery",
     ):
         require_bumble()
         from bumble.device import Device
@@ -379,7 +379,7 @@ def build_parser():
     parser.add_argument(
         "--connection-order",
         choices=["right-first", "left-first"],
-        default="right-first",
+        default="left-first",
         help="Diagnostic: inverser l'ordre de connexion sans changer les commandes.",
     )
     parser.add_argument(
@@ -400,7 +400,7 @@ def build_parser():
     parser.add_argument(
         "--gatt-preflight",
         choices=["none", "official-discovery"],
-        default="none",
+        default="official-discovery",
         help=(
             "Diagnostic: reproduire la découverte GATT et la lecture modèle "
             "observées dans la capture officielle avant le flux UART."
