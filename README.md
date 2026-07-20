@@ -183,6 +183,19 @@ sudo .venv/bin/python -u scripts/kinvent_kmove_bumble.py \
   --csv storage/raw_data/kmove_bumble_test.csv
 ```
 
+Les K-Force Plates peuvent être validées en double connexion Bumble avec la
+même séquence officielle :
+
+```bash
+cd /opt/kine-capteurs-staging
+sudo .venv/bin/python -u scripts/kinvent_kplates_bumble.py \
+  --transport usb:0 \
+  --duration 30 \
+  --tare-duration 2 \
+  --calibration-file storage/raw_data/kplates_calibration.json \
+  --csv storage/raw_data/kplates_bumble_test.csv
+```
+
 Les variables prévues pour la suite sont :
 
 - `KINE_BLUETOOTH_BACKEND=raw-hci` par défaut ;
