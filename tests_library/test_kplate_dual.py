@@ -1782,6 +1782,93 @@ class KPlateDualTest(unittest.TestCase):
             ["discover:droite", "discover:gauche"],
         )
 
+    def test_bumble_disconnect_logger_records_hci_reason(self):
+        class FakeConnection:
+            def __init__(self):
+                self.callbacks = {}
+
+            def on(self, event_name, callback):
+                self.callbacks[event_name] = callback
+
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+        )
+        left = client.dual.plates[0]
+        connection = FakeConnection()
+
+        client.register_disconnect_logger(connection, left)
+        connection.callbacks["disconnection"](62)
+
+        self.assertIn(left, client.disconnected)
+        self.assertEqual(client.disconnect_reasons[left], 0x3E)
+        self.assertIsNone(left.handle)
+
+    def test_bumble_reconnects_initial_official_0x3e_once(self):
+        class FakeConnection:
+            def __init__(self, label):
+                self.gatt_client = object()
+                self.handle = 0x10 if label == "initial" else 0x11
+
+            def on(self, event_name, callback):
+                pass
+
+        class FakeClient(KPlatesBumbleClient):
+            def __init__(self):
+                super().__init__(
+                    transport="usb:0",
+                    left_address="E8:EB:1B:6F:A7:5F",
+                    right_address="E8:EB:1B:79:B1:AB",
+                    address_type="public",
+                    csv_path=None,
+                    tare_duration=0,
+                )
+                self.discoveries = 0
+                self.reconnects = 0
+
+            async def discover_official_services(self, plate, fake_client):
+                self.discoveries += 1
+                if self.discoveries == 1:
+                    self.disconnect_reasons[plate] = 0x3E
+                    self.disconnected.add(plate)
+                    plate.handle = None
+                    raise asyncio.CancelledError()
+
+            async def connect_plate(self, device, plate, Address, connect_timeout):
+                self.reconnects += 1
+                plate.handle = 0x11
+                self.disconnected.discard(plate)
+                self.disconnect_reasons.pop(plate, None)
+                return FakeConnection("reconnected")
+
+        client = FakeClient()
+        right = client.dual.plates[1]
+        initial_connection = FakeConnection("initial")
+        all_clients = {right: initial_connection.gatt_client}
+        started_discoveries = {}
+
+        asyncio.run(
+            client.complete_initial_official_discovery(
+                object(),
+                right,
+                object,
+                initial_connection,
+                all_clients,
+                started_discoveries,
+                15.0,
+            )
+        )
+
+        self.assertEqual(client.discoveries, 2)
+        self.assertEqual(client.reconnects, 1)
+        self.assertIn(right, started_discoveries)
+        self.assertNotIn(right, client.disconnected)
+        self.assertEqual(right.handle, 0x11)
+
     def test_bumble_kplates_defaults_match_validated_official_path(self):
         args = build_parser().parse_args([])
 

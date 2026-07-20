@@ -41,6 +41,7 @@ KPLATE_MODEL_NUMBER_HANDLE = 0x0016
 OFFICIAL_CONNECT_INTERVAL_MIN_MS = 30
 OFFICIAL_CONNECT_INTERVAL_MAX_MS = 50
 OFFICIAL_CONNECT_SUPERVISION_TIMEOUT_MS = 5000
+OFFICIAL_INITIAL_DISCONNECT_REASON = 0x3E
 
 
 def connected_sides(plates):
@@ -80,6 +81,7 @@ class KPlatesBumbleClient:
         self.dual.keepalive_interval = keepalive_interval
         self.connections = {}
         self.disconnected = set()
+        self.disconnect_reasons = {}
 
     def close(self):
         self.dual.close()
@@ -101,6 +103,10 @@ class KPlatesBumbleClient:
             )
             plate.handle = None
             self.disconnected.add(plate)
+            try:
+                self.disconnect_reasons[plate] = int(reason)
+            except (TypeError, ValueError):
+                self.disconnect_reasons[plate] = reason
 
         on_event = getattr(connection, "on", None)
         if not callable(on_event):
@@ -190,12 +196,66 @@ class KPlatesBumbleClient:
                 ) from exc
             raise
         plate.handle = getattr(connection, "handle", 1)
+        self.disconnected.discard(plate)
+        self.disconnect_reasons.pop(plate, None)
         print(
             f"Plateforme {plate.side} connectée, handle Bumble "
             f"0x{plate.handle:04x}.",
             flush=True,
         )
         return connection
+
+    async def complete_initial_official_discovery(
+        self,
+        device,
+        plate,
+        Address,
+        connection,
+        all_clients,
+        started_discoveries,
+        connect_timeout,
+    ):
+        # Dans la capture officielle des deux plateformes, la première
+        # connexion droite peut tomber avec la raison HCI 0x3e avant que
+        # l'application continue. Kinvent reconnecte alors cette même
+        # plateforme, puis reprend le pré-vol GATT officiel. On limite donc
+        # cette reprise à ce cas initial précis, sans mécanisme de retry
+        # général.
+        discovery = asyncio.create_task(
+            self.discover_official_services(
+                plate,
+                connection.gatt_client,
+            )
+        )
+        try:
+            await discovery
+        except BaseException:
+            if self.disconnect_reasons.get(plate) != OFFICIAL_INITIAL_DISCONNECT_REASON:
+                raise
+            print(
+                f"Reconnexion officielle initiale {plate.side} "
+                "après déconnexion HCI 0x3e.",
+                flush=True,
+            )
+            all_clients.pop(plate, None)
+            self.connections.pop(plate, None)
+            connection = await self.connect_plate(
+                device,
+                plate,
+                Address,
+                connect_timeout,
+            )
+            self.connections[plate] = connection
+            self.register_disconnect_logger(connection, plate)
+            all_clients[plate] = connection.gatt_client
+            discovery = asyncio.create_task(
+                self.discover_official_services(
+                    plate,
+                    connection.gatt_client,
+                )
+            )
+            await discovery
+        started_discoveries[plate] = discovery
 
     async def configure_streams(self, clients):
         connected = list(clients.keys())
@@ -504,11 +564,14 @@ class KPlatesBumbleClient:
                         flush=True,
                     )
                     preflight_announced = True
-                    started_discoveries[plate] = asyncio.create_task(
-                        self.discover_official_services(
-                            plate,
-                            connection.gatt_client,
-                        )
+                    await self.complete_initial_official_discovery(
+                        device,
+                        plate,
+                        Address,
+                        connection,
+                        all_clients,
+                        started_discoveries,
+                        connect_timeout,
                     )
 
             if diagnostic == "connect-only":
