@@ -1,5 +1,7 @@
 import math
 import unittest
+
+from scripts.kinvent_kmove_bumble import KMoveBumbleClient
 from scripts.kinvent_kmove_hci import INIT_COMMANDS, KMoveHciClient
 
 from ble.kinvent.kmove.protocol import (
@@ -98,6 +100,40 @@ class KMoveProtocolTest(unittest.TestCase):
         self.assertAlmostEqual(angles["rotation_x_deg"], 0.0)
         self.assertAlmostEqual(angles["rotation_y_deg"], 0.0)
         self.assertAlmostEqual(angles["rotation_z_deg"], 0.0)
+
+    def test_bumble_client_decodes_and_references_like_hci_client(self):
+        client = KMoveBumbleClient(
+            transport="usb:0",
+            address="60:8A:10:4F:BD:12",
+            address_type="public",
+            csv_path=None,
+            reference_duration=0,
+            print_interval=999,
+        )
+
+        client.handle_payload(
+            bytes.fromhex(
+                "ff ff fe 4b f0 98 e0 6f 51 b8 8f 7f f0 "
+                "82 9b 80 cf 7e f0 3c"
+            )
+        )
+
+        self.assertIsNotNone(client.reference_quaternion)
+        self.assertIsNotNone(client.latest)
+        self.assertEqual(client.latest["battery_pct"], 60)
+
+    def test_bumble_client_ignores_non_quaternion_payload(self):
+        client = KMoveBumbleClient(
+            transport="usb:0",
+            address="60:8A:10:4F:BD:12",
+            address_type="public",
+            csv_path=None,
+            reference_duration=0,
+        )
+
+        client.handle_payload(b"KINVENT FW 2.34V")
+
+        self.assertIsNone(client.latest)
 
 
 if __name__ == "__main__":

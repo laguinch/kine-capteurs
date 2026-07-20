@@ -170,6 +170,19 @@ sudo .venv/bin/python -u scripts/kinvent_kpull_bumble.py \
   --csv storage/raw_data/kpull_bumble_test.csv
 ```
 
+Le K-Move peut ensuite être validé de la même façon. Pendant la référence,
+maintenir le capteur immobile :
+
+```bash
+cd /opt/kine-capteurs-staging
+sudo .venv/bin/python -u scripts/kinvent_kmove_bumble.py \
+  --transport usb:0 \
+  --address "60:8A:10:4F:BD:12" \
+  --duration 30 \
+  --reference-duration 2 \
+  --csv storage/raw_data/kmove_bumble_test.csv
+```
+
 Les variables prévues pour la suite sont :
 
 - `KINE_BLUETOOTH_BACKEND=raw-hci` par défaut ;
