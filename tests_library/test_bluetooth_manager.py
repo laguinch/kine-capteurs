@@ -95,6 +95,48 @@ class BluetoothManagerTest(unittest.TestCase):
             )
         )
 
+    def test_manager_relaunches_kplates_when_worker_state_is_missing(self):
+        bluetooth = KinventBluetoothManager()
+        bluetooth.target = "kplates"
+        bluetooth.child = mock.Mock(pid=123)
+        bluetooth.child.poll.return_value = None
+
+        with tempfile.TemporaryDirectory() as directory, mock.patch(
+            "scripts.kinvent_bluetooth_manager.RAW_DIR",
+            Path(directory),
+        ):
+            self.assertFalse(bluetooth.current_target_is_active("kplates"))
+
+    def test_manager_keeps_kplates_when_worker_state_matches_child(self):
+        bluetooth = KinventBluetoothManager()
+        bluetooth.target = "kplates"
+        bluetooth.child = mock.Mock(pid=123)
+        bluetooth.child.poll.return_value = None
+
+        with tempfile.TemporaryDirectory() as directory, mock.patch(
+            "scripts.kinvent_bluetooth_manager.RAW_DIR",
+            Path(directory),
+        ):
+            state = Path(directory) / "kplates_worker_state.json"
+            state.write_text('{"pid":123,"phase":"idle"}', encoding="utf-8")
+
+            self.assertTrue(bluetooth.current_target_is_active("kplates"))
+
+    def test_manager_relaunches_kplates_when_worker_pid_is_stale(self):
+        bluetooth = KinventBluetoothManager()
+        bluetooth.target = "kplates"
+        bluetooth.child = mock.Mock(pid=123)
+        bluetooth.child.poll.return_value = None
+
+        with tempfile.TemporaryDirectory() as directory, mock.patch(
+            "scripts.kinvent_bluetooth_manager.RAW_DIR",
+            Path(directory),
+        ):
+            state = Path(directory) / "kplates_worker_state.json"
+            state.write_text('{"pid":999,"phase":"idle"}', encoding="utf-8")
+
+            self.assertFalse(bluetooth.current_target_is_active("kplates"))
+
     def test_process_waits_for_its_exact_manager_generation(self):
         process = manager.ManagedSensorProcess("kmove", "request-2")
         with tempfile.TemporaryDirectory() as directory:

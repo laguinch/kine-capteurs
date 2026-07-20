@@ -34,6 +34,7 @@ TARGETS = {
     "kplates": {
         "script": "kinvent_kplates_bumble.py",
         "control": "kplates_worker_control.json",
+        "state": "kplates_worker_state.json",
         "log": "kplates_worker.log",
         "args": [
             "--tare-duration", "2",
@@ -207,7 +208,29 @@ class KinventBluetoothManager:
     def current_target_is_active(self, requested):
         if requested != self.target or self.child is None:
             return False
-        return self.child.poll() is None
+        if self.child.poll() is not None:
+            return False
+        config = TARGETS.get(requested) or {}
+        state_name = config.get("state")
+        if not state_name:
+            return True
+        worker = read_json(RAW_DIR / state_name)
+        if not worker:
+            print(
+                "Pilote capteur actif sans état worker; relance demandée: "
+                f"{requested}.",
+                flush=True,
+            )
+            return False
+        worker_pid = worker.get("pid")
+        if worker_pid != self.child.pid:
+            print(
+                "État worker désynchronisé du pilote capteur; "
+                f"relance demandée: {requested}.",
+                flush=True,
+            )
+            return False
+        return True
 
     def run(self):
         self.start()
@@ -256,20 +279,19 @@ class KinventBluetoothManager:
                         failed_target = self.target
                         self.child = None
                         self.target = None
+                        recovered = True
                         if return_code:
                             # Une sortie anormale du pilote constitue la panne
-                            # réelle pour laquelle une nouvelle initialisation
-                            # du contrôleur est autorisée.
+                            # réelle. Avec Bumble/nRF52840, le gestionnaire
+                            # unique ne doit pas se relancer lui-même et
+                            # rejouer une ancienne commande: il repasse en
+                            # erreur propre et attend une nouvelle demande.
                             recovered = self.recover_controller_after_failure(
                                 failed_target,
                                 return_code,
                             )
-                            if not recovered:
-                                raise RuntimeError(
-                                    "Contrôleur Bluetooth non récupéré"
-                                )
                         self.state(
-                            self.child_exit_phase(return_code, True),
+                            self.child_exit_phase(return_code, recovered),
                             return_code=return_code,
                             failed_target=failed_target,
                         )
