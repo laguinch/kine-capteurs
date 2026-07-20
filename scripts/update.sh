@@ -12,6 +12,7 @@ BLUETOOTH_UNIT_FILE="/etc/systemd/system/$BLUETOOTH_SERVICE_NAME.service"
 TEMP_UNIT="$(mktemp)"
 TEMP_BLUETOOTH_UNIT="$(mktemp)"
 UPDATE_MARKER="$PROJECT_DIR/storage/raw_data/update_in_progress"
+SKIP_SERVICE_RESTART="${KINE_SKIP_SERVICE_RESTART:-0}"
 
 cleanup() {
   rm -f "$TEMP_UNIT" "$TEMP_BLUETOOTH_UNIT"
@@ -95,6 +96,16 @@ sudo install -o root -g root -m 0644 \
   "$TEMP_BLUETOOTH_UNIT" "$BLUETOOTH_UNIT_FILE"
 sudo systemctl daemon-reload
 sudo KINE_SERVICE_USER="$SERVICE_USER" bash scripts/install_hci_sudoers.sh
+
+if [[ "$SKIP_SERVICE_RESTART" == "1" ]]; then
+  echo "Redémarrage des services ignoré pour diagnostic Bluetooth."
+  echo
+  echo "Kine Capteurs est à jour."
+  echo "Interface: http://$(hostname -I | awk '{print $1}'):8000/"
+  echo "État: sudo systemctl status $SERVICE_NAME"
+  echo "Bluetooth: sudo systemctl status $BLUETOOTH_SERVICE_NAME"
+  exit 0
+fi
 
 echo "Libération du contrôleur Bluetooth..."
 sudo systemctl stop bluetooth.service || true
