@@ -296,9 +296,8 @@ class KPlatesBumbleClient:
                 )
                 raise
 
-        await self.write_all(clients, b"\x10", 0.25)
-
-        # Réglage radio observé dans le pilote HCI officiel :
+        # Réglage radio observé dans le pilote HCI officiel juste après les
+        # réponses CCCD et avant le second 0x10.
         # intervalle 0x0009-0x0018, latence 0, supervision 0x0200.
         for plate in connected:
             connection = self.connections[plate]
@@ -306,6 +305,8 @@ class KPlatesBumbleClient:
                 continue
             print(f"Réglage radio {plate.side}...", flush=True)
             await connection.update_parameters(0x0009, 0x0018, 0, 0x0200)
+
+        await self.write_all(clients, b"\x10", 0.25)
 
         # Séquence double-plateforme observée dans la capture officielle
         # Android. Les commandes sont les mêmes que KPLATE_INIT_STEPS, mais

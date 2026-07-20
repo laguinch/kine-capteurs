@@ -1401,12 +1401,16 @@ class KPlateDualTest(unittest.TestCase):
         self.assertGreaterEqual(sleep.call_args.args[0], 4.0)
 
     def test_bumble_stream_configuration_uses_official_radio_update(self):
+        global_events = []
+
         class FakeConnection:
-            def __init__(self):
+            def __init__(self, side):
+                self.side = side
                 self.updates = []
 
             async def update_parameters(self, *values):
                 self.updates.append(values)
+                global_events.append(("radio", self.side, values))
 
         global_writes = []
         uart_value_handle = self.module.UART_VALUE_HANDLE
@@ -1420,6 +1424,7 @@ class KPlateDualTest(unittest.TestCase):
                 self.writes.append((handle, value, with_response))
                 if handle == uart_value_handle and not with_response:
                     global_writes.append((self.side, value))
+                    global_events.append(("uart", self.side, value))
 
         client = KPlatesBumbleClient(
             transport="usb:0",
@@ -1430,8 +1435,8 @@ class KPlateDualTest(unittest.TestCase):
             write_delay=0,
         )
         left, right = client.dual.plates
-        left_connection = FakeConnection()
-        right_connection = FakeConnection()
+        left_connection = FakeConnection("gauche")
+        right_connection = FakeConnection("droite")
         left_client = FakeClient("gauche")
         right_client = FakeClient("droite")
         client.connections = {
@@ -1546,6 +1551,17 @@ class KPlateDualTest(unittest.TestCase):
                 ("droite", bytes.fromhex("ac 01 04 a9")),
                 ("gauche", b"\x11"),
                 ("droite", b"\x11"),
+            ],
+        )
+        self.assertEqual(
+            global_events[:6],
+            [
+                ("uart", "droite", b"\x10"),
+                ("uart", "gauche", b"\x10"),
+                ("radio", "droite", (0x0009, 0x0018, 0, 0x0200)),
+                ("radio", "gauche", (0x0009, 0x0018, 0, 0x0200)),
+                ("uart", "droite", b"\x10"),
+                ("uart", "gauche", b"\x10"),
             ],
         )
 
