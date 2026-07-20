@@ -83,6 +83,24 @@ class KPlatesBumbleClient:
         if sample:
             self.dual.pair_samples()
 
+    def register_disconnect_logger(self, connection, plate):
+        def log_disconnection(reason=None, *args, **kwargs):
+            if reason is None and args:
+                reason = args[0]
+            print(
+                f"Déconnexion Bumble {plate.side}: {reason!r}",
+                flush=True,
+            )
+
+        on_event = getattr(connection, "on", None)
+        if not callable(on_event):
+            return
+        for event_name in ("disconnection", "disconnect"):
+            try:
+                on_event(event_name, log_disconnection)
+            except Exception:
+                continue
+
     async def write_plate(self, client, plate, value, with_response=False):
         print(f"SEND {plate.side} {value.hex(' ')}", flush=True)
         await client.write_value(
@@ -145,12 +163,21 @@ class KPlatesBumbleClient:
             f"pour {connected_sides(connected)}...",
             flush=True,
         )
-        for client in clients.values():
-            await client.write_value(
-                UART_CCCD_HANDLE,
-                b"\x01\x00",
-                with_response=True,
-            )
+        for plate, client in clients.items():
+            print(f"CCCD {plate.side}...", flush=True)
+            try:
+                await client.write_value(
+                    UART_CCCD_HANDLE,
+                    b"\x01\x00",
+                    with_response=True,
+                )
+            except BaseException as exc:
+                print(
+                    f"Échec CCCD {plate.side}: "
+                    f"{type(exc).__name__}: {exc}",
+                    flush=True,
+                )
+                raise
 
         await self.write_all(clients, b"\x10", 0.25)
 
@@ -192,6 +219,7 @@ class KPlatesBumbleClient:
 
             clients = {}
             for plate, connection in self.connections.items():
+                self.register_disconnect_logger(connection, plate)
                 client = connection.gatt_client
                 client.notification_subscribers.setdefault(
                     UART_VALUE_HANDLE,
