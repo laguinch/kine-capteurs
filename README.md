@@ -211,9 +211,10 @@ officielle Kinvent.
 
 Le K-Push, le K-Pull et le K-Move utilisent une seule connexion BLE. Les
 K-Force Plates en nécessitent deux simultanées ; le firmware HCI USB du
-nRF52840 doit donc être compilé avec `CONFIG_BT_MAX_CONN=2`. La configuration
-du projet reste volontairement minimale pour éviter les options Zephyr qui
-changent de nom selon les versions.
+nRF52840 doit donc être compilé avec `CONFIG_BT_MAX_CONN=2` et des buffers
+contrôleur suffisants pour deux flux de notifications. Ces réglages concernent
+uniquement la plomberie HCI USB Zephyr ; les commandes Kinvent restent celles
+observées dans les captures officielles.
 
 Depuis le serveur, après `bash scripts/update.sh`, reconstruire puis reflasher
 la clé avec la configuration du projet :
