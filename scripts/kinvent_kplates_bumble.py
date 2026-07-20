@@ -110,10 +110,20 @@ class KPlatesBumbleClient:
             f"Connexion plateforme {plate.side} Bumble à {remote_address}...",
             flush=True,
         )
-        connection = await asyncio.wait_for(
-            device.connect(remote_address),
-            timeout=connect_timeout,
-        )
+        try:
+            connection = await asyncio.wait_for(
+                device.connect(remote_address),
+                timeout=connect_timeout,
+            )
+        except Exception as exc:
+            if "MEMORY_CAPACITY_EXCEEDED_ERROR" in str(exc):
+                raise RuntimeError(
+                    "Le contrôleur nRF52840 refuse une deuxième connexion BLE. "
+                    "Reflashez le firmware HCI USB avec "
+                    "firmware/nrf52840_hci_usb/prj.conf "
+                    "(CONFIG_BT_MAX_CONN=2)."
+                ) from exc
+            raise
         plate.handle = getattr(connection, "handle", 1)
         print(
             f"Plateforme {plate.side} connectée, handle Bumble "

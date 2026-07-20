@@ -207,6 +207,40 @@ que les pilotes capteur n'auront pas été migrés et validés capteur par capte
 Ce garde-fou évite d'introduire un comportement non observé dans l'application
 officielle Kinvent.
 
+### Firmware nRF52840 pour Bumble
+
+Le K-Push, le K-Pull et le K-Move utilisent une seule connexion BLE. Les
+K-Force Plates en nécessitent deux simultanées ; le firmware HCI USB du
+nRF52840 doit donc être compilé avec `CONFIG_BT_MAX_CONN=2`.
+
+Depuis le serveur, après `bash scripts/update.sh`, reconstruire puis reflasher
+la clé avec la configuration du projet :
+
+```bash
+cd ~/zephyrproject
+source .venv/bin/activate
+
+ZEPHYR_SDK_INSTALL_DIR=$HOME/zephyrproject/zephyr-sdk-1.0.1 \
+west build -p always -b nrf52840dongle/nrf52840 \
+  zephyr/samples/bluetooth/hci_usb \
+  -- -DEXTRA_CONF_FILE=/opt/kine-capteurs-staging/firmware/nrf52840_hci_usb/prj.conf
+
+nrfutil nrf5sdk-tools pkg generate \
+  --hw-version 52 \
+  --sd-req=0x00 \
+  --application build/zephyr/zephyr.hex \
+  --application-version 1 \
+  hci_usb.zip
+
+nrfutil nrf5sdk-tools dfu usb-serial \
+  -pkg hci_usb.zip \
+  -p /dev/ttyACM0
+```
+
+Si `/dev/ttyACM0` est refusé, lancer la dernière commande avec les droits
+nécessaires ou reconnecter la clé après avoir ajouté l'utilisateur au groupe
+`dialout`.
+
 ## Cycle Bluetooth Kinvent
 
 Les pilotes reproduisent le cycle observé dans les captures HCI de
