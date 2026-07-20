@@ -80,6 +80,22 @@ TARGETS = {
     },
 }
 
+KPLATES_BACKEND_HCI = "hci-direct"
+KPLATES_BACKEND_BUMBLE = "bumble"
+
+
+def kplates_backend_from_environment():
+    return (
+        os.environ.get("KINE_KPLATES_BACKEND", KPLATES_BACKEND_HCI)
+        .strip()
+        .lower()
+        .replace("_", "-")
+    )
+
+
+def hci_adapter_from_environment():
+    return os.environ.get("KINE_HCI_ADAPTER", "hci0")
+
 
 def read_json(path):
     try:
@@ -107,6 +123,7 @@ class KinventBluetoothManager:
     def __init__(self, backend=None):
         self.backend = normalize_backend(backend or backend_from_environment())
         self.bumble_config = bumble_config_from_environment()
+        self.kplates_backend = kplates_backend_from_environment()
         self.child = None
         self.target = None
         self.generation = None
@@ -135,6 +152,8 @@ class KinventBluetoothManager:
             "idle",
             backend=self.backend,
             transport=self.bumble_config.transport,
+            kplates_backend=self.kplates_backend,
+            hci_adapter=hci_adapter_from_environment(),
         )
 
     def recover_controller_after_failure(self, failed_target, return_code):
@@ -142,7 +161,7 @@ class KinventBluetoothManager:
             "error",
             failed_target=failed_target,
             return_code=return_code,
-            error="Pilote Bumble interrompu; reconnexion manuelle requise.",
+            error="Pilote Bluetooth interrompu; reconnexion manuelle requise.",
         )
         return False
 
@@ -200,13 +219,31 @@ class KinventBluetoothManager:
     def launch(self, target):
         config = TARGETS[target]
         log_path = RAW_DIR / config["log"]
-        command = [
-            sys.executable,
-            "-u",
-            str(BASE_DIR / "scripts" / config["script"]),
-            "--transport", self.bumble_config.transport,
-            *config["args"],
-        ]
+        if target == "kplates" and self.kplates_backend == KPLATES_BACKEND_HCI:
+            command = [
+                sys.executable,
+                "-u",
+                str(BASE_DIR / "scripts" / "kinvent_dual_hci.py"),
+                "--adapter", hci_adapter_from_environment(),
+                "--tare-duration", "2",
+                "--calibration-file", str(RAW_DIR / "kplates_calibration.json"),
+                "--sync-tolerance-ms", "20",
+                "--control-file", str(RAW_DIR / "kplates_worker_control.json"),
+                "--state-file", str(RAW_DIR / "kplates_worker_state.json"),
+            ]
+        else:
+            if target == "kplates" and self.kplates_backend != KPLATES_BACKEND_BUMBLE:
+                raise ValueError(
+                    "Backend K-Force Plates inconnu: "
+                    f"{self.kplates_backend!r}."
+                )
+            command = [
+                sys.executable,
+                "-u",
+                str(BASE_DIR / "scripts" / config["script"]),
+                "--transport", self.bumble_config.transport,
+                *config["args"],
+            ]
         log_file = log_path.open("a", encoding="utf-8")
         try:
             self.child = subprocess.Popen(
