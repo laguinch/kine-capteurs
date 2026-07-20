@@ -92,12 +92,13 @@ class KPlatesBumbleClient:
         )
 
     async def write_all(self, clients, value, delay):
-        await asyncio.gather(
-            *[
-                self.write_plate(client, plate, value)
-                for plate, client in clients.items()
-            ]
-        )
+        # Le pilote HCI validé par les captures Kinvent envoie chaque commande
+        # plaque par plaque, puis laisse le contrôleur traiter les événements.
+        # On garde ce rythme ici au lieu de paralléliser les écritures GATT :
+        # la couche Bumble transporte le Bluetooth, mais la cadence capteur
+        # reste celle observée officiellement.
+        for plate, client in clients.items():
+            await self.write_plate(client, plate, value)
         await asyncio.sleep(delay)
 
     async def connect_plate(self, device, plate, Address, connect_timeout):
@@ -144,16 +145,12 @@ class KPlatesBumbleClient:
             f"pour {connected_sides(connected)}...",
             flush=True,
         )
-        await asyncio.gather(
-            *[
-                client.write_value(
-                    UART_CCCD_HANDLE,
-                    b"\x01\x00",
-                    with_response=True,
-                )
-                for client in clients.values()
-            ]
-        )
+        for client in clients.values():
+            await client.write_value(
+                UART_CCCD_HANDLE,
+                b"\x01\x00",
+                with_response=True,
+            )
 
         await self.write_all(clients, b"\x10", 0.25)
 
