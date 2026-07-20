@@ -293,16 +293,29 @@ class KPlatesBumbleClient:
         # 0x0016 avant d'écrire 0x10 et d'activer le CCCD UART.
         # Ce pré-vol reste du GATT standard; il ne remplace ni n'ajoute de
         # commande Kinvent propriétaire.
+        #
+        # La capture double-plateforme montre des échanges GATT intercalés sur
+        # les deux connexions, puis deux lectures 0x0016 quasi simultanées.
+        # On évite donc de finir toute la découverte d'un côté avant de toucher
+        # l'autre : le pré-vol Bumble lance les opérations GATT standard des
+        # deux côtés ensemble, et garde les commandes Kinvent propriétaires
+        # strictement inchangées ensuite.
         connected = list(clients.keys())
         print(
             "Pré-vol GATT officiel pour "
             f"{connected_sides(connected)}...",
             flush=True,
         )
-        for plate, client in clients.items():
+
+        async def discover(plate, client):
             print(f"Découverte GATT {plate.side}...", flush=True)
             await client.discover_services()
-        for plate, client in clients.items():
+
+        await asyncio.gather(
+            *(discover(plate, client) for plate, client in clients.items())
+        )
+
+        async def read_model(plate, client):
             print(f"Lecture modèle {plate.side} sur 0x0016...", flush=True)
             try:
                 value = await client.read_value(KPLATE_MODEL_NUMBER_HANDLE)
@@ -317,6 +330,10 @@ class KPlatesBumbleClient:
                 f"Modèle {plate.side}: {bytes(value).hex(' ')}",
                 flush=True,
             )
+
+        await asyncio.gather(
+            *(read_model(plate, client) for plate, client in clients.items())
+        )
 
     def selected_plates(self, sides, connection_order):
         plates_by_side = {plate.side: plate for plate in self.dual.plates}
