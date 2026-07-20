@@ -188,7 +188,8 @@ class KPlatesBumbleClient:
 
         # Réglage radio observé dans le pilote HCI officiel :
         # intervalle 0x0009-0x0018, latence 0, supervision 0x0200.
-        for plate, connection in self.connections.items():
+        for plate in connected:
+            connection = self.connections[plate]
             if plate in self.disconnected:
                 continue
             print(f"Réglage radio {plate.side}...", flush=True)
@@ -217,6 +218,7 @@ class KPlatesBumbleClient:
         sides="both",
         connection_order="right-first",
         diagnostic="stream",
+        stream_side="both",
     ):
         require_bumble()
         from bumble.device import Device
@@ -256,9 +258,25 @@ class KPlatesBumbleClient:
                     await asyncio.sleep(0.5)
                 return
 
+            if stream_side == "right":
+                stream_plates = [plate for plate in selected if plate.side == "droite"]
+            elif stream_side == "left":
+                stream_plates = [plate for plate in selected if plate.side == "gauche"]
+            else:
+                stream_plates = selected
+            if not stream_plates:
+                raise RuntimeError("Aucune plateforme sélectionnée pour le flux.")
+            print(
+                "Flux Bumble initialisé pour: "
+                f"{connected_sides(stream_plates)}",
+                flush=True,
+            )
+
             clients = {}
             for plate, connection in self.connections.items():
                 self.register_disconnect_logger(connection, plate)
+                if plate not in stream_plates:
+                    continue
                 client = connection.gatt_client
                 client.notification_subscribers.setdefault(
                     UART_VALUE_HANDLE,
@@ -329,6 +347,15 @@ def build_parser():
         default="stream",
         help="Diagnostic: connexion seule ou initialisation complète du flux.",
     )
+    parser.add_argument(
+        "--stream-side",
+        choices=["both", "right", "left"],
+        default="both",
+        help=(
+            "Diagnostic: avec les plateformes connectées, démarrer le flux "
+            "des deux plateformes ou d'un seul côté."
+        ),
+    )
     parser.add_argument("--tare-duration", type=float, default=2.0)
     parser.add_argument("--connect-timeout", type=float, default=15.0)
     parser.add_argument("--write-delay", type=float, default=0.05)
@@ -365,6 +392,7 @@ def main():
                 sides=args.sides,
                 connection_order=args.connection_order,
                 diagnostic=args.diagnostic,
+                stream_side=args.stream_side,
             )
         )
     except BumbleBackendError as exc:
