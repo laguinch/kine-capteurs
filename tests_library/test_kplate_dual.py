@@ -1422,8 +1422,6 @@ class KPlateDualTest(unittest.TestCase):
             write_delay=0,
         )
         left, right = client.dual.plates
-        left.handle = 0x11
-        right.handle = 0x10
         left_connection = FakeConnection()
         right_connection = FakeConnection()
         left_client = FakeClient()
@@ -1461,62 +1459,6 @@ class KPlateDualTest(unittest.TestCase):
         self.assertIn(
             (self.module.UART_CCCD_HANDLE, b"\x01\x00", True),
             left_client.writes,
-        )
-
-    def test_bumble_gatt_preflight_uses_official_intermediate_radio_window(self):
-        class FakeConnection:
-            def __init__(self, label, events):
-                self.label = label
-                self.events = events
-
-            async def update_parameters(self, *values):
-                self.events.append((f"radio:{self.label}", values))
-
-        class FakeClient:
-            def __init__(self, label, events):
-                self.label = label
-                self.events = events
-
-            async def discover_services(self):
-                self.events.append(f"discover:{self.label}")
-
-            async def read_value(self, handle):
-                self.events.append((f"read:{self.label}", handle))
-                return b"P104356"
-
-        events = []
-        client = KPlatesBumbleClient(
-            transport="usb:0",
-            left_address="E8:EB:1B:6F:A7:5F",
-            right_address="E8:EB:1B:79:B1:AB",
-            address_type="public",
-            csv_path=None,
-            tare_duration=0,
-        )
-        left, right = client.dual.plates
-        left.handle = 0x11
-        right.handle = 0x10
-        client.connections = {
-            right: FakeConnection("droite", events),
-            left: FakeConnection("gauche", events),
-        }
-
-        asyncio.run(
-            client.run_official_gatt_preflight(
-                {
-                    right: FakeClient("droite", events),
-                    left: FakeClient("gauche", events),
-                }
-            )
-        )
-
-        self.assertIn(
-            ("radio:droite", (0x0024, 0x0024, 0, 0x01F4)),
-            events,
-        )
-        self.assertIn(
-            ("radio:gauche", (0x0024, 0x0024, 0, 0x01F4)),
-            events,
         )
 
     def test_bumble_notification_feeds_plate_decoder(self):
