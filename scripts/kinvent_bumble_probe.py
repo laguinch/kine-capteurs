@@ -25,7 +25,11 @@ from ble.kinvent.bumble_backend import (  # noqa: E402
     require_bumble,
 )
 from scripts.kinvent_raw_hci import INIT_COMMANDS as FORCE_INIT_COMMANDS  # noqa: E402
-from scripts.kinvent_raw_hci import UART_VALUE_HANDLE  # noqa: E402
+from scripts.kinvent_raw_hci import (  # noqa: E402
+    ALT_NOTIFY_CCCD_HANDLE,
+    UART_CCCD_HANDLE,
+    UART_VALUE_HANDLE,
+)
 from scripts.kinvent_kmove_hci import INIT_COMMANDS as KMOVE_INIT_COMMANDS  # noqa: E402
 
 
@@ -34,6 +38,7 @@ KINVENT_NOTIFY_UUIDS = [
     "49535343-4c8a-39b3-2f49-511cff073b7e",
 ]
 KINVENT_WRITE_UUID = "49535343-8841-43f4-a8d4-ecbe34729bb3"
+ALT_NOTIFY_VALUE_HANDLE = ALT_NOTIFY_CCCD_HANDLE - 1
 
 
 def official_commands(profile):
@@ -122,33 +127,70 @@ async def run_probe(args):
                 "que le capteur est allumé, non connecté ailleurs, et que "
                 "l'adresse/type correspondent aux captures officielles."
             ) from exc
+        print("Connexion BLE établie.", flush=True)
         client = connection.gatt_client
-        await discover_characteristics(client)
 
-        notify_count = 0
-        for uuid in KINVENT_NOTIFY_UUIDS:
-            characteristic = characteristic_by_uuid(client, uuid)
-            if characteristic:
-                await characteristic.subscribe(on_notify(uuid))
-                notify_count += 1
-                print(f"Notifications activées: {uuid}", flush=True)
+        if args.gatt_mode == "official-handles":
+            client.notification_subscribers.setdefault(
+                UART_VALUE_HANDLE,
+                set(),
+            ).add(on_notify(f"handle-0x{UART_VALUE_HANDLE:04x}"))
+            client.notification_subscribers.setdefault(
+                ALT_NOTIFY_VALUE_HANDLE,
+                set(),
+            ).add(on_notify(f"handle-0x{ALT_NOTIFY_VALUE_HANDLE:04x}"))
 
-        write_characteristic = characteristic_by_uuid(client, KINVENT_WRITE_UUID)
-        if write_characteristic:
-            write_target = write_characteristic
-            print(f"Écriture via caractéristique {KINVENT_WRITE_UUID}", flush=True)
-        else:
-            write_target = UART_VALUE_HANDLE
             print(
-                "Caractéristique d'écriture non trouvée par UUID; "
-                f"écriture sur handle officiel 0x{UART_VALUE_HANDLE:04x}.",
+                f"SEND 10 avant CCCD, comme dans la capture officielle.",
                 flush=True,
             )
+            await client.write_value(UART_VALUE_HANDLE, b"\x10", with_response=False)
+            await asyncio.sleep(args.write_delay)
 
-        if notify_count == 0:
-            print("Aucune caractéristique de notification Kinvent trouvée.", flush=True)
+            print(
+                f"Activation notification UART sur 0x{UART_CCCD_HANDLE:04x}...",
+                flush=True,
+            )
+            await client.write_value(
+                UART_CCCD_HANDLE,
+                b"\x01\x00",
+                with_response=True,
+            )
+            write_target = UART_VALUE_HANDLE
+            commands = official_commands(args.profile)
+        else:
+            await asyncio.wait_for(
+                discover_characteristics(client),
+                timeout=args.discovery_timeout,
+            )
+            notify_count = 0
+            for uuid in KINVENT_NOTIFY_UUIDS:
+                characteristic = characteristic_by_uuid(client, uuid)
+                if characteristic:
+                    await characteristic.subscribe(on_notify(uuid))
+                    notify_count += 1
+                    print(f"Notifications activées: {uuid}", flush=True)
 
-        for command, delay in official_commands(args.profile):
+            write_characteristic = characteristic_by_uuid(client, KINVENT_WRITE_UUID)
+            if write_characteristic:
+                write_target = write_characteristic
+                print(f"Écriture via caractéristique {KINVENT_WRITE_UUID}", flush=True)
+            else:
+                write_target = UART_VALUE_HANDLE
+                print(
+                    "Caractéristique d'écriture non trouvée par UUID; "
+                    f"écriture sur handle officiel 0x{UART_VALUE_HANDLE:04x}.",
+                    flush=True,
+                )
+
+            if notify_count == 0:
+                print(
+                    "Aucune caractéristique de notification Kinvent trouvée.",
+                    flush=True,
+                )
+            commands = official_commands(args.profile)
+
+        for command, delay in commands:
             print(f"SEND {command.hex(' ')}", flush=True)
             await client.write_value(write_target, command, with_response=False)
             await asyncio.sleep(delay)
@@ -187,6 +229,17 @@ def main():
         ),
     )
     parser.add_argument("--connect-timeout", type=float, default=15.0)
+    parser.add_argument("--discovery-timeout", type=float, default=15.0)
+    parser.add_argument("--write-delay", type=float, default=0.05)
+    parser.add_argument(
+        "--gatt-mode",
+        choices=["official-handles", "discovery"],
+        default="official-handles",
+        help=(
+            "official-handles utilise les handles Kinvent observés dans les "
+            "captures HCI; discovery lance une découverte GATT Bumble complète."
+        ),
+    )
     parser.add_argument(
         "--profile",
         choices=["none", "force", "kmove"],
