@@ -41,6 +41,23 @@ if [[ ! -f .env ]]; then
   echo "Configuration .env créée."
 fi
 
+if ! grep -q '^KINE_BLUETOOTH_BACKEND=' .env; then
+  if command -v lsusb >/dev/null 2>&1 && lsusb | grep -q '2fe3:000b.*Zephyr USBD BT HCI'; then
+    {
+      echo
+      echo "KINE_BLUETOOTH_BACKEND=bumble"
+      echo "KINE_BUMBLE_TRANSPORT=usb:0"
+    } >> .env
+    echo "Dongle nRF52840 HCI détecté: backend Bumble activé dans .env."
+  fi
+fi
+
+if grep -q '^KINE_BLUETOOTH_BACKEND=bumble' .env \
+  && ! grep -q '^KINE_BUMBLE_TRANSPORT=' .env; then
+  echo "KINE_BUMBLE_TRANSPORT=usb:0" >> .env
+  echo "Transport Bumble par défaut ajouté dans .env."
+fi
+
 echo "Vérification du projet..."
 "$PYTHON_BIN" -m unittest discover -s tests_library -p 'test*.py'
 chmod 0755 scripts/run_kpush_session.sh
