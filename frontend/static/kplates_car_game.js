@@ -122,11 +122,11 @@ function updateStatus(data) {
       : data.last_error
         ? "Erreur"
         : "Déconnecté";
-  $("connectButton").disabled = connecting || ready || running;
+  $("connectButton").disabled = connecting || running;
   $("startGameButton").disabled = connecting || running || !ready;
   $("stopGameButton").disabled = !running;
   document.querySelectorAll(".connect-action").forEach((button) => {
-    button.disabled = connecting || ready || running;
+    button.disabled = connecting || running;
   });
   document.querySelectorAll(".start-action").forEach((button) => {
     button.disabled = connecting || running || !ready;
