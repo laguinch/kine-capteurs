@@ -216,11 +216,12 @@ class KPlatesBumbleClient:
         started_discoveries,
         connect_timeout,
     ):
-        # Dans la capture officielle des deux plateformes, une connexion
-        # initiale peut tomber avec la raison HCI 0x3e avant que l'application
-        # continue. Kinvent reconnecte alors cette même plateforme, puis
-        # reprend le pré-vol GATT officiel. On limite donc cette reprise à ce
-        # cas initial précis, sans mécanisme de retry général.
+        # Dans la capture officielle des deux plateformes, seule la première
+        # connexion de la plateforme droite tombe avec la raison HCI 0x3e
+        # avant que l'application continue. Kinvent reconnecte alors cette
+        # même plateforme, puis reprend le pré-vol GATT officiel. On limite
+        # donc cette reprise à ce cas initial précis, sans mécanisme de retry
+        # général ni extension à la plateforme gauche.
         #
         # La même capture montre aussi que la plateforme initie ses premiers
         # échanges ATT environ 0,11 à 0,13 s après la connexion, avant que
@@ -236,9 +237,15 @@ class KPlatesBumbleClient:
         )
         try:
             await discovery
-        except BaseException:
+        except BaseException as exc:
             if self.disconnect_reasons.get(plate) != OFFICIAL_INITIAL_DISCONNECT_REASON:
                 raise
+            if plate.side != "droite":
+                raise RuntimeError(
+                    "Déconnexion initiale HCI 0x3e sur la plateforme "
+                    f"{plate.side}: ce cas n'apparaît pas dans la capture "
+                    "officielle Kinvent, donc il n'est pas rejoué."
+                ) from exc
             print(
                 f"Reconnexion officielle initiale {plate.side} "
                 "après déconnexion HCI 0x3e.",

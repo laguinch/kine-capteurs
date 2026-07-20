@@ -1936,7 +1936,7 @@ class KPlateDualTest(unittest.TestCase):
             ["settle:droite", "discover:droite"],
         )
 
-    def test_bumble_preflight_reconnects_second_plate_initial_0x3e(self):
+    def test_bumble_preflight_rejects_left_initial_0x3e_not_seen_officially(self):
         class FakeConnection:
             def __init__(self, label):
                 self.gatt_client = object()
@@ -1994,23 +1994,24 @@ class KPlateDualTest(unittest.TestCase):
             left: left_connection.gatt_client,
         }
 
-        asyncio.run(
-            client.run_official_gatt_preflight(
-                clients,
-                device=object(),
-                Address=object,
-                connect_timeout=15.0,
+        with self.assertRaisesRegex(RuntimeError, "gauche.*capture officielle"):
+            asyncio.run(
+                client.run_official_gatt_preflight(
+                    clients,
+                    device=object(),
+                    Address=object,
+                    connect_timeout=15.0,
+                )
             )
-        )
 
         self.assertEqual(
             client.discoveries,
-            ["droite", "gauche", "gauche"],
+            ["droite", "gauche"],
         )
-        self.assertEqual(client.reconnects, ["gauche"])
-        self.assertEqual(client.settles, ["droite", "gauche", "gauche"])
-        self.assertNotIn(left, client.disconnected)
-        self.assertCountEqual(client.reads, ["droite", "gauche"])
+        self.assertEqual(client.reconnects, [])
+        self.assertEqual(client.settles, ["droite", "gauche"])
+        self.assertIn(left, client.disconnected)
+        self.assertEqual(client.reads, [])
 
     def test_bumble_kplates_defaults_match_validated_official_path(self):
         args = build_parser().parse_args([])
