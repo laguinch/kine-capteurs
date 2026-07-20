@@ -61,6 +61,12 @@ def characteristic_by_uuid(client, uuid):
     return matches[0] if matches else None
 
 
+def make_remote_address(address, address_type, Address):
+    if address_type == "public":
+        return Address(address, Address.PUBLIC_DEVICE_ADDRESS)
+    return Address(address, Address.RANDOM_DEVICE_ADDRESS)
+
+
 async def run_probe(args):
     require_bumble()
     from bumble.device import Device
@@ -97,8 +103,25 @@ async def run_probe(args):
             hci_transport.sink,
         )
         await device.power_on()
-        print(f"Connexion Bumble à {args.address} via {args.transport}...", flush=True)
-        connection = await device.connect(args.address)
+        remote_address = make_remote_address(args.address, args.address_type, Address)
+        print(
+            "Connexion Bumble à "
+            f"{remote_address} via {args.transport} "
+            f"(timeout {args.connect_timeout:.1f} s)...",
+            flush=True,
+        )
+        try:
+            connection = await asyncio.wait_for(
+                device.connect(remote_address),
+                timeout=args.connect_timeout,
+            )
+        except TimeoutError as exc:
+            raise SystemExit(
+                "Connexion Bumble expirée. Le contrôleur nRF est ouvert, "
+                "mais le capteur n'a pas accepté la connexion BLE. Vérifiez "
+                "que le capteur est allumé, non connecté ailleurs, et que "
+                "l'adresse/type correspondent aux captures officielles."
+            ) from exc
         client = connection.gatt_client
         await discover_characteristics(client)
 
@@ -154,6 +177,16 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--transport", default=DEFAULT_BUMBLE_TRANSPORT)
     parser.add_argument("--address", required=True)
+    parser.add_argument(
+        "--address-type",
+        choices=["public", "random"],
+        default="public",
+        help=(
+            "Type d'adresse BLE du capteur. Les pilotes HCI Kinvent validés "
+            "utilisent public par défaut."
+        ),
+    )
+    parser.add_argument("--connect-timeout", type=float, default=15.0)
     parser.add_argument(
         "--profile",
         choices=["none", "force", "kmove"],
