@@ -105,12 +105,13 @@ function updateStatus(data) {
   const connected = Boolean(data.bluetooth_connected);
   const ready = platformsReady(data);
   const running = Boolean(data.running);
-  const connecting = game.connecting || data.worker_phase === "connecting";
+  const serverConnecting = data.worker_phase === "connecting";
+  const connecting = game.connecting;
   const waitingForMeasures = waitingForInitialMeasurements(data);
-  $("gameStatusDot").className = `status-dot ${running || ready || connecting || waitingForMeasures ? "running" : data.last_error ? "error" : ""}`;
+  $("gameStatusDot").className = `status-dot ${running || ready || connecting || serverConnecting || waitingForMeasures ? "running" : data.last_error ? "error" : ""}`;
   $("gameStatusText").textContent = running
     ? "Jeu en cours"
-    : connecting
+    : connecting || serverConnecting
       ? "Connexion des plateformes"
     : ready
       ? "Plateformes connectées"
