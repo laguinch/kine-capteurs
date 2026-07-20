@@ -215,12 +215,11 @@ class KPlatesBumbleClient:
         started_discoveries,
         connect_timeout,
     ):
-        # Dans la capture officielle des deux plateformes, la première
-        # connexion droite peut tomber avec la raison HCI 0x3e avant que
-        # l'application continue. Kinvent reconnecte alors cette même
-        # plateforme, puis reprend le pré-vol GATT officiel. On limite donc
-        # cette reprise à ce cas initial précis, sans mécanisme de retry
-        # général.
+        # Dans la capture officielle des deux plateformes, une connexion
+        # initiale peut tomber avec la raison HCI 0x3e avant que l'application
+        # continue. Kinvent reconnecte alors cette même plateforme, puis
+        # reprend le pré-vol GATT officiel. On limite donc cette reprise à ce
+        # cas initial précis, sans mécanisme de retry général.
         discovery = asyncio.create_task(
             self.discover_official_services(
                 plate,
@@ -465,6 +464,9 @@ class KPlatesBumbleClient:
         clients,
         started_discoveries=None,
         announce=True,
+        device=None,
+        Address=None,
+        connect_timeout=15.0,
     ):
         # Dans la capture Android Kinvent des deux plateformes, l'application
         # effectue une découverte GATT complète puis lit le modèle au handle
@@ -475,8 +477,8 @@ class KPlatesBumbleClient:
         # Dans la capture double-plateforme, Android connecte d'abord la
         # droite puis la gauche. La découverte GATT de la droite démarre avant
         # celle de la gauche; les deux lectures 0x0016 sont ensuite quasi
-        # simultanées. On garde donc un pré-vol GATT sobre et séquencé, sans
-        # retry ni récupération ajoutée.
+        # simultanées. La seule reprise acceptée ici est la reconnexion
+        # initiale HCI 0x3e observée officiellement.
         started_discoveries = started_discoveries or {}
         connected = list(clients.keys())
         if announce:
@@ -486,11 +488,23 @@ class KPlatesBumbleClient:
                 flush=True,
             )
 
-        for plate, client in clients.items():
+        for plate in list(clients.keys()):
             if plate in started_discoveries:
                 await started_discoveries[plate]
             else:
-                await self.discover_official_services(plate, client)
+                connection = self.connections.get(plate)
+                if device is None or Address is None or connection is None:
+                    await self.discover_official_services(plate, clients[plate])
+                    continue
+                await self.complete_initial_official_discovery(
+                    device,
+                    plate,
+                    Address,
+                    connection,
+                    clients,
+                    started_discoveries,
+                    connect_timeout,
+                )
 
         await asyncio.gather(
             *(self.read_official_model(plate, client) for plate, client in clients.items())
@@ -589,6 +603,9 @@ class KPlatesBumbleClient:
                     all_clients,
                     started_discoveries=started_discoveries,
                     announce=not preflight_announced,
+                    device=device,
+                    Address=Address,
+                    connect_timeout=connect_timeout,
                 )
 
             if stream_side == "right":

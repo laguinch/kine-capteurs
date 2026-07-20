@@ -1869,6 +1869,77 @@ class KPlateDualTest(unittest.TestCase):
         self.assertNotIn(right, client.disconnected)
         self.assertEqual(right.handle, 0x11)
 
+    def test_bumble_preflight_reconnects_second_plate_initial_0x3e(self):
+        class FakeConnection:
+            def __init__(self, label):
+                self.gatt_client = object()
+                self.handle = 0x10 if label == "initial" else 0x11
+
+            def on(self, event_name, callback):
+                pass
+
+        class FakeClient(KPlatesBumbleClient):
+            def __init__(self):
+                super().__init__(
+                    transport="usb:0",
+                    left_address="E8:EB:1B:6F:A7:5F",
+                    right_address="E8:EB:1B:79:B1:AB",
+                    address_type="public",
+                    csv_path=None,
+                    tare_duration=0,
+                )
+                self.discoveries = []
+                self.reconnects = []
+                self.reads = []
+
+            async def discover_official_services(self, plate, fake_client):
+                self.discoveries.append(plate.side)
+                if plate.side == "gauche" and self.discoveries.count("gauche") == 1:
+                    self.disconnect_reasons[plate] = 0x3E
+                    self.disconnected.add(plate)
+                    plate.handle = None
+                    raise asyncio.CancelledError()
+
+            async def connect_plate(self, device, plate, Address, connect_timeout):
+                self.reconnects.append(plate.side)
+                plate.handle = 0x11
+                self.disconnected.discard(plate)
+                self.disconnect_reasons.pop(plate, None)
+                return FakeConnection("reconnected")
+
+            async def read_official_model(self, plate, fake_client):
+                self.reads.append(plate.side)
+
+        client = FakeClient()
+        left, right = client.dual.plates
+        left_connection = FakeConnection("initial")
+        right_connection = FakeConnection("initial")
+        client.connections = {
+            right: right_connection,
+            left: left_connection,
+        }
+        clients = {
+            right: right_connection.gatt_client,
+            left: left_connection.gatt_client,
+        }
+
+        asyncio.run(
+            client.run_official_gatt_preflight(
+                clients,
+                device=object(),
+                Address=object,
+                connect_timeout=15.0,
+            )
+        )
+
+        self.assertEqual(
+            client.discoveries,
+            ["droite", "gauche", "gauche"],
+        )
+        self.assertEqual(client.reconnects, ["gauche"])
+        self.assertNotIn(left, client.disconnected)
+        self.assertCountEqual(client.reads, ["droite", "gauche"])
+
     def test_bumble_kplates_defaults_match_validated_official_path(self):
         args = build_parser().parse_args([])
 
