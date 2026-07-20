@@ -30,6 +30,7 @@ const game = {
 
 const movementThreshold = 10;
 const fullSteeringAsymmetry = 45;
+const minimumPlayWeightKg = 20;
 const levels = {
   easy: {
     label: "Facile",
@@ -144,20 +145,39 @@ function updateStatus(data) {
 }
 
 function updateControls(measurement) {
+  const totalKg = Number.isFinite(measurement.total_kg) ? measurement.total_kg : 0;
   if (
     game.running
     && !game.playing
+    && totalKg >= minimumPlayWeightKg
     && measurement.timestamp_utc
     && measurement.timestamp_utc !== game.lastMeasurementTimestamp
   ) {
     game.playing = true;
     game.startedAt = performance.now();
+    $("gameStatusText").textContent = "Casse-brique en cours";
+  } else if (game.running && !game.playing) {
+    $("gameStatusText").textContent = "Montez sur les plateformes";
   }
   game.lastMeasurementTimestamp = measurement.timestamp_utc || null;
 
-  const left = Number.isFinite(measurement.left_pct) ? measurement.left_pct : 0;
-  const right = Number.isFinite(measurement.right_pct) ? measurement.right_pct : 0;
-  const asymmetry = Number.isFinite(measurement.asymmetry_pct) ? measurement.asymmetry_pct : 0;
+  const leftKg = Number.isFinite(measurement.left_kg) ? measurement.left_kg : 0;
+  const rightKg = Number.isFinite(measurement.right_kg) ? measurement.right_kg : 0;
+  const left = Number.isFinite(measurement.left_pct)
+    ? measurement.left_pct
+    : totalKg > 0
+      ? (leftKg / totalKg) * 100
+      : 0;
+  const right = Number.isFinite(measurement.right_pct)
+    ? measurement.right_pct
+    : totalKg > 0
+      ? (rightKg / totalKg) * 100
+      : 0;
+  const asymmetry = Number.isFinite(measurement.asymmetry_pct)
+    ? measurement.asymmetry_pct
+    : totalKg > 0
+      ? ((rightKg - leftKg) / totalKg) * 100
+      : 0;
   $("leftForceBar").style.width = `${Math.max(0, Math.min(100, left))}%`;
   $("rightForceBar").style.width = `${Math.max(0, Math.min(100, right))}%`;
   $("leftForceText").textContent = `${format(left)} %`;
@@ -263,6 +283,7 @@ async function startGame() {
   game.completed = false;
   game.csvPath = null;
   $("missValue").textContent = "0";
+  $("gameStatusText").textContent = "Montez sur les plateformes";
   try {
     const response = await fetch("/api/kplates/dual/start", {
       method: "POST",
