@@ -143,6 +143,19 @@ python scripts/kinvent_bumble_probe.py \
 Pour le K-Move, utiliser `--profile kmove`. Pour une découverte GATT sans
 commande Kinvent, utiliser `--profile none`.
 
+Après validation du diagnostic, le premier pilote Bumble complet disponible
+est le K-Push :
+
+```bash
+cd /opt/kine-capteurs-staging
+sudo .venv/bin/python -u scripts/kinvent_kpush_bumble.py \
+  --transport usb:0 \
+  --address "60:8A:10:30:9B:FA" \
+  --duration 30 \
+  --tare-duration 2 \
+  --csv storage/raw_data/kpush_bumble_test.csv
+```
+
 Les variables prévues pour la suite sont :
 
 - `KINE_BLUETOOTH_BACKEND=raw-hci` par défaut ;
