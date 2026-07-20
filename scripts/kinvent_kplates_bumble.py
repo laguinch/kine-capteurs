@@ -269,7 +269,19 @@ class KPlatesBumbleClient:
                     connection.gatt_client,
                 )
             )
-            await discovery
+            try:
+                await discovery
+            except BaseException as retry_exc:
+                if self.disconnect_reasons.get(plate) == OFFICIAL_INITIAL_DISCONNECT_REASON:
+                    raise RuntimeError(
+                        "La reconnexion officielle initiale de la plateforme "
+                        f"{plate.side} s'est encore interrompue en HCI 0x3e. "
+                        "La capture officielle Kinvent ne montre qu'une seule "
+                        "coupure initiale sur la droite, puis une découverte "
+                        "GATT réussie; ce comportement Bumble/nRF n'est donc "
+                        "pas conforme à la capture."
+                    ) from retry_exc
+                raise
         started_discoveries[plate] = discovery
 
     async def wait_official_gatt_settle(self, plate):

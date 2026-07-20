@@ -1890,6 +1890,65 @@ class KPlateDualTest(unittest.TestCase):
         self.assertNotIn(right, client.disconnected)
         self.assertEqual(right.handle, 0x11)
 
+    def test_bumble_rejects_repeated_official_initial_0x3e(self):
+        class FakeConnection:
+            def __init__(self, label):
+                self.gatt_client = object()
+                self.handle = 0x10 if label == "initial" else 0x11
+
+            def on(self, event_name, callback):
+                pass
+
+        class FakeClient(KPlatesBumbleClient):
+            def __init__(self):
+                super().__init__(
+                    transport="usb:0",
+                    left_address="E8:EB:1B:6F:A7:5F",
+                    right_address="E8:EB:1B:79:B1:AB",
+                    address_type="public",
+                    csv_path=None,
+                    tare_duration=0,
+                )
+                self.discoveries = 0
+                self.reconnects = 0
+
+            async def wait_official_gatt_settle(self, plate):
+                pass
+
+            async def discover_official_services(self, plate, fake_client):
+                self.discoveries += 1
+                self.disconnect_reasons[plate] = 0x3E
+                self.disconnected.add(plate)
+                plate.handle = None
+                raise asyncio.CancelledError()
+
+            async def connect_plate(self, device, plate, Address, connect_timeout):
+                self.reconnects += 1
+                plate.handle = 0x11
+                self.disconnected.discard(plate)
+                self.disconnect_reasons.pop(plate, None)
+                return FakeConnection("reconnected")
+
+        client = FakeClient()
+        right = client.dual.plates[1]
+        initial_connection = FakeConnection("initial")
+
+        with self.assertRaisesRegex(RuntimeError, "encore interrompue"):
+            asyncio.run(
+                client.complete_initial_official_discovery(
+                    object(),
+                    right,
+                    object,
+                    initial_connection,
+                    {right: initial_connection.gatt_client},
+                    {},
+                    15.0,
+                )
+            )
+
+        self.assertEqual(client.discoveries, 2)
+        self.assertEqual(client.reconnects, 1)
+
     def test_bumble_initial_preflight_waits_for_official_gatt_settle(self):
         class FakeConnection:
             def __init__(self):
