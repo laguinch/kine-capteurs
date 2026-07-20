@@ -6,6 +6,7 @@ from ble.kinvent.kpull.protocol import (
     compute_stable_calibration,
     parse_raw_frame,
 )
+from scripts.kinvent_kpull_bumble import KPullBumbleClient
 
 
 class KPullProtocolTest(unittest.TestCase):
@@ -76,6 +77,41 @@ class KPullProtocolTest(unittest.TestCase):
                 [0, 100, 5_000, 100, 0],
                 known_load_kg=12,
             )
+
+    def test_bumble_client_decodes_and_tares_like_hci_client(self):
+        client = KPullBumbleClient(
+            transport="usb:0",
+            address="E8:EB:1B:61:11:AF",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+            print_interval=999,
+            counts_per_kg=10_000,
+        )
+
+        client.handle_payload(
+            bytes.fromhex(
+                "ff ff fe 2c fb 00 9e 39 00 0f 34 00 0f 34 00 0f 35"
+            )
+        )
+
+        self.assertIsNotNone(client.tare_offset)
+        self.assertIsNotNone(client.latest)
+        self.assertEqual(client.latest["raw_force"], 40505)
+        self.assertEqual(client.latest["force_kg"], 0.0)
+
+    def test_bumble_client_ignores_non_measurement_payload(self):
+        client = KPullBumbleClient(
+            transport="usb:0",
+            address="E8:EB:1B:61:11:AF",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+        )
+
+        client.handle_payload(b"KINVENT FW 2.64S")
+
+        self.assertIsNone(client.latest)
 
 
 if __name__ == "__main__":

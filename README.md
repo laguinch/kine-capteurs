@@ -156,6 +156,20 @@ sudo .venv/bin/python -u scripts/kinvent_kpush_bumble.py \
   --csv storage/raw_data/kpush_bumble_test.csv
 ```
 
+Le K-Pull dispose du même pilote Bumble expérimental. Avec le coefficient
+provisoire issu du test à 12 kg :
+
+```bash
+cd /opt/kine-capteurs-staging
+sudo .venv/bin/python -u scripts/kinvent_kpull_bumble.py \
+  --transport usb:0 \
+  --address "E8:EB:1B:61:11:AF" \
+  --duration 30 \
+  --tare-duration 2 \
+  --counts-per-kg 9722.166667 \
+  --csv storage/raw_data/kpull_bumble_test.csv
+```
+
 Les variables prévues pour la suite sont :
 
 - `KINE_BLUETOOTH_BACKEND=raw-hci` par défaut ;
