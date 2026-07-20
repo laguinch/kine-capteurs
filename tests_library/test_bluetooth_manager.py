@@ -10,7 +10,10 @@ from ble.kinvent.bumble_backend import (
     BumbleBackendError,
     normalize_backend,
 )
-from scripts.kinvent_bluetooth_manager import KinventBluetoothManager
+from scripts.kinvent_bluetooth_manager import (
+    KinventBluetoothManager,
+    resolve_manager_hci_adapter,
+)
 
 
 class BluetoothManagerTest(unittest.TestCase):
@@ -34,8 +37,39 @@ class BluetoothManagerTest(unittest.TestCase):
         bluetooth.controller.reset = mock.Mock()
         bluetooth.state = mock.Mock()
 
-        bluetooth.start()
+        with mock.patch(
+            "scripts.kinvent_bluetooth_manager.resolve_manager_hci_adapter",
+            return_value=0,
+        ):
+            bluetooth.start()
 
+        bluetooth.controller.open.assert_called_once_with()
+        bluetooth.controller.reset.assert_called_once_with()
+        bluetooth.state.assert_called_once_with("idle")
+
+    def test_manager_uses_available_external_adapter_when_hci0_is_missing(self):
+        with mock.patch(
+            "scripts.kinvent_bluetooth_manager.available_hci_adapters",
+            return_value=[1],
+        ):
+            selected = resolve_manager_hci_adapter(0, timeout=0)
+
+        self.assertEqual(selected, 1)
+
+    def test_start_updates_controller_to_resolved_adapter(self):
+        bluetooth = KinventBluetoothManager(0)
+        bluetooth.controller.open = mock.Mock()
+        bluetooth.controller.reset = mock.Mock()
+        bluetooth.state = mock.Mock()
+
+        with mock.patch(
+            "scripts.kinvent_bluetooth_manager.resolve_manager_hci_adapter",
+            return_value=1,
+        ):
+            bluetooth.start()
+
+        self.assertEqual(bluetooth.adapter, 1)
+        self.assertEqual(bluetooth.controller.adapter, 1)
         bluetooth.controller.open.assert_called_once_with()
         bluetooth.controller.reset.assert_called_once_with()
         bluetooth.state.assert_called_once_with("idle")
@@ -75,8 +109,12 @@ class BluetoothManagerTest(unittest.TestCase):
         bluetooth.controller.close = mock.Mock()
         bluetooth.state = mock.Mock()
 
-        with self.assertRaises(TimeoutError):
-            bluetooth.start()
+        with mock.patch(
+            "scripts.kinvent_bluetooth_manager.resolve_manager_hci_adapter",
+            return_value=0,
+        ):
+            with self.assertRaises(TimeoutError):
+                bluetooth.start()
 
         bluetooth.state.assert_called_once()
         self.assertEqual(bluetooth.state.call_args.args[0], "error")

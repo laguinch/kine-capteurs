@@ -32,6 +32,7 @@ from scripts.kinvent_raw_hci import RawKinventClient, parse_adapter  # noqa: E40
 
 
 RAW_DIR = BASE_DIR / "storage" / "raw_data"
+BLUETOOTH_SYSFS = Path("/sys/class/bluetooth")
 
 TARGETS = {
     "kplates": {
@@ -105,6 +106,54 @@ def describe_command(command):
     return f"action={action}, cible={target}, génération={generation}"
 
 
+def available_hci_adapters():
+    if not BLUETOOTH_SYSFS.exists():
+        return []
+    adapters = []
+    for entry in BLUETOOTH_SYSFS.glob("hci*"):
+        suffix = entry.name[3:]
+        if suffix.isdigit():
+            adapters.append(int(suffix))
+    return sorted(adapters)
+
+
+def resolve_manager_hci_adapter(requested, timeout=8.0):
+    deadline = time.monotonic() + timeout
+    while True:
+        available = available_hci_adapters()
+        if requested in available:
+            return requested
+
+        external = [adapter for adapter in available if adapter != 0]
+        if external:
+            selected = max(external)
+            print(
+                f"hci{requested} n'est plus disponible; "
+                f"gestionnaire Bluetooth basculé sur hci{selected}.",
+                flush=True,
+            )
+            return selected
+
+        if available == [0]:
+            print(
+                f"hci{requested} n'est plus disponible; "
+                "gestionnaire Bluetooth basculé sur hci0.",
+                flush=True,
+            )
+            return 0
+
+        if time.monotonic() >= deadline:
+            visible = ", ".join(f"hci{item}" for item in available) or "aucun"
+            raise OSError(
+                19,
+                (
+                    f"Contrôleur hci{requested} introuvable après "
+                    f"{timeout:.0f} s (contrôleurs visibles: {visible})"
+                ),
+            )
+        time.sleep(0.25)
+
+
 class KinventBluetoothManager:
     def __init__(self, adapter, backend=None):
         self.adapter = adapter
@@ -156,6 +205,8 @@ class KinventBluetoothManager:
                 "matérielle."
             )
         try:
+            self.adapter = resolve_manager_hci_adapter(self.adapter)
+            self.controller.adapter = self.adapter
             self.controller.open()
             self.controller.reset()
         except (OSError, RuntimeError, TimeoutError) as exc:
