@@ -294,12 +294,11 @@ class KPlatesBumbleClient:
         # Ce pré-vol reste du GATT standard; il ne remplace ni n'ajoute de
         # commande Kinvent propriétaire.
         #
-        # La capture double-plateforme montre des échanges GATT intercalés sur
-        # les deux connexions, puis deux lectures 0x0016 quasi simultanées.
-        # On évite donc de finir toute la découverte d'un côté avant de toucher
-        # l'autre : le pré-vol Bumble lance les opérations GATT standard des
-        # deux côtés ensemble, et garde les commandes Kinvent propriétaires
-        # strictement inchangées ensuite.
+        # Dans la capture double-plateforme, Android connecte d'abord la
+        # droite puis la gauche. La découverte GATT de la droite démarre avant
+        # celle de la gauche; les deux lectures 0x0016 sont ensuite quasi
+        # simultanées. On garde donc un pré-vol GATT sobre et séquencé, sans
+        # retry ni récupération ajoutée.
         connected = list(clients.keys())
         print(
             "Pré-vol GATT officiel pour "
@@ -311,9 +310,8 @@ class KPlatesBumbleClient:
             print(f"Découverte GATT {plate.side}...", flush=True)
             await client.discover_services()
 
-        await asyncio.gather(
-            *(discover(plate, client) for plate, client in clients.items())
-        )
+        for plate, client in clients.items():
+            await discover(plate, client)
 
         async def read_model(plate, client):
             print(f"Lecture modèle {plate.side} sur 0x0016...", flush=True)
@@ -350,7 +348,7 @@ class KPlatesBumbleClient:
         duration,
         connect_timeout=15.0,
         sides="both",
-        connection_order="left-first",
+        connection_order="right-first",
         diagnostic="stream",
         stream_side="both",
         gatt_preflight="official-discovery",
@@ -488,7 +486,7 @@ def build_parser():
     parser.add_argument(
         "--connection-order",
         choices=["right-first", "left-first"],
-        default="left-first",
+        default="right-first",
         help="Diagnostic: inverser l'ordre de connexion sans changer les commandes.",
     )
     parser.add_argument(

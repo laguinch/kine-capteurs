@@ -1526,10 +1526,55 @@ class KPlateDualTest(unittest.TestCase):
             [b"\x90", b"\x11"],
         )
 
+    def test_bumble_gatt_preflight_discovers_in_official_connection_order(self):
+        class FakeClient:
+            def __init__(self, label, events):
+                self.label = label
+                self.events = events
+
+            async def discover_services(self):
+                self.events.append(f"discover:{self.label}")
+
+            async def read_value(self, handle):
+                self.events.append((f"read:{self.label}", handle))
+                return b"P104356"
+
+        events = []
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+        )
+        left, right = client.dual.plates
+
+        asyncio.run(
+            client.run_official_gatt_preflight(
+                {
+                    right: FakeClient("droite", events),
+                    left: FakeClient("gauche", events),
+                }
+            )
+        )
+
+        self.assertEqual(
+            events[:2],
+            ["discover:droite", "discover:gauche"],
+        )
+        self.assertCountEqual(
+            events[2:],
+            [
+                ("read:droite", 0x0016),
+                ("read:gauche", 0x0016),
+            ],
+        )
+
     def test_bumble_kplates_defaults_match_validated_official_path(self):
         args = build_parser().parse_args([])
 
-        self.assertEqual(args.connection_order, "left-first")
+        self.assertEqual(args.connection_order, "right-first")
         self.assertEqual(args.gatt_preflight, "official-discovery")
         self.assertEqual(args.hold_after, 0.0)
         self.assertEqual(args.cycles, 1)
