@@ -1491,6 +1491,7 @@ class KPlateDualTest(unittest.TestCase):
 
         self.assertEqual(args.connection_order, "left-first")
         self.assertEqual(args.gatt_preflight, "official-discovery")
+        self.assertEqual(args.hold_after, 0.0)
 
 
 if __name__ == "__main__":

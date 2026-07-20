@@ -254,6 +254,7 @@ class KPlatesBumbleClient:
         diagnostic="stream",
         stream_side="both",
         gatt_preflight="official-discovery",
+        hold_after=0.0,
     ):
         require_bumble()
         from bumble.device import Device
@@ -344,6 +345,31 @@ class KPlatesBumbleClient:
                     print(f"Temps restant: {remaining:4.1f} s", flush=True)
                     next_progress = now + 5.0
 
+            if hold_after > 0:
+                print(
+                    "Maintien Bluetooth Bumble après acquisition pendant "
+                    f"{hold_after:.1f} s...",
+                    flush=True,
+                )
+                hold_start = time.monotonic()
+                hold_deadline = hold_start + hold_after
+                next_keepalive = hold_start + self.dual.keepalive_interval
+                next_progress = hold_start
+
+                while time.monotonic() < hold_deadline:
+                    await asyncio.sleep(0.05)
+                    now = time.monotonic()
+                    if self.dual.keepalive_interval > 0 and now >= next_keepalive:
+                        await self.write_all(clients, b"\xff", 0.0)
+                        next_keepalive = now + self.dual.keepalive_interval
+                    if now >= next_progress:
+                        remaining = max(0.0, hold_deadline - now)
+                        print(
+                            f"Maintien restant: {remaining:4.1f} s",
+                            flush=True,
+                        )
+                        next_progress = now + 5.0
+
             for plate, connection in self.connections.items():
                 if plate in self.disconnected or plate.handle is None:
                     continue
@@ -411,6 +437,15 @@ def build_parser():
     parser.add_argument("--write-delay", type=float, default=0.05)
     parser.add_argument("--print-interval", type=float, default=0.5)
     parser.add_argument("--keepalive-interval", type=float, default=10.0)
+    parser.add_argument(
+        "--hold-after",
+        type=float,
+        default=0.0,
+        help=(
+            "Diagnostic: maintenir les liens Bluetooth après l'acquisition "
+            "avec le keepalive officiel 0xff avant la fermeture finale."
+        ),
+    )
     parser.add_argument("--sync-tolerance-ms", type=float, default=20.0)
     parser.add_argument("--calibration-file")
     parser.add_argument("--recalibrate", action="store_true")
@@ -444,6 +479,7 @@ def main():
                 diagnostic=args.diagnostic,
                 stream_side=args.stream_side,
                 gatt_preflight=args.gatt_preflight,
+                hold_after=args.hold_after,
             )
         )
     except BumbleBackendError as exc:
