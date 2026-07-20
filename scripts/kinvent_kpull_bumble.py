@@ -31,7 +31,10 @@ from ble.kinvent.kpull.protocol import (  # noqa: E402
     compute_stable_calibration,
     parse_raw_frame,
 )
-from scripts.kinvent_kpush_bumble import make_remote_address  # noqa: E402
+from scripts.kinvent_kpush_bumble import (  # noqa: E402
+    control_requests_disconnect,
+    make_remote_address,
+)
 from scripts.kinvent_raw_hci import (  # noqa: E402
     INIT_COMMANDS,
     UART_CCCD_HANDLE,
@@ -64,6 +67,7 @@ class KPullBumbleClient:
         known_load_kg=None,
         write_delay=0.05,
         keepalive_interval=10.0,
+        control_file=None,
     ):
         self.transport = transport
         self.address = address
@@ -74,6 +78,7 @@ class KPullBumbleClient:
         self.known_load_kg = known_load_kg
         self.write_delay = write_delay
         self.keepalive_interval = keepalive_interval
+        self.control_file = control_file
         self.tare_started_at = None
         self.tare_values = []
         self.tare_offset = None
@@ -226,18 +231,22 @@ class KPullBumbleClient:
                 await self.write(client, command)
 
             print("Acquisition K-Pull Bumble démarrée.", flush=True)
+            print("K-Pull prêt; liaison Bluetooth conservée.", flush=True)
             start = time.monotonic()
-            deadline = start + duration
+            deadline = None if duration <= 0 else start + duration
             next_keepalive = start + self.keepalive_interval
             next_progress = start
 
-            while time.monotonic() < deadline:
+            while deadline is None or time.monotonic() < deadline:
                 await asyncio.sleep(0.05)
                 now = time.monotonic()
+                if control_requests_disconnect(self.control_file):
+                    print("Déconnexion K-Pull demandée par le gestionnaire.", flush=True)
+                    break
                 if self.keepalive_interval > 0 and now >= next_keepalive:
                     await self.write(client, b"\xff")
                     next_keepalive = now + self.keepalive_interval
-                if now >= next_progress:
+                if deadline is not None and now >= next_progress:
                     remaining = max(0.0, deadline - now)
                     print(f"Temps restant: {remaining:4.1f} s", flush=True)
                     next_progress = now + 5.0
@@ -273,6 +282,7 @@ def build_parser():
     parser.add_argument("--counts-per-kg", type=float)
     parser.add_argument("--known-load-kg", type=float)
     parser.add_argument("--csv")
+    parser.add_argument("--control-file")
     return parser
 
 
@@ -289,6 +299,7 @@ def main():
         known_load_kg=args.known_load_kg,
         write_delay=args.write_delay,
         keepalive_interval=args.keepalive_interval,
+        control_file=args.control_file,
     )
     try:
         asyncio.run(client.run(args.duration, args.connect_timeout))

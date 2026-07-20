@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import sys
 import time
 from pathlib import Path
@@ -29,6 +30,7 @@ from scripts.kinvent_dual_hci import (  # noqa: E402
     KPLATE_INIT_STEPS,
     KPLATE_PARK_DELAY,
     DualKinventClient,
+    now_iso,
 )
 from scripts.kinvent_kpush_bumble import make_remote_address  # noqa: E402
 from scripts.kinvent_raw_hci import (  # noqa: E402
@@ -47,6 +49,13 @@ OFFICIAL_GATT_SETTLE_AFTER_CONNECT_S = 0.15
 
 def connected_sides(plates):
     return ", ".join(plate.side for plate in plates)
+
+
+def read_json(path):
+    try:
+        return json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError):
+        return {}
 
 
 class KPlatesBumbleClient:
@@ -93,6 +102,13 @@ class KPlatesBumbleClient:
         sample = plate.decode(bytes(payload))
         if sample:
             self.dual.pair_samples()
+
+    def connected_side_names(self):
+        return [
+            plate.side
+            for plate in self.dual.plates
+            if plate.handle is not None and plate not in self.disconnected
+        ]
 
     def register_disconnect_logger(self, connection, plate):
         def log_disconnection(reason=None, *args, **kwargs):
@@ -458,6 +474,29 @@ class KPlatesBumbleClient:
                 print(f"Temps restant: {remaining:4.1f} s", flush=True)
                 next_progress = now + 5.0
 
+    async def acquire_once_managed(self, clients, duration, stop_requested):
+        print(f"Acquisition double Bumble pendant {duration:.1f} s...", flush=True)
+        start = time.monotonic()
+        deadline = start + duration
+        next_keepalive = start + self.dual.keepalive_interval
+        next_progress = start
+        completed = True
+
+        while time.monotonic() < deadline:
+            if stop_requested():
+                completed = False
+                break
+            await asyncio.sleep(0.05)
+            now = time.monotonic()
+            if self.dual.keepalive_interval > 0 and now >= next_keepalive:
+                await self.write_all(clients, b"\xff", 0.0)
+                next_keepalive = now + self.dual.keepalive_interval
+            if now >= next_progress:
+                remaining = max(0.0, deadline - now)
+                print(f"Temps restant: {remaining:4.1f} s", flush=True)
+                next_progress = now + 5.0
+        return completed
+
     async def discover_official_services(self, plate, client):
         print(f"Découverte GATT {plate.side}...", flush=True)
         await client.discover_services()
@@ -688,6 +727,184 @@ class KPlatesBumbleClient:
                         flush=True,
                     )
 
+    async def run_persistent(self, control_file, state_file, connect_timeout=15.0):
+        require_bumble()
+        from bumble.device import Device
+        from bumble.hci import Address
+        from bumble.transport import open_transport
+
+        control_path = Path(control_file)
+        state_path = Path(state_file)
+        generation = None
+        clients = {}
+        connected = False
+        next_idle_keepalive = time.monotonic() + self.dual.keepalive_interval
+
+        def write_state(phase, **state):
+            self.dual.write_worker_state(state_path, phase=phase, **state)
+
+        async with await open_transport(self.transport) as hci_transport:
+            device = Device.with_hci(
+                "Kine Capteurs Bumble",
+                Address("F0:F1:F2:F3:F4:F5"),
+                hci_transport.source,
+                hci_transport.sink,
+            )
+            await device.power_on()
+            write_state("disconnected")
+
+            while True:
+                command = read_json(control_path)
+                action = command.get("action")
+                requested = command.get("generation")
+
+                if action == "disconnect":
+                    await self.park_measurement_streams(clients, commands=3)
+                    for plate, connection in list(self.connections.items()):
+                        if plate in self.disconnected or plate.handle is None:
+                            continue
+                        try:
+                            await connection.disconnect()
+                        except Exception as exc:
+                            print(
+                                f"Déconnexion Bumble ignorée {plate.side}: "
+                                f"{type(exc).__name__}: {exc}",
+                                flush=True,
+                            )
+                    self.connections.clear()
+                    clients.clear()
+                    self.disconnected.clear()
+                    connected = False
+                    generation = requested or generation
+                    write_state("disconnected", generation=generation)
+                    return
+
+                if action == "connect" and requested and requested != generation:
+                    generation = requested
+                    write_state("connecting", generation=generation)
+                    try:
+                        selected = self.selected_plates("both", "right-first")
+                        print(
+                            "Ordre de connexion Bumble: "
+                            f"{connected_sides(selected)}",
+                            flush=True,
+                        )
+                        all_clients = {}
+                        started_discoveries = {}
+                        for plate in selected:
+                            connection = await self.connect_plate(
+                                device,
+                                plate,
+                                Address,
+                                connect_timeout,
+                            )
+                            self.connections[plate] = connection
+                            self.register_disconnect_logger(connection, plate)
+                            all_clients[plate] = connection.gatt_client
+                            if len(selected) > 1 and not started_discoveries:
+                                print(
+                                    "Pré-vol GATT officiel pour "
+                                    f"{connected_sides(selected)}...",
+                                    flush=True,
+                                )
+                                await self.complete_initial_official_discovery(
+                                    device,
+                                    plate,
+                                    Address,
+                                    connection,
+                                    all_clients,
+                                    started_discoveries,
+                                    connect_timeout,
+                                )
+                        await self.run_official_gatt_preflight(
+                            all_clients,
+                            started_discoveries=started_discoveries,
+                            announce=not bool(started_discoveries),
+                            device=device,
+                            Address=Address,
+                            connect_timeout=connect_timeout,
+                        )
+                        clients = all_clients
+                        await self.configure_streams(clients)
+                    except BaseException as exc:
+                        self.dual.close_csv()
+                        write_state(
+                            "disconnected",
+                            generation=generation,
+                            error=(
+                                "Connexion Bumble impossible. "
+                                f"Reconnectez les plateformes : {exc}"
+                            ),
+                        )
+                        raise
+                    connected = True
+                    next_idle_keepalive = time.monotonic() + self.dual.keepalive_interval
+                    write_state(
+                        "idle",
+                        generation=generation,
+                        connected_sides=self.connected_side_names(),
+                        mode="balance",
+                    )
+                    continue
+
+                if action == "start" and requested and requested != generation:
+                    if not connected or len(self.connected_side_names()) != 2:
+                        write_state(
+                            "disconnected",
+                            generation=requested,
+                            error="Connectez les capteurs avant de démarrer un test.",
+                        )
+                        continue
+                    generation = requested
+                    duration = float(command["duration"])
+                    mode = command.get("mode", "balance")
+                    self.dual.paired_samples = 0
+                    self.dual.cmj_samples = 0
+                    self.dual.dropped_samples = {"gauche": 0, "droite": 0}
+                    for plate in self.dual.plates:
+                        plate.samples.clear()
+                    self.dual.open_csv(command["csv_path"], mode)
+                    write_state(
+                        "active",
+                        generation=generation,
+                        csv_path=command["csv_path"],
+                        started_at=now_iso(),
+                        mode=mode,
+                        connected_sides=self.connected_side_names(),
+                    )
+                    completed = await self.acquire_once_managed(
+                        clients,
+                        duration,
+                        stop_requested=lambda: (
+                            read_json(control_path).get("action") == "stop"
+                            and read_json(control_path).get("generation") == generation
+                        ),
+                    )
+                    self.dual.close_csv()
+                    await self.park_measurement_streams(clients, commands=3)
+                    write_state(
+                        "idle",
+                        generation=generation,
+                        csv_path=command["csv_path"],
+                        connected_sides=self.connected_side_names(),
+                        paired_samples=self.dual.paired_samples,
+                        cmj_samples=self.dual.cmj_samples,
+                        mode=mode,
+                        stopped=not completed,
+                        result_available=(mode == "cmj"),
+                    )
+                    self.dual.consume_control_command(control_path, generation)
+                    next_idle_keepalive = time.monotonic() + self.dual.keepalive_interval
+                    continue
+
+                if connected and time.monotonic() >= next_idle_keepalive:
+                    await self.write_all(clients, b"\xff", 0.0)
+                    next_idle_keepalive = (
+                        time.monotonic() + self.dual.keepalive_interval
+                    )
+
+                await asyncio.sleep(0.2)
+
 
 def build_parser():
     parser = argparse.ArgumentParser(
@@ -774,6 +991,8 @@ def build_parser():
     parser.add_argument("--calibration-file")
     parser.add_argument("--recalibrate", action="store_true")
     parser.add_argument("--csv", default="storage/raw_data/kplates_bumble.csv")
+    parser.add_argument("--control-file")
+    parser.add_argument("--state-file")
     return parser
 
 
@@ -794,20 +1013,29 @@ def main():
         keepalive_interval=args.keepalive_interval,
     )
     try:
-        asyncio.run(
-            client.run(
-                args.duration,
-                args.connect_timeout,
-                sides=args.sides,
-                connection_order=args.connection_order,
-                diagnostic=args.diagnostic,
-                stream_side=args.stream_side,
-                gatt_preflight=args.gatt_preflight,
-                hold_after=args.hold_after,
-                cycles=args.cycles,
-                rest_between_cycles=args.rest_between_cycles,
+        if args.control_file and args.state_file:
+            asyncio.run(
+                client.run_persistent(
+                    args.control_file,
+                    args.state_file,
+                    connect_timeout=args.connect_timeout,
+                )
             )
-        )
+        else:
+            asyncio.run(
+                client.run(
+                    args.duration,
+                    args.connect_timeout,
+                    sides=args.sides,
+                    connection_order=args.connection_order,
+                    diagnostic=args.diagnostic,
+                    stream_side=args.stream_side,
+                    gatt_preflight=args.gatt_preflight,
+                    hold_after=args.hold_after,
+                    cycles=args.cycles,
+                    rest_between_cycles=args.rest_between_cycles,
+                )
+            )
     except BumbleBackendError as exc:
         raise SystemExit(str(exc)) from exc
     finally:

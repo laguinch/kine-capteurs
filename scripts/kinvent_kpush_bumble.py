@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import csv
+import json
 import sys
 import time
 from pathlib import Path
@@ -45,6 +46,16 @@ def make_remote_address(address, address_type, Address):
     return Address(address, Address.RANDOM_DEVICE_ADDRESS)
 
 
+def control_requests_disconnect(control_file):
+    if not control_file:
+        return False
+    try:
+        payload = json.loads(Path(control_file).read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError):
+        return False
+    return payload.get("action") == "disconnect"
+
+
 class KPushBumbleClient:
     def __init__(
         self,
@@ -56,6 +67,7 @@ class KPushBumbleClient:
         print_interval=0.1,
         write_delay=0.05,
         keepalive_interval=10.0,
+        control_file=None,
     ):
         self.transport = transport
         self.address = address
@@ -64,6 +76,7 @@ class KPushBumbleClient:
         self.print_interval = print_interval
         self.write_delay = write_delay
         self.keepalive_interval = keepalive_interval
+        self.control_file = control_file
         self.tare_started_at = None
         self.tare_values = []
         self.tare_offset = None
@@ -196,18 +209,22 @@ class KPushBumbleClient:
                 await self.write(client, command)
 
             print("Acquisition K-Push Bumble démarrée.", flush=True)
+            print("K-Push prêt; liaison Bluetooth conservée.", flush=True)
             start = time.monotonic()
-            deadline = start + duration
+            deadline = None if duration <= 0 else start + duration
             next_keepalive = start + self.keepalive_interval
             next_progress = start
 
-            while time.monotonic() < deadline:
+            while deadline is None or time.monotonic() < deadline:
                 await asyncio.sleep(0.05)
                 now = time.monotonic()
+                if control_requests_disconnect(self.control_file):
+                    print("Déconnexion K-Push demandée par le gestionnaire.", flush=True)
+                    break
                 if self.keepalive_interval > 0 and now >= next_keepalive:
                     await self.write(client, b"\xff")
                     next_keepalive = now + self.keepalive_interval
-                if now >= next_progress:
+                if deadline is not None and now >= next_progress:
                     remaining = max(0.0, deadline - now)
                     print(f"Temps restant: {remaining:4.1f} s", flush=True)
                     next_progress = now + 5.0
@@ -233,6 +250,7 @@ def build_parser():
     parser.add_argument("--print-interval", type=float, default=0.1)
     parser.add_argument("--keepalive-interval", type=float, default=10.0)
     parser.add_argument("--csv")
+    parser.add_argument("--control-file")
     return parser
 
 
@@ -247,6 +265,7 @@ def main():
         print_interval=args.print_interval,
         write_delay=args.write_delay,
         keepalive_interval=args.keepalive_interval,
+        control_file=args.control_file,
     )
     try:
         asyncio.run(client.run(args.duration, args.connect_timeout))

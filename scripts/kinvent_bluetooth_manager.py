@@ -83,6 +83,55 @@ TARGETS = {
     },
 }
 
+BUMBLE_TARGETS = {
+    "kplates": {
+        "script": "kinvent_kplates_bumble.py",
+        "control": "kplates_worker_control.json",
+        "log": "kplates_worker.log",
+        "args": [
+            "--tare-duration", "2",
+            "--calibration-file", str(RAW_DIR / "kplates_calibration.json"),
+            "--sync-tolerance-ms", "20",
+            "--control-file", str(RAW_DIR / "kplates_worker_control.json"),
+            "--state-file", str(RAW_DIR / "kplates_worker_state.json"),
+        ],
+    },
+    "kpush": {
+        "script": "kinvent_kpush_bumble.py",
+        "control": "kpush_worker_control.json",
+        "log": "kpush_worker.log",
+        "args": [
+            "--duration", "0",
+            "--tare-duration", "2",
+            "--control-file", str(RAW_DIR / "kpush_worker_control.json"),
+            "--csv", str(RAW_DIR / "kpush_live.csv"),
+        ],
+    },
+    "kpull": {
+        "script": "kinvent_kpull_bumble.py",
+        "control": "kpull_worker_control.json",
+        "log": "kpull_worker.log",
+        "args": [
+            "--duration", "0",
+            "--tare-duration", "2",
+            "--counts-per-kg", "9722.166667",
+            "--control-file", str(RAW_DIR / "kpull_worker_control.json"),
+            "--csv", str(RAW_DIR / "kpull_live.csv"),
+        ],
+    },
+    "kmove": {
+        "script": "kinvent_kmove_bumble.py",
+        "control": "kmove_worker_control.json",
+        "log": "kmove_worker.log",
+        "args": [
+            "--duration", "0",
+            "--reference-duration", "2",
+            "--control-file", str(RAW_DIR / "kmove_worker_control.json"),
+            "--csv", str(RAW_DIR / "kmove_live.csv"),
+        ],
+    },
+}
+
 
 def read_json(path):
     try:
@@ -159,10 +208,14 @@ class KinventBluetoothManager:
         self.adapter = adapter
         self.backend = normalize_backend(backend or backend_from_environment())
         self.bumble_config = bumble_config_from_environment()
-        self.controller = RawKinventClient(
-            adapter=adapter,
-            address="00:00:00:00:00:00",
-            address_type="public",
+        self.controller = (
+            None
+            if self.backend == BUMBLE_BACKEND
+            else RawKinventClient(
+                adapter=adapter,
+                address="00:00:00:00:00:00",
+                address_type="public",
+            )
         )
         self.child = None
         self.target = None
@@ -190,20 +243,11 @@ class KinventBluetoothManager:
         if self.backend == BUMBLE_BACKEND:
             require_bumble()
             self.state(
-                "error",
+                "idle",
                 backend=self.backend,
                 transport=self.bumble_config.transport,
-                error=(
-                    "Backend Bumble disponible pour diagnostic, mais le "
-                    "gestionnaire permanent Kinvent n'est pas encore basculé. "
-                    "Utilisez scripts/kinvent_bumble_probe.py pour valider le "
-                    "dongle, puis migrez les pilotes capteur par capteur."
-                ),
             )
-            raise RuntimeError(
-                "Gestionnaire permanent Bumble non activé sans validation "
-                "matérielle."
-            )
+            return
         try:
             self.adapter = resolve_manager_hci_adapter(self.adapter)
             self.controller.adapter = self.adapter
@@ -221,6 +265,14 @@ class KinventBluetoothManager:
     def recover_controller_after_failure(self, failed_target, return_code):
         """Récupère le dongle uniquement après une panne réelle du pilote."""
         last_error = None
+        if self.controller is None:
+            self.state(
+                "error",
+                failed_target=failed_target,
+                return_code=return_code,
+                error="Pilote Bumble interrompu; reconnexion manuelle requise.",
+            )
+            return False
         for attempt in range(1, 3):
             try:
                 self.state(
@@ -256,7 +308,11 @@ class KinventBluetoothManager:
     def stop_child(self):
         if self.child is None or self.target is None:
             return
-        config = TARGETS[self.target]
+        config = (
+            BUMBLE_TARGETS[self.target]
+            if self.backend == BUMBLE_BACKEND
+            else TARGETS[self.target]
+        )
         control_path = RAW_DIR / config["control"]
         print(
             "Arrêt du pilote capteur demandé par le gestionnaire: "
@@ -280,16 +336,23 @@ class KinventBluetoothManager:
         self.target = None
 
     def launch(self, target):
-        config = TARGETS[target]
+        config = BUMBLE_TARGETS[target] if self.backend == BUMBLE_BACKEND else TARGETS[target]
         log_path = RAW_DIR / config["log"]
         command = [
             sys.executable,
             "-u",
             str(BASE_DIR / "scripts" / config["script"]),
-            "--adapter", str(self.adapter),
-            "--hci-fd", str(self.controller.sock.fileno()),
             *config["args"],
         ]
+        pass_fds = ()
+        if self.backend == BUMBLE_BACKEND:
+            command[3:3] = ["--transport", self.bumble_config.transport]
+        else:
+            command[3:3] = [
+                "--adapter", str(self.adapter),
+                "--hci-fd", str(self.controller.sock.fileno()),
+            ]
+            pass_fds = (self.controller.sock.fileno(),)
         log_file = log_path.open("a", encoding="utf-8")
         try:
             self.child = subprocess.Popen(
@@ -297,7 +360,7 @@ class KinventBluetoothManager:
                 cwd=BASE_DIR,
                 stdout=log_file,
                 stderr=subprocess.STDOUT,
-                pass_fds=(self.controller.sock.fileno(),),
+                pass_fds=pass_fds,
             )
         finally:
             log_file.close()
@@ -386,7 +449,8 @@ class KinventBluetoothManager:
                 time.sleep(0.2)
         finally:
             self.stop_child()
-            self.controller.close()
+            if self.controller is not None:
+                self.controller.close()
 
 
 def main():
@@ -398,8 +462,7 @@ def main():
         default=None,
         help=(
             "Backend Bluetooth. Par défaut: KINE_BLUETOOTH_BACKEND ou raw-hci. "
-            "Bumble est réservé au diagnostic tant que le dongle nRF52840 "
-            "n'a pas été validé."
+            "Bumble utilise les pilotes Kinvent portés sur le nRF52840."
         ),
     )
     args = parser.parse_args()

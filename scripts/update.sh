@@ -79,6 +79,7 @@ Before=$SERVICE_NAME.service
 Type=simple
 User=root
 WorkingDirectory=$PROJECT_DIR
+EnvironmentFile=-$PROJECT_DIR/.env
 ExecStart=$PYTHON_BIN -u $PROJECT_DIR/scripts/kinvent_bluetooth_manager.py --adapter hci0
 Restart=always
 RestartSec=10
