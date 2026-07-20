@@ -42,6 +42,7 @@ OFFICIAL_CONNECT_INTERVAL_MIN_MS = 30
 OFFICIAL_CONNECT_INTERVAL_MAX_MS = 50
 OFFICIAL_CONNECT_SUPERVISION_TIMEOUT_MS = 5000
 OFFICIAL_INITIAL_DISCONNECT_REASON = 0x3E
+OFFICIAL_GATT_SETTLE_AFTER_CONNECT_S = 0.15
 
 
 def connected_sides(plates):
@@ -220,6 +221,13 @@ class KPlatesBumbleClient:
         # continue. Kinvent reconnecte alors cette même plateforme, puis
         # reprend le pré-vol GATT officiel. On limite donc cette reprise à ce
         # cas initial précis, sans mécanisme de retry général.
+        #
+        # La même capture montre aussi que la plateforme initie ses premiers
+        # échanges ATT environ 0,11 à 0,13 s après la connexion, avant que
+        # l'application poursuive la découverte GATT. On respecte cette amorce
+        # pour éviter d'envoyer la découverte immédiatement après l'évènement
+        # de connexion.
+        await self.wait_official_gatt_settle(plate)
         discovery = asyncio.create_task(
             self.discover_official_services(
                 plate,
@@ -247,6 +255,7 @@ class KPlatesBumbleClient:
             self.connections[plate] = connection
             self.register_disconnect_logger(connection, plate)
             all_clients[plate] = connection.gatt_client
+            await self.wait_official_gatt_settle(plate)
             discovery = asyncio.create_task(
                 self.discover_official_services(
                     plate,
@@ -255,6 +264,9 @@ class KPlatesBumbleClient:
             )
             await discovery
         started_discoveries[plate] = discovery
+
+    async def wait_official_gatt_settle(self, plate):
+        await asyncio.sleep(OFFICIAL_GATT_SETTLE_AFTER_CONNECT_S)
 
     async def configure_streams(self, clients):
         connected = list(clients.keys())

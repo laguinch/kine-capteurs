@@ -1829,6 +1829,10 @@ class KPlateDualTest(unittest.TestCase):
                 )
                 self.discoveries = 0
                 self.reconnects = 0
+                self.settles = 0
+
+            async def wait_official_gatt_settle(self, plate):
+                self.settles += 1
 
             async def discover_official_services(self, plate, fake_client):
                 self.discoveries += 1
@@ -1865,9 +1869,56 @@ class KPlateDualTest(unittest.TestCase):
 
         self.assertEqual(client.discoveries, 2)
         self.assertEqual(client.reconnects, 1)
+        self.assertEqual(client.settles, 2)
         self.assertIn(right, started_discoveries)
         self.assertNotIn(right, client.disconnected)
         self.assertEqual(right.handle, 0x11)
+
+    def test_bumble_initial_preflight_waits_for_official_gatt_settle(self):
+        class FakeConnection:
+            def __init__(self):
+                self.gatt_client = object()
+                self.handle = 0x10
+
+        class FakeClient(KPlatesBumbleClient):
+            def __init__(self):
+                super().__init__(
+                    transport="usb:0",
+                    left_address="E8:EB:1B:6F:A7:5F",
+                    right_address="E8:EB:1B:79:B1:AB",
+                    address_type="public",
+                    csv_path=None,
+                    tare_duration=0,
+                )
+                self.events = []
+
+            async def wait_official_gatt_settle(self, plate):
+                self.events.append(f"settle:{plate.side}")
+
+            async def discover_official_services(self, plate, fake_client):
+                self.events.append(f"discover:{plate.side}")
+
+        client = FakeClient()
+        right = client.dual.plates[1]
+        connection = FakeConnection()
+        started_discoveries = {}
+
+        asyncio.run(
+            client.complete_initial_official_discovery(
+                object(),
+                right,
+                object,
+                connection,
+                {right: connection.gatt_client},
+                started_discoveries,
+                15.0,
+            )
+        )
+
+        self.assertEqual(
+            client.events,
+            ["settle:droite", "discover:droite"],
+        )
 
     def test_bumble_preflight_reconnects_second_plate_initial_0x3e(self):
         class FakeConnection:
@@ -1891,6 +1942,10 @@ class KPlateDualTest(unittest.TestCase):
                 self.discoveries = []
                 self.reconnects = []
                 self.reads = []
+                self.settles = []
+
+            async def wait_official_gatt_settle(self, plate):
+                self.settles.append(plate.side)
 
             async def discover_official_services(self, plate, fake_client):
                 self.discoveries.append(plate.side)
@@ -1937,6 +1992,7 @@ class KPlateDualTest(unittest.TestCase):
             ["droite", "gauche", "gauche"],
         )
         self.assertEqual(client.reconnects, ["gauche"])
+        self.assertEqual(client.settles, ["droite", "gauche", "gauche"])
         self.assertNotIn(left, client.disconnected)
         self.assertCountEqual(client.reads, ["droite", "gauche"])
 
