@@ -3,8 +3,10 @@ import asyncio
 import csv
 import json
 import struct
+import sys
 import tempfile
 import time
+import types
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -1460,6 +1462,82 @@ class KPlateDualTest(unittest.TestCase):
             (self.module.UART_CCCD_HANDLE, b"\x01\x00", True),
             left_client.writes,
         )
+
+    def test_bumble_connect_uses_official_create_connection_preferences(self):
+        class FakeConnectionParametersPreferences:
+            def __init__(
+                self,
+                connection_interval_min,
+                connection_interval_max,
+                max_latency,
+                supervision_timeout,
+                min_ce_length,
+                max_ce_length,
+            ):
+                self.connection_interval_min = connection_interval_min
+                self.connection_interval_max = connection_interval_max
+                self.max_latency = max_latency
+                self.supervision_timeout = supervision_timeout
+                self.min_ce_length = min_ce_length
+                self.max_ce_length = max_ce_length
+
+        class FakeConnection:
+            handle = 0x10
+
+        class FakeDevice:
+            def __init__(self):
+                self.kwargs = None
+
+            async def connect(self, remote_address, **kwargs):
+                self.kwargs = kwargs
+                return FakeConnection()
+
+        class FakeAddress:
+            PUBLIC_DEVICE_ADDRESS = 0
+            RANDOM_DEVICE_ADDRESS = 1
+
+            def __init__(self, value, address_type):
+                self.value = value
+                self.address_type = address_type
+
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            write_delay=0,
+        )
+        plate = client.dual.plates[1]
+        device = FakeDevice()
+
+        with mock.patch.dict(
+            sys.modules,
+            {
+                "bumble": types.SimpleNamespace(),
+                "bumble.device": types.SimpleNamespace(
+                    ConnectionParametersPreferences=FakeConnectionParametersPreferences
+                ),
+                "bumble.hci": types.SimpleNamespace(HCI_LE_1M_PHY=1),
+            },
+        ):
+            asyncio.run(
+                client.connect_plate(
+                    device,
+                    plate,
+                    FakeAddress,
+                    15.0,
+                )
+            )
+
+        preferences = device.kwargs["connection_parameters_preferences"][1]
+        self.assertEqual(preferences.connection_interval_min, 30)
+        self.assertEqual(preferences.connection_interval_max, 50)
+        self.assertEqual(preferences.max_latency, 0)
+        self.assertEqual(preferences.supervision_timeout, 5000)
+        self.assertEqual(preferences.min_ce_length, 0)
+        self.assertEqual(preferences.max_ce_length, 0)
+        self.assertEqual(device.kwargs["timeout"], 15.0)
 
     def test_bumble_notification_feeds_plate_decoder(self):
         client = KPlatesBumbleClient(

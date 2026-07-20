@@ -38,6 +38,9 @@ from scripts.kinvent_raw_hci import (  # noqa: E402
 
 
 KPLATE_MODEL_NUMBER_HANDLE = 0x0016
+OFFICIAL_CONNECT_INTERVAL_MIN_MS = 30
+OFFICIAL_CONNECT_INTERVAL_MAX_MS = 50
+OFFICIAL_CONNECT_SUPERVISION_TIMEOUT_MS = 5000
 
 
 def connected_sides(plates):
@@ -129,6 +132,9 @@ class KPlatesBumbleClient:
         await asyncio.sleep(delay)
 
     async def connect_plate(self, device, plate, Address, connect_timeout):
+        from bumble.device import ConnectionParametersPreferences
+        from bumble.hci import HCI_LE_1M_PHY
+
         remote_address = make_remote_address(
             plate.address,
             self.address_type,
@@ -139,8 +145,26 @@ class KPlatesBumbleClient:
             flush=True,
         )
         try:
+            # Paramètres initiaux observés dans la capture officielle Android:
+            # HCI_LE_Create_Connection min=0x0018, max=0x0028,
+            # supervision=0x01f4. Bumble exprime ces valeurs en ms et les
+            # convertit ensuite en unités HCI.
+            connection_preferences = {
+                HCI_LE_1M_PHY: ConnectionParametersPreferences(
+                    connection_interval_min=OFFICIAL_CONNECT_INTERVAL_MIN_MS,
+                    connection_interval_max=OFFICIAL_CONNECT_INTERVAL_MAX_MS,
+                    max_latency=0,
+                    supervision_timeout=OFFICIAL_CONNECT_SUPERVISION_TIMEOUT_MS,
+                    min_ce_length=0,
+                    max_ce_length=0,
+                )
+            }
             connection = await asyncio.wait_for(
-                device.connect(remote_address),
+                device.connect(
+                    remote_address,
+                    connection_parameters_preferences=connection_preferences,
+                    timeout=connect_timeout,
+                ),
                 timeout=connect_timeout,
             )
         except Exception as exc:
