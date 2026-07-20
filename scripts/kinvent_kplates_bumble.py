@@ -189,6 +189,8 @@ class KPlatesBumbleClient:
         # Réglage radio observé dans le pilote HCI officiel :
         # intervalle 0x0009-0x0018, latence 0, supervision 0x0200.
         for plate, connection in self.connections.items():
+            if plate in self.disconnected:
+                continue
             print(f"Réglage radio {plate.side}...", flush=True)
             await connection.update_parameters(0x0009, 0x0018, 0, 0x0200)
 
@@ -198,7 +200,23 @@ class KPlatesBumbleClient:
         for plate in connected:
             print(f"Flux {plate.side} démarré.", flush=True)
 
-    async def run(self, duration, connect_timeout=15.0):
+    def selected_plates(self, sides, connection_order):
+        plates_by_side = {plate.side: plate for plate in self.dual.plates}
+        if sides == "right":
+            return [plates_by_side["droite"]]
+        if sides == "left":
+            return [plates_by_side["gauche"]]
+        if connection_order == "left-first":
+            return [plates_by_side["gauche"], plates_by_side["droite"]]
+        return self.dual.connection_order()
+
+    async def run(
+        self,
+        duration,
+        connect_timeout=15.0,
+        sides="both",
+        connection_order="right-first",
+    ):
         require_bumble()
         from bumble.device import Device
         from bumble.hci import Address
@@ -213,8 +231,13 @@ class KPlatesBumbleClient:
             )
             await device.power_on()
 
-            right_first = self.dual.connection_order()
-            for plate in right_first:
+            selected = self.selected_plates(sides, connection_order)
+            print(
+                "Ordre de connexion Bumble: "
+                f"{connected_sides(selected)}",
+                flush=True,
+            )
+            for plate in selected:
                 self.connections[plate] = await self.connect_plate(
                     device,
                     plate,
@@ -277,6 +300,18 @@ def build_parser():
         default="public",
     )
     parser.add_argument("--duration", type=float, default=30.0)
+    parser.add_argument(
+        "--sides",
+        choices=["both", "right", "left"],
+        default="both",
+        help="Diagnostic: connecter les deux plateformes ou une seule.",
+    )
+    parser.add_argument(
+        "--connection-order",
+        choices=["right-first", "left-first"],
+        default="right-first",
+        help="Diagnostic: inverser l'ordre de connexion sans changer les commandes.",
+    )
     parser.add_argument("--tare-duration", type=float, default=2.0)
     parser.add_argument("--connect-timeout", type=float, default=15.0)
     parser.add_argument("--write-delay", type=float, default=0.05)
@@ -306,7 +341,14 @@ def main():
         keepalive_interval=args.keepalive_interval,
     )
     try:
-        asyncio.run(client.run(args.duration, args.connect_timeout))
+        asyncio.run(
+            client.run(
+                args.duration,
+                args.connect_timeout,
+                sides=args.sides,
+                connection_order=args.connection_order,
+            )
+        )
     except BumbleBackendError as exc:
         raise SystemExit(str(exc)) from exc
     finally:
