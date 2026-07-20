@@ -3,7 +3,6 @@
 import argparse
 import json
 import os
-import socket
 import subprocess
 import sys
 import time
@@ -21,69 +20,17 @@ from ble.kinvent.bluetooth_manager import (  # noqa: E402
 )
 from ble.kinvent.bumble_backend import (  # noqa: E402
     BUMBLE_BACKEND,
-    RAW_HCI_BACKEND,
     backend_from_environment,
     bumble_config_from_environment,
     manager_backend_notice,
     normalize_backend,
     require_bumble,
 )
-from scripts.kinvent_raw_hci import RawKinventClient, parse_adapter  # noqa: E402
 
 
 RAW_DIR = BASE_DIR / "storage" / "raw_data"
-BLUETOOTH_SYSFS = Path("/sys/class/bluetooth")
 
 TARGETS = {
-    "kplates": {
-        "script": "kinvent_dual_hci.py",
-        "control": "kplates_worker_control.json",
-        "log": "kplates_worker.log",
-        "args": [
-            "--tare-duration", "2",
-            "--calibration-file", str(RAW_DIR / "kplates_calibration.json"),
-            "--sync-tolerance-ms", "20",
-            "--control-file", str(RAW_DIR / "kplates_worker_control.json"),
-            "--state-file", str(RAW_DIR / "kplates_worker_state.json"),
-        ],
-    },
-    "kpush": {
-        "script": "kinvent_kpush_hci.py",
-        "control": "kpush_worker_control.json",
-        "log": "kpush_worker.log",
-        "args": [
-            "--duration", "0",
-            "--tare-duration", "2",
-            "--control-file", str(RAW_DIR / "kpush_worker_control.json"),
-            "--csv", str(RAW_DIR / "kpush_live.csv"),
-        ],
-    },
-    "kpull": {
-        "script": "kinvent_kpull_hci.py",
-        "control": "kpull_worker_control.json",
-        "log": "kpull_worker.log",
-        "args": [
-            "--duration", "0",
-            "--tare-duration", "2",
-            "--counts-per-kg", "9722.166667",
-            "--control-file", str(RAW_DIR / "kpull_worker_control.json"),
-            "--csv", str(RAW_DIR / "kpull_live.csv"),
-        ],
-    },
-    "kmove": {
-        "script": "kinvent_kmove_hci.py",
-        "control": "kmove_worker_control.json",
-        "log": "kmove_worker.log",
-        "args": [
-            "--duration", "0",
-            "--reference-duration", "2",
-            "--control-file", str(RAW_DIR / "kmove_worker_control.json"),
-            "--csv", str(RAW_DIR / "kmove_live.csv"),
-        ],
-    },
-}
-
-BUMBLE_TARGETS = {
     "kplates": {
         "script": "kinvent_kplates_bumble.py",
         "control": "kplates_worker_control.json",
@@ -155,68 +102,10 @@ def describe_command(command):
     return f"action={action}, cible={target}, génération={generation}"
 
 
-def available_hci_adapters():
-    if not BLUETOOTH_SYSFS.exists():
-        return []
-    adapters = []
-    for entry in BLUETOOTH_SYSFS.glob("hci*"):
-        suffix = entry.name[3:]
-        if suffix.isdigit():
-            adapters.append(int(suffix))
-    return sorted(adapters)
-
-
-def resolve_manager_hci_adapter(requested, timeout=8.0):
-    deadline = time.monotonic() + timeout
-    while True:
-        available = available_hci_adapters()
-        if requested in available:
-            return requested
-
-        external = [adapter for adapter in available if adapter != 0]
-        if external:
-            selected = max(external)
-            print(
-                f"hci{requested} n'est plus disponible; "
-                f"gestionnaire Bluetooth basculé sur hci{selected}.",
-                flush=True,
-            )
-            return selected
-
-        if available == [0]:
-            print(
-                f"hci{requested} n'est plus disponible; "
-                "gestionnaire Bluetooth basculé sur hci0.",
-                flush=True,
-            )
-            return 0
-
-        if time.monotonic() >= deadline:
-            visible = ", ".join(f"hci{item}" for item in available) or "aucun"
-            raise OSError(
-                19,
-                (
-                    f"Contrôleur hci{requested} introuvable après "
-                    f"{timeout:.0f} s (contrôleurs visibles: {visible})"
-                ),
-            )
-        time.sleep(0.25)
-
-
 class KinventBluetoothManager:
-    def __init__(self, adapter, backend=None):
-        self.adapter = adapter
+    def __init__(self, backend=None):
         self.backend = normalize_backend(backend or backend_from_environment())
         self.bumble_config = bumble_config_from_environment()
-        self.controller = (
-            None
-            if self.backend == BUMBLE_BACKEND
-            else RawKinventClient(
-                adapter=adapter,
-                address="00:00:00:00:00:00",
-                address_type="public",
-            )
-        )
         self.child = None
         self.target = None
         self.generation = None
@@ -240,79 +129,26 @@ class KinventBluetoothManager:
             manager_backend_notice(self.backend, self.bumble_config),
             flush=True,
         )
-        if self.backend == BUMBLE_BACKEND:
-            require_bumble()
-            self.state(
-                "idle",
-                backend=self.backend,
-                transport=self.bumble_config.transport,
-            )
-            return
-        try:
-            self.adapter = resolve_manager_hci_adapter(self.adapter)
-            self.controller.adapter = self.adapter
-            self.controller.open()
-            self.controller.reset()
-        except (OSError, RuntimeError, TimeoutError) as exc:
-            self.state(
-                "error",
-                error=f"Contrôleur Bluetooth indisponible: {exc}",
-            )
-            self.controller.close()
-            raise
-        self.state("idle")
+        require_bumble()
+        self.state(
+            "idle",
+            backend=self.backend,
+            transport=self.bumble_config.transport,
+        )
 
     def recover_controller_after_failure(self, failed_target, return_code):
-        """Récupère le dongle uniquement après une panne réelle du pilote."""
-        last_error = None
-        if self.controller is None:
-            self.state(
-                "error",
-                failed_target=failed_target,
-                return_code=return_code,
-                error="Pilote Bumble interrompu; reconnexion manuelle requise.",
-            )
-            return False
-        for attempt in range(1, 3):
-            try:
-                self.state(
-                    "recovering",
-                    failed_target=failed_target,
-                    return_code=return_code,
-                    attempt=attempt,
-                )
-                if self.controller.sock is None:
-                    self.controller.open()
-                self.controller.reset()
-                return True
-            except (OSError, RuntimeError, TimeoutError) as exc:
-                last_error = exc
-                try:
-                    self.controller.close()
-                except OSError:
-                    pass
-                time.sleep(1.0)
-                try:
-                    self.controller.open()
-                except OSError as open_error:
-                    last_error = open_error
-                    time.sleep(1.0)
         self.state(
             "error",
             failed_target=failed_target,
             return_code=return_code,
-            error=f"Contrôleur Bluetooth non récupéré: {last_error}",
+            error="Pilote Bumble interrompu; reconnexion manuelle requise.",
         )
         return False
 
     def stop_child(self):
         if self.child is None or self.target is None:
             return
-        config = (
-            BUMBLE_TARGETS[self.target]
-            if self.backend == BUMBLE_BACKEND
-            else TARGETS[self.target]
-        )
+        config = TARGETS[self.target]
         control_path = RAW_DIR / config["control"]
         print(
             "Arrêt du pilote capteur demandé par le gestionnaire: "
@@ -336,23 +172,15 @@ class KinventBluetoothManager:
         self.target = None
 
     def launch(self, target):
-        config = BUMBLE_TARGETS[target] if self.backend == BUMBLE_BACKEND else TARGETS[target]
+        config = TARGETS[target]
         log_path = RAW_DIR / config["log"]
         command = [
             sys.executable,
             "-u",
             str(BASE_DIR / "scripts" / config["script"]),
+            "--transport", self.bumble_config.transport,
             *config["args"],
         ]
-        pass_fds = ()
-        if self.backend == BUMBLE_BACKEND:
-            command[3:3] = ["--transport", self.bumble_config.transport]
-        else:
-            command[3:3] = [
-                "--adapter", str(self.adapter),
-                "--hci-fd", str(self.controller.sock.fileno()),
-            ]
-            pass_fds = (self.controller.sock.fileno(),)
         log_file = log_path.open("a", encoding="utf-8")
         try:
             self.child = subprocess.Popen(
@@ -360,7 +188,6 @@ class KinventBluetoothManager:
                 cwd=BASE_DIR,
                 stdout=log_file,
                 stderr=subprocess.STDOUT,
-                pass_fds=pass_fds,
             )
         finally:
             log_file.close()
@@ -449,24 +276,21 @@ class KinventBluetoothManager:
                 time.sleep(0.2)
         finally:
             self.stop_child()
-            if self.controller is not None:
-                self.controller.close()
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--adapter", type=parse_adapter, default=0)
+    parser.add_argument("--adapter", help=argparse.SUPPRESS)
     parser.add_argument(
         "--backend",
-        choices=[RAW_HCI_BACKEND, BUMBLE_BACKEND],
+        choices=[BUMBLE_BACKEND],
         default=None,
         help=(
-            "Backend Bluetooth. Par défaut: KINE_BLUETOOTH_BACKEND ou raw-hci. "
-            "Bumble utilise les pilotes Kinvent portés sur le nRF52840."
+            "Backend Bluetooth. Le serveur utilise uniquement Bumble/nRF52840."
         ),
     )
     args = parser.parse_args()
-    KinventBluetoothManager(args.adapter, backend=args.backend).run()
+    KinventBluetoothManager(backend=args.backend).run()
 
 
 if __name__ == "__main__":

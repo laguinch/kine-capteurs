@@ -41,31 +41,22 @@ if [[ ! -f .env ]]; then
   echo "Configuration .env créée."
 fi
 
-if ! grep -q '^KINE_BLUETOOTH_BACKEND=' .env; then
-  if command -v lsusb >/dev/null 2>&1 && lsusb | grep -q '2fe3:000b.*Zephyr USBD BT HCI'; then
-    {
-      echo
-      echo "KINE_BLUETOOTH_BACKEND=bumble"
-      echo "KINE_BUMBLE_TRANSPORT=usb:0"
-    } >> .env
-    echo "Dongle nRF52840 HCI détecté: backend Bumble activé dans .env."
-  fi
+if grep -q '^KINE_BLUETOOTH_BACKEND=' .env; then
+  sed -i 's/^KINE_BLUETOOTH_BACKEND=.*/KINE_BLUETOOTH_BACKEND=bumble/' .env
+else
+  echo "KINE_BLUETOOTH_BACKEND=bumble" >> .env
 fi
 
-if grep -q '^KINE_BLUETOOTH_BACKEND=bumble' .env \
-  && ! grep -q '^KINE_BUMBLE_TRANSPORT=' .env; then
+if ! grep -q '^KINE_BUMBLE_TRANSPORT=' .env; then
   echo "KINE_BUMBLE_TRANSPORT=usb:0" >> .env
-  echo "Transport Bumble par défaut ajouté dans .env."
 fi
+echo "Bluetooth permanent configuré pour Bumble/nRF52840."
 
 echo "Vérification du projet..."
 "$PYTHON_BIN" -m unittest discover -s tests_library -p 'test*.py'
-chmod 0755 scripts/run_kpush_session.sh
 chmod 0755 scripts/run_anr_m40_diagnostic.sh
 chmod 0755 scripts/run_kpull_diagnostic.sh
-chmod 0755 scripts/run_kpull_session.sh
 chmod 0755 scripts/run_kmove_diagnostic.sh
-chmod 0755 scripts/run_kmove_session.sh
 
 cat >"$TEMP_UNIT" <<EOF
 [Unit]
@@ -97,7 +88,7 @@ Type=simple
 User=root
 WorkingDirectory=$PROJECT_DIR
 EnvironmentFile=-$PROJECT_DIR/.env
-ExecStart=$PYTHON_BIN -u $PROJECT_DIR/scripts/kinvent_bluetooth_manager.py --adapter hci0
+ExecStart=$PYTHON_BIN -u $PROJECT_DIR/scripts/kinvent_bluetooth_manager.py
 Restart=always
 RestartSec=10
 KillMode=control-group

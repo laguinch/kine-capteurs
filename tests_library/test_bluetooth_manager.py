@@ -6,14 +6,10 @@ from unittest import mock
 import ble.kinvent.bluetooth_manager as manager
 from ble.kinvent.bumble_backend import (
     BUMBLE_BACKEND,
-    RAW_HCI_BACKEND,
     BumbleBackendError,
     normalize_backend,
 )
-from scripts.kinvent_bluetooth_manager import (
-    KinventBluetoothManager,
-    resolve_manager_hci_adapter,
-)
+from scripts.kinvent_bluetooth_manager import KinventBluetoothManager
 
 
 class BluetoothManagerTest(unittest.TestCase):
@@ -31,60 +27,8 @@ class BluetoothManagerTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             manager.request_sensor("inconnu")
 
-    def test_controller_is_reset_only_when_manager_starts(self):
-        bluetooth = KinventBluetoothManager(0)
-        bluetooth.controller.open = mock.Mock()
-        bluetooth.controller.reset = mock.Mock()
-        bluetooth.state = mock.Mock()
-
-        with mock.patch(
-            "scripts.kinvent_bluetooth_manager.resolve_manager_hci_adapter",
-            return_value=0,
-        ):
-            bluetooth.start()
-
-        bluetooth.controller.open.assert_called_once_with()
-        bluetooth.controller.reset.assert_called_once_with()
-        bluetooth.state.assert_called_once_with("idle")
-
-    def test_manager_uses_available_external_adapter_when_hci0_is_missing(self):
-        with mock.patch(
-            "scripts.kinvent_bluetooth_manager.available_hci_adapters",
-            return_value=[1],
-        ):
-            selected = resolve_manager_hci_adapter(0, timeout=0)
-
-        self.assertEqual(selected, 1)
-
-    def test_start_updates_controller_to_resolved_adapter(self):
-        bluetooth = KinventBluetoothManager(0)
-        bluetooth.controller.open = mock.Mock()
-        bluetooth.controller.reset = mock.Mock()
-        bluetooth.state = mock.Mock()
-
-        with mock.patch(
-            "scripts.kinvent_bluetooth_manager.resolve_manager_hci_adapter",
-            return_value=1,
-        ):
-            bluetooth.start()
-
-        self.assertEqual(bluetooth.adapter, 1)
-        self.assertEqual(bluetooth.controller.adapter, 1)
-        bluetooth.controller.open.assert_called_once_with()
-        bluetooth.controller.reset.assert_called_once_with()
-        bluetooth.state.assert_called_once_with("idle")
-
-    def test_default_backend_remains_raw_hci(self):
-        bluetooth = KinventBluetoothManager(0)
-
-        self.assertEqual(bluetooth.backend, RAW_HCI_BACKEND)
-
-    def test_rejects_unknown_bluetooth_backend(self):
-        with self.assertRaises(BumbleBackendError):
-            normalize_backend("fantaisie")
-
-    def test_bumble_backend_starts_without_raw_hci_controller(self):
-        bluetooth = KinventBluetoothManager(0, backend=BUMBLE_BACKEND)
+    def test_manager_starts_bumble_without_raw_hci_controller(self):
+        bluetooth = KinventBluetoothManager()
         bluetooth.state = mock.Mock()
         with mock.patch(
             "scripts.kinvent_bluetooth_manager.require_bumble"
@@ -99,63 +43,25 @@ class BluetoothManagerTest(unittest.TestCase):
             BUMBLE_BACKEND,
         )
 
-    def test_start_reports_bluetooth_controller_error(self):
-        bluetooth = KinventBluetoothManager(0)
-        bluetooth.controller.open = mock.Mock()
-        bluetooth.controller.reset = mock.Mock(
-            side_effect=TimeoutError("Pas de réponse HCI")
-        )
-        bluetooth.controller.close = mock.Mock()
+    def test_default_backend_is_bumble(self):
+        bluetooth = KinventBluetoothManager()
+
+        self.assertEqual(bluetooth.backend, BUMBLE_BACKEND)
+
+    def test_rejects_unknown_bluetooth_backend(self):
+        with self.assertRaises(BumbleBackendError):
+            normalize_backend("fantaisie")
+
+    def test_failed_bumble_child_requires_manual_reconnection(self):
+        bluetooth = KinventBluetoothManager()
         bluetooth.state = mock.Mock()
 
-        with mock.patch(
-            "scripts.kinvent_bluetooth_manager.resolve_manager_hci_adapter",
-            return_value=0,
-        ):
-            with self.assertRaises(TimeoutError):
-                bluetooth.start()
+        recovered = bluetooth.recover_controller_after_failure("kplates", 1)
 
+        self.assertFalse(recovered)
         bluetooth.state.assert_called_once()
         self.assertEqual(bluetooth.state.call_args.args[0], "error")
-        self.assertIn(
-            "Contrôleur Bluetooth indisponible",
-            bluetooth.state.call_args.kwargs["error"],
-        )
-        bluetooth.controller.close.assert_called_once_with()
-
-    def test_recovers_controller_after_failed_child(self):
-        bluetooth = KinventBluetoothManager(0)
-        bluetooth.controller.sock = object()
-        bluetooth.controller.reset = mock.Mock(
-            side_effect=[TimeoutError("reset muet"), None]
-        )
-        bluetooth.controller.close = mock.Mock()
-        bluetooth.controller.open = mock.Mock()
-        bluetooth.state = mock.Mock()
-
-        recovered = bluetooth.recover_controller_after_failure("kplates", 1)
-
-        self.assertTrue(recovered)
-        self.assertEqual(bluetooth.controller.reset.call_count, 2)
-        bluetooth.controller.close.assert_called_once_with()
-        bluetooth.controller.open.assert_called_once_with()
-
-    def test_recovery_reopens_closed_controller_before_reset(self):
-        bluetooth = KinventBluetoothManager(0)
-        bluetooth.controller.sock = None
-
-        def reopen():
-            bluetooth.controller.sock = object()
-
-        bluetooth.controller.open = mock.Mock(side_effect=reopen)
-        bluetooth.controller.reset = mock.Mock()
-        bluetooth.state = mock.Mock()
-
-        recovered = bluetooth.recover_controller_after_failure("kplates", 1)
-
-        self.assertTrue(recovered)
-        bluetooth.controller.open.assert_called_once_with()
-        bluetooth.controller.reset.assert_called_once_with()
+        self.assertIn("Pilote Bumble interrompu", bluetooth.state.call_args.kwargs["error"])
 
     def test_recovered_child_failure_returns_manager_to_idle(self):
         self.assertEqual(

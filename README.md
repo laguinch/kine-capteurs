@@ -103,31 +103,28 @@ Le serveur installe deux services distincts :
 - `kine-capteurs-bluetooth.service` pour le gestionnaire Bluetooth Kinvent
   unique.
 
-Ce gestionnaire ouvre le dongle une seule fois et reste son unique
-propriétaire. Il effectue l'unique réinitialisation HCI au démarrage du
-service. Les pilotes K-Force Plates, K-Push, K-Pull et K-Move reçoivent ensuite
-ce canal déjà ouvert. Changer de capteur déconnecte proprement le capteur
-actuel, puis connecte le suivant sans redémarrer ni réinitialiser le dongle.
+Ce gestionnaire utilise exclusivement le dongle nRF52840 flashé avec le
+firmware Zephyr HCI USB, via Bumble (`usb:0`). Il reste le point d'entrée unique
+pour les K-Force Plates, K-Push, K-Pull et K-Move. Changer de capteur
+déconnecte proprement le capteur actuel, puis connecte le suivant sans revenir
+à l'ancien chemin HCI direct.
 
 Le bouton « Déconnecter » ferme uniquement la liaison avec le capteur actif
-afin de préserver sa batterie. Le gestionnaire système et le contrôleur
-Bluetooth restent disponibles pour sélectionner immédiatement un autre
-capteur.
+afin de préserver sa batterie. Le gestionnaire système reste disponible pour
+sélectionner immédiatement un autre capteur.
 
-Le processus HCI nécessite les droits d'accès au contrôleur Bluetooth brut.
-La variable `KINE_HCI_COMMAND_PREFIX` permet de définir un préfixe de lancement
-fourni par le service système, par exemple `sudo -n` après configuration dédiée.
+### Backend Bumble/nRF52840
 
-### Backend Bumble expérimental
+Bumble remplace la plomberie Bluetooth de l'ancien dongle. Il ne change pas le
+protocole Kinvent : les commandes envoyées aux capteurs restent strictement
+celles observées dans les captures officielles du dossier `bug_report/`.
 
-Le projet prépare une migration vers Bumble pour remplacer progressivement la
-plomberie HCI maison. Bumble ne change pas le protocole Kinvent : les commandes
-envoyées aux capteurs restent strictement celles observées dans les captures
-officielles du dossier `bug_report/`.
+La configuration permanente est :
 
-La production reste sur le backend validé `raw-hci` tant que le nouveau dongle
-n'a pas été testé. Le diagnostic Bumble permet de valider un contrôleur HCI,
-par exemple le nRF52840 Dongle flashé en firmware HCI USB :
+- `KINE_BLUETOOTH_BACKEND=bumble`
+- `KINE_BUMBLE_TRANSPORT=usb:0`
+
+Un diagnostic Bumble ponctuel peut valider un capteur :
 
 ```bash
 cd /opt/kine-capteurs-staging
@@ -143,8 +140,7 @@ python scripts/kinvent_bumble_probe.py \
 Pour le K-Move, utiliser `--profile kmove`. Pour une découverte GATT sans
 commande Kinvent, utiliser `--profile none`.
 
-Après validation du diagnostic, le premier pilote Bumble complet disponible
-est le K-Push :
+Le K-Push peut être testé directement avec son pilote Bumble :
 
 ```bash
 cd /opt/kine-capteurs-staging
@@ -156,8 +152,8 @@ sudo .venv/bin/python -u scripts/kinvent_kpush_bumble.py \
   --csv storage/raw_data/kpush_bumble_test.csv
 ```
 
-Le K-Pull dispose du même pilote Bumble expérimental. Avec le coefficient
-provisoire issu du test à 12 kg :
+Le K-Pull dispose du même pilote Bumble. Avec le coefficient provisoire issu du
+test à 12 kg :
 
 ```bash
 cd /opt/kine-capteurs-staging
@@ -196,16 +192,9 @@ sudo .venv/bin/python -u scripts/kinvent_kplates_bumble.py \
   --csv storage/raw_data/kplates_bumble_test.csv
 ```
 
-Les variables prévues pour la suite sont :
-
-- `KINE_BLUETOOTH_BACKEND=raw-hci` par défaut ;
-- `KINE_BLUETOOTH_BACKEND=bumble` uniquement pour les essais préparatoires ;
-- `KINE_BUMBLE_TRANSPORT=usb:0` pour le transport Bumble du dongle.
-
-Le gestionnaire permanent refusera volontairement de basculer en Bumble tant
-que les pilotes capteur n'auront pas été migrés et validés capteur par capteur.
-Ce garde-fou évite d'introduire un comportement non observé dans l'application
-officielle Kinvent.
+Les anciens scripts HCI directs restent dans le dépôt uniquement comme
+référence technique et support de tests de protocole. Le service permanent ne
+les lance plus.
 
 ### Firmware nRF52840 pour Bumble
 
@@ -311,32 +300,6 @@ sudo scripts/run_kmove_diagnostic.sh \
 
 Maintenir le K-Move immobile pendant la prise de référence, puis effectuer
 successivement un mouvement autour de chacun de ses trois axes.
-
-## Premier test K-Push
-
-Le K-Push détecté dans la capture officielle est `KFORCEMuscle03578`
-(`60:8A:10:30:9B:FA`). Pour le premier essai, le pilote reste volontairement
-séparé du service permanent des plateformes.
-
-Le contrôleur HCI ne peut être utilisé que par un pilote à la fois :
-
-```bash
-cd /opt/kine-capteurs-staging
-sudo systemctl stop kine-capteurs-bluetooth
-sudo hciconfig hci0 down
-sudo .venv/bin/python scripts/kinvent_kpush_hci.py \
-  --adapter hci0 \
-  --duration 30 \
-  --tare-duration 2 \
-  --csv storage/raw_data/kpush_test.csv
-```
-
-Pendant les deux premières secondes, ne pas exercer de pression sur le
-K-Push. Pour remettre ensuite les plateformes en service :
-
-```bash
-sudo systemctl restart kine-capteurs-bluetooth
-```
 
 ## Diagnostic ANR M40
 
