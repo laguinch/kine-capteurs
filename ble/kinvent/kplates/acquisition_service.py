@@ -181,8 +181,15 @@ class DualPlateAcquisitionService:
             running = command_pending or (
                 worker_alive
                 and phase == "active"
-                and (self._generation is None or generation_matches)
             )
+
+            if worker_alive and phase == "active":
+                if worker.get("generation"):
+                    self._generation = worker["generation"]
+                if worker.get("csv_path"):
+                    self._csv_path = Path(worker["csv_path"])
+                if worker.get("started_at"):
+                    self._started_at = worker["started_at"]
 
             if generation_matches:
                 if worker.get("csv_path"):
