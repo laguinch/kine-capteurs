@@ -1408,12 +1408,18 @@ class KPlateDualTest(unittest.TestCase):
             async def update_parameters(self, *values):
                 self.updates.append(values)
 
+        global_writes = []
+        uart_value_handle = self.module.UART_VALUE_HANDLE
+
         class FakeClient:
-            def __init__(self):
+            def __init__(self, side):
+                self.side = side
                 self.writes = []
 
             async def write_value(self, handle, value, with_response=False):
                 self.writes.append((handle, value, with_response))
+                if handle == uart_value_handle and not with_response:
+                    global_writes.append((self.side, value))
 
         client = KPlatesBumbleClient(
             transport="usb:0",
@@ -1426,16 +1432,21 @@ class KPlateDualTest(unittest.TestCase):
         left, right = client.dual.plates
         left_connection = FakeConnection()
         right_connection = FakeConnection()
-        left_client = FakeClient()
-        right_client = FakeClient()
+        left_client = FakeClient("gauche")
+        right_client = FakeClient("droite")
         client.connections = {
             right: right_connection,
             left: left_connection,
         }
+        right.handle = 0x10
+        left.handle = 0x11
+
+        async def immediate_sleep(_delay):
+            return None
 
         with mock.patch(
-            "scripts.kinvent_kplates_bumble.KPLATE_INIT_STEPS",
-            [(b"\x09", 0), (b"\x76", 0)],
+            "scripts.kinvent_kplates_bumble.asyncio.sleep",
+            immediate_sleep,
         ):
             asyncio.run(
                 client.configure_streams(
@@ -1461,6 +1472,81 @@ class KPlateDualTest(unittest.TestCase):
         self.assertIn(
             (self.module.UART_CCCD_HANDLE, b"\x01\x00", True),
             left_client.writes,
+        )
+        self.assertEqual(
+            [
+                value
+                for handle, value, with_response in left_client.writes
+                if handle == self.module.UART_VALUE_HANDLE and not with_response
+            ],
+            [
+                b"\x10",
+                b"\x10",
+                b"\x09",
+                b"\x76",
+                b"\x11",
+                b"\x10",
+                b"\x10",
+                bytes.fromhex("60 00 19 00 4b 0d 0a"),
+                b"\x66",
+                b"\x56",
+                bytes.fromhex("ac 00 54 f8"),
+                bytes.fromhex("ac 01 04 a9"),
+                b"\x11",
+            ],
+        )
+        self.assertEqual(
+            [
+                value
+                for handle, value, with_response in right_client.writes
+                if handle == self.module.UART_VALUE_HANDLE and not with_response
+            ],
+            [
+                b"\x10",
+                b"\x10",
+                b"\x09",
+                b"\x76",
+                b"\x11",
+                b"\x10",
+                b"\x10",
+                bytes.fromhex("60 00 19 00 4b 0d 0a"),
+                b"\x66",
+                b"\x56",
+                bytes.fromhex("ac 00 54 f8"),
+                bytes.fromhex("ac 01 04 a9"),
+                b"\x11",
+            ],
+        )
+        self.assertEqual(
+            global_writes,
+            [
+                ("droite", b"\x10"),
+                ("gauche", b"\x10"),
+                ("droite", b"\x10"),
+                ("gauche", b"\x10"),
+                ("droite", b"\x09"),
+                ("gauche", b"\x09"),
+                ("droite", b"\x76"),
+                ("gauche", b"\x76"),
+                ("gauche", b"\x11"),
+                ("droite", b"\x11"),
+                ("gauche", b"\x10"),
+                ("gauche", b"\x10"),
+                ("droite", b"\x10"),
+                ("droite", b"\x10"),
+                ("gauche", bytes.fromhex("60 00 19 00 4b 0d 0a")),
+                ("gauche", b"\x66"),
+                ("droite", bytes.fromhex("60 00 19 00 4b 0d 0a")),
+                ("droite", b"\x66"),
+                ("gauche", b"\x56"),
+                ("droite", b"\x56"),
+                ("gauche", bytes.fromhex("ac 00 54 f8")),
+                ("droite", bytes.fromhex("ac 00 54 f8")),
+                ("gauche", bytes.fromhex("ac 01 04 a9")),
+                ("droite", bytes.fromhex("ac 01 04 a9")),
+                ("gauche", b"\x11"),
+                ("droite", b"\x11"),
+            ],
         )
 
     def test_bumble_connect_uses_official_create_connection_preferences(self):

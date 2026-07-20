@@ -131,6 +131,19 @@ class KPlatesBumbleClient:
             await self.write_plate(client, plate, value)
         await asyncio.sleep(delay)
 
+    async def write_side_sequence(self, clients, side_values, delay):
+        plates_by_side = {plate.side: plate for plate in clients}
+        for side, value in side_values:
+            plate = plates_by_side.get(side)
+            if (
+                plate is None
+                or plate in self.disconnected
+                or plate.handle is None
+            ):
+                continue
+            await self.write_plate(clients[plate], plate, value)
+        await asyncio.sleep(delay)
+
     async def connect_plate(self, device, plate, Address, connect_timeout):
         from bumble.device import ConnectionParametersPreferences
         from bumble.hci import HCI_LE_1M_PHY
@@ -223,8 +236,64 @@ class KPlatesBumbleClient:
             print(f"Réglage radio {plate.side}...", flush=True)
             await connection.update_parameters(0x0009, 0x0018, 0, 0x0200)
 
-        for command, delay in KPLATE_INIT_STEPS:
-            await self.write_all(clients, command, delay)
+        # Séquence double-plateforme observée dans la capture officielle
+        # Android. Les commandes sont les mêmes que KPLATE_INIT_STEPS, mais
+        # leur ordre par côté n'est pas un simple "droite puis gauche" pour
+        # toute la suite: après 0x76, l'application termine d'abord certaines
+        # étapes côté gauche avant de faire la droite.
+        await self.write_all(clients, b"\x09", 0.05)
+        await self.write_all(clients, b"\x76", 0.30)
+        await self.write_side_sequence(
+            clients,
+            [("gauche", b"\x11"), ("droite", b"\x11")],
+            0.16,
+        )
+        await self.write_side_sequence(
+            clients,
+            [
+                ("gauche", b"\x10"),
+                ("gauche", b"\x10"),
+                ("droite", b"\x10"),
+                ("droite", b"\x10"),
+            ],
+            0.38,
+        )
+        await self.write_side_sequence(
+            clients,
+            [
+                ("gauche", bytes.fromhex("60 00 19 00 4b 0d 0a")),
+                ("gauche", b"\x66"),
+                ("droite", bytes.fromhex("60 00 19 00 4b 0d 0a")),
+                ("droite", b"\x66"),
+            ],
+            1.67,
+        )
+        await self.write_side_sequence(
+            clients,
+            [("gauche", b"\x56"), ("droite", b"\x56")],
+            0.06,
+        )
+        await self.write_side_sequence(
+            clients,
+            [
+                ("gauche", bytes.fromhex("ac 00 54 f8")),
+                ("droite", bytes.fromhex("ac 00 54 f8")),
+            ],
+            0.06,
+        )
+        await self.write_side_sequence(
+            clients,
+            [
+                ("gauche", bytes.fromhex("ac 01 04 a9")),
+                ("droite", bytes.fromhex("ac 01 04 a9")),
+            ],
+            0.06,
+        )
+        await self.write_side_sequence(
+            clients,
+            [("gauche", b"\x11"), ("droite", b"\x11")],
+            0.20,
+        )
 
         for plate in connected:
             print(f"Flux {plate.side} démarré.", flush=True)
