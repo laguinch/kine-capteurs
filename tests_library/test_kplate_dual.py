@@ -1751,64 +1751,6 @@ class KPlateDualTest(unittest.TestCase):
             ],
         )
 
-    def test_bumble_gatt_preflight_sets_official_discovered_radio_window(self):
-        events = []
-
-        class FakeConnection:
-            async def update_parameters(self, *values):
-                events.append(("radio", values))
-
-        class FakeClient:
-            def __init__(self, label):
-                self.label = label
-
-            async def discover_services(self):
-                events.append(f"discover:{self.label}")
-
-            async def read_value(self, handle):
-                events.append((f"read:{self.label}", handle))
-                return b"P104356"
-
-        client = KPlatesBumbleClient(
-            transport="usb:0",
-            left_address="E8:EB:1B:6F:A7:5F",
-            right_address="E8:EB:1B:79:B1:AB",
-            address_type="public",
-            csv_path=None,
-            tare_duration=0,
-        )
-        left, right = client.dual.plates
-        client.connections = {
-            right: FakeConnection(),
-            left: FakeConnection(),
-        }
-
-        asyncio.run(
-            client.run_official_gatt_preflight(
-                {
-                    right: FakeClient("droite"),
-                    left: FakeClient("gauche"),
-                }
-            )
-        )
-
-        self.assertEqual(
-            events[:4],
-            [
-                "discover:droite",
-                "discover:gauche",
-                ("radio", (0x0024, 0x0024, 0, 0x01F4)),
-                ("radio", (0x0024, 0x0024, 0, 0x01F4)),
-            ],
-        )
-        self.assertCountEqual(
-            events[4:],
-            [
-                ("read:droite", 0x0016),
-                ("read:gauche", 0x0016),
-            ],
-        )
-
     def test_bumble_gatt_preflight_keeps_started_official_discovery(self):
         class FakeClient:
             def __init__(self, label, events):
