@@ -36,6 +36,9 @@ from scripts.kinvent_raw_hci import (  # noqa: E402
 )
 
 
+KPLATE_MODEL_NUMBER_HANDLE = 0x0016
+
+
 def connected_sides(plates):
     return ", ".join(plate.side for plate in plates)
 
@@ -201,6 +204,37 @@ class KPlatesBumbleClient:
         for plate in connected:
             print(f"Flux {plate.side} démarré.", flush=True)
 
+    async def run_official_gatt_preflight(self, clients):
+        # Dans la capture Android Kinvent des deux plateformes, l'application
+        # effectue une découverte GATT complète puis lit le modèle au handle
+        # 0x0016 avant d'écrire 0x10 et d'activer le CCCD UART.
+        # Ce pré-vol reste du GATT standard; il ne remplace ni n'ajoute de
+        # commande Kinvent propriétaire.
+        connected = list(clients.keys())
+        print(
+            "Pré-vol GATT officiel pour "
+            f"{connected_sides(connected)}...",
+            flush=True,
+        )
+        for plate, client in clients.items():
+            print(f"Découverte GATT {plate.side}...", flush=True)
+            await client.discover_services()
+        for plate, client in clients.items():
+            print(f"Lecture modèle {plate.side} sur 0x0016...", flush=True)
+            try:
+                value = await client.read_value(KPLATE_MODEL_NUMBER_HANDLE)
+            except BaseException as exc:
+                print(
+                    f"Échec lecture modèle {plate.side}: "
+                    f"{type(exc).__name__}: {exc}",
+                    flush=True,
+                )
+                raise
+            print(
+                f"Modèle {plate.side}: {bytes(value).hex(' ')}",
+                flush=True,
+            )
+
     def selected_plates(self, sides, connection_order):
         plates_by_side = {plate.side: plate for plate in self.dual.plates}
         if sides == "right":
@@ -219,6 +253,7 @@ class KPlatesBumbleClient:
         connection_order="right-first",
         diagnostic="stream",
         stream_side="both",
+        gatt_preflight="none",
     ):
         require_bumble()
         from bumble.device import Device
@@ -258,6 +293,14 @@ class KPlatesBumbleClient:
                     await asyncio.sleep(0.5)
                 return
 
+            all_clients = {}
+            for plate, connection in self.connections.items():
+                self.register_disconnect_logger(connection, plate)
+                all_clients[plate] = connection.gatt_client
+
+            if gatt_preflight == "official-discovery":
+                await self.run_official_gatt_preflight(all_clients)
+
             if stream_side == "right":
                 stream_plates = [plate for plate in selected if plate.side == "droite"]
             elif stream_side == "left":
@@ -273,11 +316,9 @@ class KPlatesBumbleClient:
             )
 
             clients = {}
-            for plate, connection in self.connections.items():
-                self.register_disconnect_logger(connection, plate)
+            for plate, client in all_clients.items():
                 if plate not in stream_plates:
                     continue
-                client = connection.gatt_client
                 client.notification_subscribers.setdefault(
                     UART_VALUE_HANDLE,
                     set(),
@@ -356,6 +397,15 @@ def build_parser():
             "des deux plateformes ou d'un seul côté."
         ),
     )
+    parser.add_argument(
+        "--gatt-preflight",
+        choices=["none", "official-discovery"],
+        default="none",
+        help=(
+            "Diagnostic: reproduire la découverte GATT et la lecture modèle "
+            "observées dans la capture officielle avant le flux UART."
+        ),
+    )
     parser.add_argument("--tare-duration", type=float, default=2.0)
     parser.add_argument("--connect-timeout", type=float, default=15.0)
     parser.add_argument("--write-delay", type=float, default=0.05)
@@ -393,6 +443,7 @@ def main():
                 connection_order=args.connection_order,
                 diagnostic=args.diagnostic,
                 stream_side=args.stream_side,
+                gatt_preflight=args.gatt_preflight,
             )
         )
     except BumbleBackendError as exc:
