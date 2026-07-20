@@ -223,6 +223,70 @@ class KPlatesBumbleClient:
             await self.write_all(clients, b"\x10", KPLATE_PARK_DELAY)
         print("Flux de mesure au repos; connexions Bluetooth conservées.")
 
+    async def wake_measurement_streams(self, clients):
+        connected = [
+            plate
+            for plate in clients
+            if plate not in self.disconnected and plate.handle is not None
+        ]
+        if not connected:
+            raise RuntimeError("Aucune plateforme connectée à réveiller.")
+
+        print(
+            "Relance officielle du flux Bumble "
+            f"pour {connected_sides(connected)}...",
+            flush=True,
+        )
+        # Au démarrage d'un nouveau test, la capture officielle des plateformes
+        # montre 0x90 sur chaque plateforme, environ 700 ms d'attente, puis
+        # 0x11 sur chaque plateforme.
+        await self.write_all(clients, b"\x90", 0.70)
+        await self.write_all(clients, b"\x11", 0.25)
+
+    async def hold_links(self, clients, duration, label):
+        if duration <= 0:
+            return
+
+        print(f"{label} pendant {duration:.1f} s...", flush=True)
+        start = time.monotonic()
+        deadline = start + duration
+        next_keepalive = start + self.dual.keepalive_interval
+        next_progress = start
+
+        while time.monotonic() < deadline:
+            await asyncio.sleep(0.05)
+            now = time.monotonic()
+            if self.dual.keepalive_interval > 0 and now >= next_keepalive:
+                await self.write_all(clients, b"\xff", 0.0)
+                next_keepalive = now + self.dual.keepalive_interval
+            if now >= next_progress:
+                remaining = max(0.0, deadline - now)
+                print(f"{label} restant: {remaining:4.1f} s", flush=True)
+                next_progress = now + 5.0
+
+    async def acquire_once(self, clients, duration, cycle_number=1, cycle_count=1):
+        if cycle_count > 1:
+            print(
+                f"Cycle Bumble {cycle_number}/{cycle_count}.",
+                flush=True,
+            )
+        print(f"Acquisition double Bumble pendant {duration:.1f} s...", flush=True)
+        start = time.monotonic()
+        deadline = start + duration
+        next_keepalive = start + self.dual.keepalive_interval
+        next_progress = start
+
+        while time.monotonic() < deadline:
+            await asyncio.sleep(0.05)
+            now = time.monotonic()
+            if self.dual.keepalive_interval > 0 and now >= next_keepalive:
+                await self.write_all(clients, b"\xff", 0.0)
+                next_keepalive = now + self.dual.keepalive_interval
+            if now >= next_progress:
+                remaining = max(0.0, deadline - now)
+                print(f"Temps restant: {remaining:4.1f} s", flush=True)
+                next_progress = now + 5.0
+
     async def run_official_gatt_preflight(self, clients):
         # Dans la capture Android Kinvent des deux plateformes, l'application
         # effectue une découverte GATT complète puis lit le modèle au handle
@@ -274,6 +338,8 @@ class KPlatesBumbleClient:
         stream_side="both",
         gatt_preflight="official-discovery",
         hold_after=0.0,
+        cycles=1,
+        rest_between_cycles=0.0,
     ):
         require_bumble()
         from bumble.device import Device
@@ -347,49 +413,28 @@ class KPlatesBumbleClient:
 
             await self.configure_streams(clients)
 
-            print(f"Acquisition double Bumble pendant {duration:.1f} s...", flush=True)
-            start = time.monotonic()
-            deadline = start + duration
-            next_keepalive = start + self.dual.keepalive_interval
-            next_progress = start
-
-            while time.monotonic() < deadline:
-                await asyncio.sleep(0.05)
-                now = time.monotonic()
-                if self.dual.keepalive_interval > 0 and now >= next_keepalive:
-                    await self.write_all(clients, b"\xff", 0.0)
-                    next_keepalive = now + self.dual.keepalive_interval
-                if now >= next_progress:
-                    remaining = max(0.0, deadline - now)
-                    print(f"Temps restant: {remaining:4.1f} s", flush=True)
-                    next_progress = now + 5.0
-
-            await self.park_measurement_streams(clients, commands=3)
-
-            if hold_after > 0:
-                print(
-                    "Maintien Bluetooth Bumble après acquisition pendant "
-                    f"{hold_after:.1f} s...",
-                    flush=True,
+            for cycle_index in range(1, cycles + 1):
+                if cycle_index > 1:
+                    await self.wake_measurement_streams(clients)
+                await self.acquire_once(
+                    clients,
+                    duration,
+                    cycle_number=cycle_index,
+                    cycle_count=cycles,
                 )
-                hold_start = time.monotonic()
-                hold_deadline = hold_start + hold_after
-                next_keepalive = hold_start + self.dual.keepalive_interval
-                next_progress = hold_start
+                await self.park_measurement_streams(clients, commands=3)
+                if cycle_index < cycles:
+                    await self.hold_links(
+                        clients,
+                        rest_between_cycles,
+                        "Repos Bluetooth entre cycles",
+                    )
 
-                while time.monotonic() < hold_deadline:
-                    await asyncio.sleep(0.05)
-                    now = time.monotonic()
-                    if self.dual.keepalive_interval > 0 and now >= next_keepalive:
-                        await self.write_all(clients, b"\xff", 0.0)
-                        next_keepalive = now + self.dual.keepalive_interval
-                    if now >= next_progress:
-                        remaining = max(0.0, hold_deadline - now)
-                        print(
-                            f"Maintien restant: {remaining:4.1f} s",
-                            flush=True,
-                        )
-                        next_progress = now + 5.0
+            await self.hold_links(
+                clients,
+                hold_after,
+                "Maintien Bluetooth Bumble après acquisition",
+            )
 
             for plate, connection in self.connections.items():
                 if plate in self.disconnected or plate.handle is None:
@@ -467,6 +512,24 @@ def build_parser():
             "avec le keepalive officiel 0xff avant la fermeture finale."
         ),
     )
+    parser.add_argument(
+        "--cycles",
+        type=int,
+        default=1,
+        help=(
+            "Diagnostic: enchaîner plusieurs acquisitions dans une seule "
+            "connexion Bluetooth."
+        ),
+    )
+    parser.add_argument(
+        "--rest-between-cycles",
+        type=float,
+        default=0.0,
+        help=(
+            "Diagnostic: temps de repos entre cycles avec flux au repos et "
+            "keepalive officiel 0xff."
+        ),
+    )
     parser.add_argument("--sync-tolerance-ms", type=float, default=20.0)
     parser.add_argument("--calibration-file")
     parser.add_argument("--recalibrate", action="store_true")
@@ -501,6 +564,8 @@ def main():
                 stream_side=args.stream_side,
                 gatt_preflight=args.gatt_preflight,
                 hold_after=args.hold_after,
+                cycles=args.cycles,
+                rest_between_cycles=args.rest_between_cycles,
             )
         )
     except BumbleBackendError as exc:

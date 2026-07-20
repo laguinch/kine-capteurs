@@ -1486,12 +1486,54 @@ class KPlateDualTest(unittest.TestCase):
         self.assertIsNotNone(left.latest)
         self.assertEqual(left.latest["force_kg"], 0.0)
 
+    def test_bumble_wake_uses_official_plate_sequence(self):
+        class FakeClient:
+            def __init__(self):
+                self.writes = []
+
+            async def write_value(self, handle, value, with_response=False):
+                self.writes.append((handle, value, with_response))
+
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+        )
+        left, right = client.dual.plates
+        left.handle = 0x10
+        right.handle = 0x11
+        left_client = FakeClient()
+        right_client = FakeClient()
+
+        asyncio.run(
+            client.wake_measurement_streams(
+                {
+                    left: left_client,
+                    right: right_client,
+                }
+            )
+        )
+
+        self.assertEqual(
+            [value for _, value, _ in left_client.writes],
+            [b"\x90", b"\x11"],
+        )
+        self.assertEqual(
+            [value for _, value, _ in right_client.writes],
+            [b"\x90", b"\x11"],
+        )
+
     def test_bumble_kplates_defaults_match_validated_official_path(self):
         args = build_parser().parse_args([])
 
         self.assertEqual(args.connection_order, "left-first")
         self.assertEqual(args.gatt_preflight, "official-discovery")
         self.assertEqual(args.hold_after, 0.0)
+        self.assertEqual(args.cycles, 1)
+        self.assertEqual(args.rest_between_cycles, 0.0)
 
 
 if __name__ == "__main__":
