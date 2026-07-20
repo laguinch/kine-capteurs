@@ -30,7 +30,6 @@ const game = {
 
 const movementThreshold = 10;
 const fullSteeringAsymmetry = 45;
-const minimumPlayWeightKg = 20;
 const levels = {
   easy: {
     label: "Facile",
@@ -146,10 +145,17 @@ function updateStatus(data) {
 
 function updateControls(measurement) {
   const totalKg = Number.isFinite(measurement.total_kg) ? measurement.total_kg : 0;
+  const leftKg = Number.isFinite(measurement.left_kg) ? measurement.left_kg : 0;
+  const rightKg = Number.isFinite(measurement.right_kg) ? measurement.right_kg : 0;
+  const hasBipodalMeasurement =
+    Number.isFinite(measurement.left_kg)
+    && Number.isFinite(measurement.right_kg)
+    && Number.isFinite(measurement.total_kg)
+    && totalKg > 0;
   if (
     game.running
     && !game.playing
-    && totalKg >= minimumPlayWeightKg
+    && hasBipodalMeasurement
     && measurement.timestamp_utc
     && measurement.timestamp_utc !== game.lastMeasurementTimestamp
   ) {
@@ -157,12 +163,10 @@ function updateControls(measurement) {
     game.startedAt = performance.now();
     $("gameStatusText").textContent = "Casse-brique en cours";
   } else if (game.running && !game.playing) {
-    $("gameStatusText").textContent = "Montez sur les plateformes";
+    $("gameStatusText").textContent = "Attente des mesures des plateformes";
   }
   game.lastMeasurementTimestamp = measurement.timestamp_utc || null;
 
-  const leftKg = Number.isFinite(measurement.left_kg) ? measurement.left_kg : 0;
-  const rightKg = Number.isFinite(measurement.right_kg) ? measurement.right_kg : 0;
   const left = Number.isFinite(measurement.left_pct)
     ? measurement.left_pct
     : totalKg > 0
@@ -283,7 +287,7 @@ async function startGame() {
   game.completed = false;
   game.csvPath = null;
   $("missValue").textContent = "0";
-  $("gameStatusText").textContent = "Montez sur les plateformes";
+  $("gameStatusText").textContent = "Attente des mesures des plateformes";
   try {
     const response = await fetch("/api/kplates/dual/start", {
       method: "POST",
