@@ -216,6 +216,7 @@ class KPlatesBumbleClient:
         connect_timeout=15.0,
         sides="both",
         connection_order="right-first",
+        diagnostic="stream",
     ):
         require_bumble()
         from bumble.device import Device
@@ -244,6 +245,16 @@ class KPlatesBumbleClient:
                     Address,
                     connect_timeout,
                 )
+
+            if diagnostic == "connect-only":
+                print(
+                    f"Diagnostic connexion seule pendant {duration:.1f} s...",
+                    flush=True,
+                )
+                start = time.monotonic()
+                while time.monotonic() - start < duration:
+                    await asyncio.sleep(0.5)
+                return
 
             clients = {}
             for plate, connection in self.connections.items():
@@ -312,6 +323,12 @@ def build_parser():
         default="right-first",
         help="Diagnostic: inverser l'ordre de connexion sans changer les commandes.",
     )
+    parser.add_argument(
+        "--diagnostic",
+        choices=["stream", "connect-only"],
+        default="stream",
+        help="Diagnostic: connexion seule ou initialisation complète du flux.",
+    )
     parser.add_argument("--tare-duration", type=float, default=2.0)
     parser.add_argument("--connect-timeout", type=float, default=15.0)
     parser.add_argument("--write-delay", type=float, default=0.05)
@@ -347,6 +364,7 @@ def main():
                 args.connect_timeout,
                 sides=args.sides,
                 connection_order=args.connection_order,
+                diagnostic=args.diagnostic,
             )
         )
     except BumbleBackendError as exc:
