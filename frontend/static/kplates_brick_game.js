@@ -107,7 +107,9 @@ function updateStatus(data) {
   const waitingForMeasures = waitingForInitialMeasurements(data);
   $("gameStatusDot").className = `status-dot ${running || ready || connecting || serverConnecting || waitingForMeasures ? "running" : data.last_error ? "error" : ""}`;
   $("gameStatusText").textContent = running
-    ? "Jeu en cours"
+    ? game.playing
+      ? "Jeu en cours"
+      : "Attente des mesures"
     : connecting || serverConnecting
       ? "Connexion des plateformes"
     : ready

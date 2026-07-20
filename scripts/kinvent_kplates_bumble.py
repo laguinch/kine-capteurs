@@ -110,6 +110,13 @@ class KPlatesBumbleClient:
             if plate.handle is not None and plate not in self.disconnected
         ]
 
+    def subscribe_measurement_notifications(self, clients):
+        for plate, client in clients.items():
+            client.notification_subscribers.setdefault(
+                UART_VALUE_HANDLE,
+                set(),
+            ).add(lambda payload, item=plate: self.handle_payload(item, payload))
+
     def register_disconnect_logger(self, connection, plate):
         def log_disconnection(reason=None, *args, **kwargs):
             if reason is None and args:
@@ -691,12 +698,9 @@ class KPlatesBumbleClient:
             for plate, client in all_clients.items():
                 if plate not in stream_plates:
                     continue
-                client.notification_subscribers.setdefault(
-                    UART_VALUE_HANDLE,
-                    set(),
-                ).add(lambda payload, item=plate: self.handle_payload(item, payload))
                 clients[plate] = client
 
+            self.subscribe_measurement_notifications(clients)
             await self.configure_streams(clients)
 
             for cycle_index in range(1, cycles + 1):
@@ -745,6 +749,7 @@ class KPlatesBumbleClient:
         generation = None
         clients = {}
         connected = False
+        streams_active = False
         next_idle_keepalive = time.monotonic() + self.dual.keepalive_interval
         next_idle_state_refresh = time.monotonic()
 
@@ -783,6 +788,7 @@ class KPlatesBumbleClient:
                     clients.clear()
                     self.disconnected.clear()
                     connected = False
+                    streams_active = False
                     generation = requested or generation
                     write_state("disconnected", generation=generation)
                     return
@@ -833,6 +839,7 @@ class KPlatesBumbleClient:
                             connect_timeout=connect_timeout,
                         )
                         clients = all_clients
+                        self.subscribe_measurement_notifications(clients)
                         await self.configure_streams(clients)
                     except BaseException as exc:
                         self.dual.close_csv()
@@ -846,6 +853,7 @@ class KPlatesBumbleClient:
                         )
                         raise
                     connected = True
+                    streams_active = True
                     next_idle_keepalive = time.monotonic() + self.dual.keepalive_interval
                     next_idle_state_refresh = time.monotonic()
                     write_state(
@@ -881,6 +889,9 @@ class KPlatesBumbleClient:
                         mode=mode,
                         connected_sides=self.connected_side_names(),
                     )
+                    if not streams_active:
+                        await self.wake_measurement_streams(clients)
+                        streams_active = True
                     completed = await self.acquire_once_managed(
                         clients,
                         duration,
@@ -891,6 +902,7 @@ class KPlatesBumbleClient:
                     )
                     self.dual.close_csv()
                     await self.park_measurement_streams(clients, commands=3)
+                    streams_active = False
                     sides = self.connected_side_names()
                     if len(sides) == 2:
                         write_state(

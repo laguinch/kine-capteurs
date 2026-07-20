@@ -1672,6 +1672,30 @@ class KPlateDualTest(unittest.TestCase):
         self.assertIsNotNone(left.latest)
         self.assertEqual(left.latest["force_kg"], 0.0)
 
+    def test_bumble_subscribes_clients_before_persistent_stream(self):
+        class FakeClient:
+            def __init__(self):
+                self.notification_subscribers = {}
+
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+        )
+        left, right = client.dual.plates
+        clients = {left: FakeClient(), right: FakeClient()}
+
+        client.subscribe_measurement_notifications(clients)
+
+        for fake_client in clients.values():
+            subscribers = fake_client.notification_subscribers[
+                self.module.UART_VALUE_HANDLE
+            ]
+            self.assertEqual(len(subscribers), 1)
+
     def test_bumble_wake_uses_official_plate_sequence(self):
         class FakeClient:
             def __init__(self):
