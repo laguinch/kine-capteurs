@@ -38,6 +38,9 @@ from scripts.kinvent_raw_hci import (  # noqa: E402
 
 
 KPLATE_MODEL_NUMBER_HANDLE = 0x0016
+OFFICIAL_INITIAL_RADIO_WINDOW = (0x0006, 0x0006, 0, 0x01F4)
+OFFICIAL_INTERMEDIATE_RADIO_WINDOW = (0x0024, 0x0024, 0, 0x01F4)
+OFFICIAL_STREAM_RADIO_WINDOW = (0x0009, 0x0018, 0, 0x0200)
 
 
 def connected_sides(plates):
@@ -160,6 +163,19 @@ class KPlatesBumbleClient:
         )
         return connection
 
+    async def apply_radio_window(self, plate, values, label):
+        if plate in self.disconnected or plate.handle is None:
+            return
+        connection = self.connections.get(plate)
+        if connection is None:
+            return
+        print(f"Réglage radio {label} {plate.side}...", flush=True)
+        await connection.update_parameters(*values)
+
+    async def apply_radio_window_all(self, clients, values, label):
+        for plate in clients:
+            await self.apply_radio_window(plate, values, label)
+
     async def configure_streams(self, clients):
         connected = list(clients.keys())
         if not connected:
@@ -188,16 +204,15 @@ class KPlatesBumbleClient:
                 )
                 raise
 
-        await self.write_all(clients, b"\x10", 0.25)
+        # Dans la capture Kinvent, la fenêtre radio finale 9-24 / 0x0200 est
+        # appliquée entre l'activation CCCD et la reprise du flux par 0x10.
+        await self.apply_radio_window_all(
+            clients,
+            OFFICIAL_STREAM_RADIO_WINDOW,
+            "flux officiel",
+        )
 
-        # Réglage radio observé dans le pilote HCI officiel :
-        # intervalle 0x0009-0x0018, latence 0, supervision 0x0200.
-        for plate in connected:
-            connection = self.connections[plate]
-            if plate in self.disconnected:
-                continue
-            print(f"Réglage radio {plate.side}...", flush=True)
-            await connection.update_parameters(0x0009, 0x0018, 0, 0x0200)
+        await self.write_all(clients, b"\x10", 0.25)
 
         for command, delay in KPLATE_INIT_STEPS:
             await self.write_all(clients, command, delay)
@@ -339,6 +354,14 @@ class KPlatesBumbleClient:
             else:
                 await self.discover_official_services(plate, client)
 
+        # La trace officielle applique ensuite une fenêtre 36/36 avec une
+        # supervision longue (0x01f4), avant la lecture modèle.
+        await self.apply_radio_window_all(
+            clients,
+            OFFICIAL_INTERMEDIATE_RADIO_WINDOW,
+            "intermédiaire officiel",
+        )
+
         await asyncio.gather(
             *(self.read_official_model(plate, client) for plate, client in clients.items())
         )
@@ -399,6 +422,13 @@ class KPlatesBumbleClient:
                 self.connections[plate] = connection
                 self.register_disconnect_logger(connection, plate)
                 all_clients[plate] = connection.gatt_client
+                # Fenêtre initiale observée dans la capture officielle Android :
+                # 7,5 ms / 7,5 ms, latence 0, supervision 5 s.
+                await self.apply_radio_window(
+                    plate,
+                    OFFICIAL_INITIAL_RADIO_WINDOW,
+                    "initial officiel",
+                )
                 if (
                     diagnostic != "connect-only"
                     and gatt_preflight == "official-discovery"
