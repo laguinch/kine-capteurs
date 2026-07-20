@@ -154,23 +154,7 @@ class KPlatesBumbleClient:
             f"0x{plate.handle:04x}.",
             flush=True,
         )
-        # Comportement observé dans l'application officielle et verrouillé
-        # dans le pilote HCI : chaque plateforme est d'abord stabilisée à
-        # 7,5 ms juste après sa connexion, avant de poursuivre la connexion
-        # de la suivante.
-        await asyncio.sleep(0.5)
-        print(f"Réglage radio initial {plate.side}: 7,5 ms...", flush=True)
-        await connection.update_parameters(0x0006, 0x0006, 0, 0x01F4)
         return connection
-
-    async def prepare_connected_links(self):
-        # Une fois les deux liaisons établies, Kinvent les place
-        # temporairement à 45 ms avant d'activer les CCCD.
-        for plate, connection in self.connections.items():
-            if plate in self.disconnected or plate.handle is None:
-                continue
-            print(f"Réglage radio pré-CCCD {plate.side}: 45,0 ms...", flush=True)
-            await connection.update_parameters(0x0024, 0x0024, 0, 0x01F4)
 
     async def configure_streams(self, clients):
         connected = list(clients.keys())
@@ -237,8 +221,6 @@ class KPlatesBumbleClient:
                     Address,
                     connect_timeout,
                 )
-
-            await self.prepare_connected_links()
 
             clients = {}
             for plate, connection in self.connections.items():
