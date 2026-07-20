@@ -287,7 +287,32 @@ class KPlatesBumbleClient:
                 print(f"Temps restant: {remaining:4.1f} s", flush=True)
                 next_progress = now + 5.0
 
-    async def run_official_gatt_preflight(self, clients):
+    async def discover_official_services(self, plate, client):
+        print(f"Découverte GATT {plate.side}...", flush=True)
+        await client.discover_services()
+
+    async def read_official_model(self, plate, client):
+        print(f"Lecture modèle {plate.side} sur 0x0016...", flush=True)
+        try:
+            value = await client.read_value(KPLATE_MODEL_NUMBER_HANDLE)
+        except BaseException as exc:
+            print(
+                f"Échec lecture modèle {plate.side}: "
+                f"{type(exc).__name__}: {exc}",
+                flush=True,
+            )
+            raise
+        print(
+            f"Modèle {plate.side}: {bytes(value).hex(' ')}",
+            flush=True,
+        )
+
+    async def run_official_gatt_preflight(
+        self,
+        clients,
+        started_discoveries=None,
+        announce=True,
+    ):
         # Dans la capture Android Kinvent des deux plateformes, l'application
         # effectue une découverte GATT complète puis lit le modèle au handle
         # 0x0016 avant d'écrire 0x10 et d'activer le CCCD UART.
@@ -299,38 +324,23 @@ class KPlatesBumbleClient:
         # celle de la gauche; les deux lectures 0x0016 sont ensuite quasi
         # simultanées. On garde donc un pré-vol GATT sobre et séquencé, sans
         # retry ni récupération ajoutée.
+        started_discoveries = started_discoveries or {}
         connected = list(clients.keys())
-        print(
-            "Pré-vol GATT officiel pour "
-            f"{connected_sides(connected)}...",
-            flush=True,
-        )
-
-        async def discover(plate, client):
-            print(f"Découverte GATT {plate.side}...", flush=True)
-            await client.discover_services()
-
-        for plate, client in clients.items():
-            await discover(plate, client)
-
-        async def read_model(plate, client):
-            print(f"Lecture modèle {plate.side} sur 0x0016...", flush=True)
-            try:
-                value = await client.read_value(KPLATE_MODEL_NUMBER_HANDLE)
-            except BaseException as exc:
-                print(
-                    f"Échec lecture modèle {plate.side}: "
-                    f"{type(exc).__name__}: {exc}",
-                    flush=True,
-                )
-                raise
+        if announce:
             print(
-                f"Modèle {plate.side}: {bytes(value).hex(' ')}",
+                "Pré-vol GATT officiel pour "
+                f"{connected_sides(connected)}...",
                 flush=True,
             )
 
+        for plate, client in clients.items():
+            if plate in started_discoveries:
+                await started_discoveries[plate]
+            else:
+                await self.discover_official_services(plate, client)
+
         await asyncio.gather(
-            *(read_model(plate, client) for plate, client in clients.items())
+            *(self.read_official_model(plate, client) for plate, client in clients.items())
         )
 
     def selected_plates(self, sides, connection_order):
@@ -376,13 +386,37 @@ class KPlatesBumbleClient:
                 f"{connected_sides(selected)}",
                 flush=True,
             )
+            all_clients = {}
+            started_discoveries = {}
+            preflight_announced = False
             for plate in selected:
-                self.connections[plate] = await self.connect_plate(
+                connection = await self.connect_plate(
                     device,
                     plate,
                     Address,
                     connect_timeout,
                 )
+                self.connections[plate] = connection
+                self.register_disconnect_logger(connection, plate)
+                all_clients[plate] = connection.gatt_client
+                if (
+                    diagnostic != "connect-only"
+                    and gatt_preflight == "official-discovery"
+                    and len(selected) > 1
+                    and not started_discoveries
+                ):
+                    print(
+                        "Pré-vol GATT officiel pour "
+                        f"{connected_sides(selected)}...",
+                        flush=True,
+                    )
+                    preflight_announced = True
+                    started_discoveries[plate] = asyncio.create_task(
+                        self.discover_official_services(
+                            plate,
+                            connection.gatt_client,
+                        )
+                    )
 
             if diagnostic == "connect-only":
                 print(
@@ -394,13 +428,12 @@ class KPlatesBumbleClient:
                     await asyncio.sleep(0.5)
                 return
 
-            all_clients = {}
-            for plate, connection in self.connections.items():
-                self.register_disconnect_logger(connection, plate)
-                all_clients[plate] = connection.gatt_client
-
             if gatt_preflight == "official-discovery":
-                await self.run_official_gatt_preflight(all_clients)
+                await self.run_official_gatt_preflight(
+                    all_clients,
+                    started_discoveries=started_discoveries,
+                    announce=not preflight_announced,
+                )
 
             if stream_side == "right":
                 stream_plates = [plate for plate in selected if plate.side == "droite"]

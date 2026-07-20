@@ -1571,6 +1571,53 @@ class KPlateDualTest(unittest.TestCase):
             ],
         )
 
+    def test_bumble_gatt_preflight_keeps_started_official_discovery(self):
+        class FakeClient:
+            def __init__(self, label, events):
+                self.label = label
+                self.events = events
+
+            async def discover_services(self):
+                self.events.append(f"discover:{self.label}")
+
+            async def read_value(self, handle):
+                self.events.append((f"read:{self.label}", handle))
+                return b"P104356"
+
+        async def run_preflight(client, right, right_client, left, left_client):
+            right_discovery = asyncio.create_task(right_client.discover_services())
+            await client.run_official_gatt_preflight(
+                {
+                    right: right_client,
+                    left: left_client,
+                },
+                started_discoveries={right: right_discovery},
+            )
+
+        events = []
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+        )
+        left, right = client.dual.plates
+        right_client = FakeClient("droite", events)
+        left_client = FakeClient("gauche", events)
+
+        asyncio.run(run_preflight(client, right, right_client, left, left_client))
+
+        self.assertEqual(
+            events.count("discover:droite"),
+            1,
+        )
+        self.assertEqual(
+            events[:2],
+            ["discover:droite", "discover:gauche"],
+        )
+
     def test_bumble_kplates_defaults_match_validated_official_path(self):
         args = build_parser().parse_args([])
 
