@@ -216,6 +216,11 @@ contrôleur suffisants pour deux flux de notifications. Ces réglages concernent
 uniquement la plomberie HCI USB Zephyr ; les commandes Kinvent restent celles
 observées dans les captures officielles.
 
+Dans Zephyr 4.4, les buffers ACL entrants configurables passent par
+`CONFIG_BT_BUF_ACL_RX_COUNT_EXTRA` : le total par défaut vaut seulement
+`CONFIG_BT_MAX_CONN + 1`, ce qui est trop court pour deux plateformes en flux
+simultané.
+
 Depuis le serveur, après `bash scripts/update.sh`, reconstruire puis reflasher
 la clé avec la configuration du projet :
 
