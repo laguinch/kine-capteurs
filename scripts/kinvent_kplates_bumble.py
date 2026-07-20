@@ -739,6 +739,7 @@ class KPlatesBumbleClient:
         clients = {}
         connected = False
         next_idle_keepalive = time.monotonic() + self.dual.keepalive_interval
+        next_idle_state_refresh = time.monotonic()
 
         def write_state(phase, **state):
             self.dual.write_worker_state(state_path, phase=phase, **state)
@@ -839,6 +840,7 @@ class KPlatesBumbleClient:
                         raise
                     connected = True
                     next_idle_keepalive = time.monotonic() + self.dual.keepalive_interval
+                    next_idle_state_refresh = time.monotonic()
                     write_state(
                         "idle",
                         generation=generation,
@@ -895,6 +897,7 @@ class KPlatesBumbleClient:
                     )
                     self.dual.consume_control_command(control_path, generation)
                     next_idle_keepalive = time.monotonic() + self.dual.keepalive_interval
+                    next_idle_state_refresh = time.monotonic()
                     continue
 
                 if connected and time.monotonic() >= next_idle_keepalive:
@@ -902,6 +905,40 @@ class KPlatesBumbleClient:
                     next_idle_keepalive = (
                         time.monotonic() + self.dual.keepalive_interval
                     )
+
+                if connected and time.monotonic() >= next_idle_state_refresh:
+                    sides = self.connected_side_names()
+                    if len(sides) == 2:
+                        write_state(
+                            "idle",
+                            generation=generation,
+                            connected_sides=sides,
+                            mode="balance",
+                        )
+                    elif sides:
+                        write_state(
+                            "degraded",
+                            generation=generation,
+                            connected_sides=sides,
+                            mode="balance",
+                            error=(
+                                "Connexion partielle. Reconnectez les "
+                                "plateformes."
+                            ),
+                        )
+                    else:
+                        connected = False
+                        write_state(
+                            "disconnected",
+                            generation=generation,
+                            connected_sides=[],
+                            mode="balance",
+                            error=(
+                                "Plateformes déconnectées. Reconnectez les "
+                                "plateformes."
+                            ),
+                        )
+                    next_idle_state_refresh = time.monotonic() + 2.0
 
                 await asyncio.sleep(0.2)
 

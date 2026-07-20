@@ -109,6 +109,38 @@ class KPlateApiTest(unittest.TestCase):
         self.assertIsNone(status["pid"])
         self.assertEqual(status["worker_phase"], "offline")
 
+    def test_ignores_old_idle_worker_state_when_manager_is_active(self):
+        service = DualPlateAcquisitionService()
+        old_update = (
+            datetime.now(timezone.utc) - timedelta(minutes=2)
+        ).isoformat()
+        with tempfile.TemporaryDirectory() as directory:
+            service._worker_state_path = Path(directory) / "state.json"
+            service._worker_state_path.write_text(
+                (
+                    f'{{"phase":"idle","pid":{os.getpid()},'
+                    f'"updated_at":"{old_update}",'
+                    '"connected_sides":["gauche","droite"]}'
+                ),
+                encoding="utf-8",
+            )
+            with mock.patch.object(
+                acquisition_module,
+                "manager_state",
+                return_value={
+                    "pid": os.getpid(),
+                    "phase": "active",
+                    "target": "kplates",
+                    "child_pid": os.getpid(),
+                },
+            ):
+                status = service.status()
+
+        self.assertFalse(status["bluetooth_connected"])
+        self.assertFalse(status["worker_ready"])
+        self.assertEqual(status["connected_sides"], [])
+        self.assertEqual(status["worker_phase"], "offline")
+
     def test_latest_reads_last_complete_measurement(self):
         service = DualPlateAcquisitionService()
         with tempfile.TemporaryDirectory() as directory:

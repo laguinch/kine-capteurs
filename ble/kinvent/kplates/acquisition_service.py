@@ -15,6 +15,9 @@ def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
 
+WORKER_IDLE_STALE_SECONDS = 30.0
+
+
 class DualPlateAcquisitionService:
     def __init__(self):
         raw_dir = BASE_DIR / "storage" / "raw_data"
@@ -211,7 +214,9 @@ class DualPlateAcquisitionService:
                 "worker_ready": worker_alive and phase in {"idle", "degraded"},
                 "bluetooth_connected": worker_alive
                 and phase in {"idle", "active", "degraded"},
-                "connected_sides": worker.get("connected_sides", []),
+                "connected_sides": (
+                    worker.get("connected_sides", []) if worker_alive else []
+                ),
                 "pid": worker.get("pid") if worker_alive else None,
                 "manager_pid": manager.get("pid"),
                 "started_at": self._started_at,
@@ -310,6 +315,23 @@ class DualPlateAcquisitionService:
             return True
         return True
 
+    @staticmethod
+    def _worker_state_is_fresh(worker):
+        phase = worker.get("phase")
+        if phase not in {"idle", "degraded"}:
+            return True
+        updated_at = worker.get("updated_at")
+        if not updated_at:
+            return False
+        try:
+            updated = datetime.fromisoformat(updated_at)
+        except (TypeError, ValueError):
+            return False
+        if updated.tzinfo is None:
+            updated = updated.replace(tzinfo=timezone.utc)
+        age = (datetime.now(timezone.utc) - updated).total_seconds()
+        return age <= WORKER_IDLE_STALE_SECONDS
+
     @classmethod
     def _worker_managed_alive(cls, worker, manager):
         if not cls._worker_alive(worker.get("pid")):
@@ -321,7 +343,9 @@ class DualPlateAcquisitionService:
         if manager.get("phase") not in {"switching", "active"}:
             return False
         child_pid = manager.get("child_pid")
-        return child_pid in {None, worker.get("pid")}
+        if child_pid not in {None, worker.get("pid")}:
+            return False
+        return cls._worker_state_is_fresh(worker)
 
     @staticmethod
     def _write_json(path, data):
