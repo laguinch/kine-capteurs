@@ -27,6 +27,7 @@ from ble.kinvent.bumble_backend import (  # noqa: E402
 )
 from scripts.kinvent_dual_hci import (  # noqa: E402
     KPLATE_INIT_STEPS,
+    KPLATE_PARK_DELAY,
     DualKinventClient,
 )
 from scripts.kinvent_kpush_bumble import make_remote_address  # noqa: E402
@@ -204,6 +205,24 @@ class KPlatesBumbleClient:
         for plate in connected:
             print(f"Flux {plate.side} démarré.", flush=True)
 
+    async def park_measurement_streams(self, clients, commands=3):
+        connected = [
+            plate
+            for plate in clients
+            if plate not in self.disconnected and plate.handle is not None
+        ]
+        if not connected:
+            return
+
+        print(
+            "Mise au repos officielle du flux Bumble "
+            f"pour {connected_sides(connected)}...",
+            flush=True,
+        )
+        for _ in range(commands):
+            await self.write_all(clients, b"\x10", KPLATE_PARK_DELAY)
+        print("Flux de mesure au repos; connexions Bluetooth conservées.")
+
     async def run_official_gatt_preflight(self, clients):
         # Dans la capture Android Kinvent des deux plateformes, l'application
         # effectue une découverte GATT complète puis lit le modèle au handle
@@ -344,6 +363,8 @@ class KPlatesBumbleClient:
                     remaining = max(0.0, deadline - now)
                     print(f"Temps restant: {remaining:4.1f} s", flush=True)
                     next_progress = now + 5.0
+
+            await self.park_measurement_streams(clients, commands=3)
 
             if hold_after > 0:
                 print(
