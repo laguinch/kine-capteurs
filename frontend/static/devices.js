@@ -56,13 +56,6 @@ function deviceCard(device) {
 function render(data) {
   const manager = data.manager || {};
   const active = Boolean(manager.target);
-  const error = Boolean(manager.error);
-  $("managerDot").className = `status-dot ${error ? "error" : active ? "running" : ""}`;
-  $("managerText").textContent = error
-    ? "Erreur"
-    : active
-      ? "Appareil connecté"
-      : "Aucun appareil actif";
   $("managerTitle").textContent = active
     ? `Dongle utilisé par ${manager.target}`
     : "Dongle libre";
@@ -72,8 +65,8 @@ function render(data) {
     manager.transport,
     manager.kplates_backend ? `plateformes ${manager.kplates_backend}` : null,
     manager.hci_adapter,
+    manager.error,
   ].filter(Boolean).join(" · ");
-  $("disconnectCurrentButton").disabled = !active || Boolean(actionInProgress);
 
   const grid = $("devicesGrid");
   grid.replaceChildren(...(data.devices || []).map(deviceCard));
@@ -92,17 +85,10 @@ async function refresh() {
     if (!response.ok) throw new Error(data.detail || "Lecture impossible");
     render(data);
   } catch (error) {
-    $("managerDot").className = "status-dot error";
-    $("managerText").textContent = "Serveur indisponible";
+    $("managerTitle").textContent = "Serveur indisponible";
     $("managerDetails").textContent = error.message;
   }
 }
-
-$("disconnectCurrentButton").addEventListener("click", async () => {
-  $("disconnectCurrentButton").disabled = true;
-  await fetch("/api/devices/disconnect", { method: "POST" });
-  await refresh();
-});
 
 async function connectDevice(deviceKey) {
   if (!deviceKey || actionInProgress) return;
@@ -116,8 +102,7 @@ async function connectDevice(deviceKey) {
     if (!response.ok) throw new Error(data.detail || "Connexion impossible");
     render(data);
   } catch (error) {
-    $("managerDot").className = "status-dot error";
-    $("managerText").textContent = "Connexion impossible";
+    $("managerTitle").textContent = "Connexion impossible";
     $("managerDetails").textContent = error.message;
   } finally {
     actionInProgress = null;
@@ -137,8 +122,7 @@ async function disconnectDevice(deviceKey) {
     if (!response.ok) throw new Error(data.detail || "Déconnexion impossible");
     render(data);
   } catch (error) {
-    $("managerDot").className = "status-dot error";
-    $("managerText").textContent = "Déconnexion impossible";
+    $("managerTitle").textContent = "Déconnexion impossible";
     $("managerDetails").textContent = error.message;
   } finally {
     actionInProgress = null;
