@@ -1565,10 +1565,10 @@ class KPlateDualTest(unittest.TestCase):
             [
                 ("uart", "droite", b"\x10"),
                 ("uart", "gauche", b"\x10"),
-                ("radio", "droite", (0x0009, 0x0018, 0, 0x0200)),
-                ("radio", "gauche", (0x0009, 0x0018, 0, 0x0200)),
                 ("uart", "droite", b"\x10"),
                 ("uart", "gauche", b"\x10"),
+                ("radio", "droite", (0x0009, 0x0018, 0, 0x0200)),
+                ("radio", "gauche", (0x0009, 0x0018, 0, 0x0200)),
             ],
         )
         self.assertIn(0.046, sleep_calls)

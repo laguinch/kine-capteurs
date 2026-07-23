@@ -446,8 +446,14 @@ class KPlatesBumbleClient:
                 )
                 raise
 
-        # Réglage radio observé dans le pilote HCI officiel juste après les
-        # réponses CCCD et avant le second 0x10.
+        # Comme dans le pilote HCI direct validé par les captures Kinvent:
+        # après les réponses CCCD, l'application réarme d'abord le protocole
+        # avec 0x10 sur chaque plateforme, laisse respirer la liaison, puis
+        # applique le réglage radio final. Le faire avant ce second 0x10 peut
+        # provoquer un COMMAND_DISALLOWED côté contrôleur Bumble/nRF52840.
+        await self.write_all(clients, b"\x10", 0.25)
+
+        # Réglage radio final observé officiellement:
         # intervalle 0x0009-0x0018, latence 0, supervision 0x0200.
         for plate in connected:
             connection = self.connections[plate]
@@ -463,8 +469,6 @@ class KPlatesBumbleClient:
                     flush=True,
                 )
                 raise
-
-        await self.write_all(clients, b"\x10", 0.25)
 
         # Séquence double-plateforme observée dans la capture officielle
         # Android. Les commandes sont les mêmes que KPLATE_INIT_STEPS, mais
