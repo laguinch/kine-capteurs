@@ -213,51 +213,7 @@ else
 fi
 
 confirm_phase \
-  "1/2 — Double connexion sans flux" \
-  "Objectif: vérifier que Bumble tient deux connexions BLE simultanées sans mesures." \
-  "Plateformes: droite ET gauche allumées, disponibles, application Android fermée." \
-  "Action physique: ne monte pas dessus." \
-  "À surveiller: les deux plateformes doivent passer/connecter normalement." \
-  "Durée prévue: environ 20 secondes."
-CONNECT_RIGHT_FIRST_CODE=0
-run_step "double connexion seule droite puis gauche" \
-  sudo "$PYTHON_BIN" -u scripts/kinvent_kplates_bumble.py \
-    "${COMMON_ARGS[@]}" \
-    --sides both \
-    --connection-order right-first \
-    --diagnostic connect-only \
-    --duration 20 \
-    --csv "${CSV_PREFIX}_connect_only_right_first.csv"
-CONNECT_RIGHT_FIRST_CODE=$?
-
-if [[ "$CONNECT_RIGHT_FIRST_CODE" -ne 0 ]]; then
-  confirm_phase \
-    "Diagnostic miroir — Double connexion gauche puis droite" \
-    "La double connexion officielle droite puis gauche vient d'échouer." \
-    "Objectif: savoir si la chute concerne toujours la droite, ou si c'est le premier lien qui tombe quand le deuxième démarre." \
-    "Ce test est uniquement diagnostique: il ne remplace pas l'ordre officiel utilisé par les jeux." \
-    "Action physique: éteins/rallume les deux plateformes, attends qu'elles soient disponibles, puis ne monte pas dessus." \
-    "Durée prévue: environ 20 secondes."
-  run_step "double connexion miroir gauche puis droite" \
-    sudo "$PYTHON_BIN" -u scripts/kinvent_kplates_bumble.py \
-      "${COMMON_ARGS[@]}" \
-      --sides both \
-      --connection-order left-first \
-      --diagnostic connect-only \
-      --duration 20 \
-      --csv "${CSV_PREFIX}_connect_only_left_first.csv"
-  MIRROR_CODE=$?
-
-  log ""
-  log "ARRÊT DU DIAGNOSTIC"
-  log "La phase officielle « double connexion droite puis gauche » a échoué avec le code $CONNECT_RIGHT_FIRST_CODE."
-  log "La phase miroir « gauche puis droite » a terminé avec le code $MIRROR_CODE."
-  log "Le flux officiel ne serait pas interprétable tant que la double connexion sans flux ne tient pas."
-  exit "$CONNECT_RIGHT_FIRST_CODE"
-fi
-
-confirm_phase \
-  "2/2 — Double flux officiel avec appuis" \
+  "1/1 — Double flux officiel avec appuis" \
   "Objectif: vérifier que Bumble tient les deux plateformes avec le flux de mesures officiel." \
   "Plateformes: droite ET gauche allumées, disponibles, application Android fermée." \
   "Début de phase: laisse les plateformes vides pendant la connexion et la tare." \
