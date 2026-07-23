@@ -1345,6 +1345,7 @@ class KPlatesBumbleClient:
                         )
                         self.dual.consume_control_command(control_path, generation)
                         continue
+                    generation = requested
                     duration = float(command["duration"])
                     mode = command.get("mode", "balance")
                     try:

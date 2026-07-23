@@ -689,8 +689,11 @@ button:disabled { opacity: .45; cursor: default; }
   width: 100%;
 }
 .device-actions button {
+  box-sizing: border-box;
   flex: 1 1 0;
   min-width: 0;
+  padding-left: 10px;
+  padding-right: 10px;
   align-self: stretch;
   white-space: nowrap;
 }

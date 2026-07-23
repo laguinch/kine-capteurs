@@ -2177,6 +2177,149 @@ class KPlateDualTest(unittest.TestCase):
         self.assertIn("Dongle Bumble indisponible", state["error"])
         self.assertIn("device not found", state["last_error"])
 
+    def test_bumble_persistent_start_consumes_test_generation(self):
+        class StopLoop(Exception):
+            pass
+
+        class FakeTransport:
+            source = object()
+            sink = object()
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                return None
+
+        class FakeConnection:
+            handle = 0x10
+
+            def __init__(self):
+                self.gatt_client = types.SimpleNamespace(
+                    notification_subscribers={}
+                )
+
+            def on(self, event, handler):
+                return handler
+
+            async def disconnect(self):
+                return None
+
+        class FakeDevice:
+            @classmethod
+            def with_hci(cls, *args, **kwargs):
+                return cls()
+
+            async def power_on(self):
+                return None
+
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+            write_delay=0,
+        )
+
+        async def fake_connect(device, plate, Address, connect_timeout):
+            plate.handle = 0x10
+            return FakeConnection()
+
+        async def fake_settle(clients):
+            control_path.write_text(
+                json.dumps(
+                    {
+                        "action": "start",
+                        "generation": "test-generation",
+                        "duration": 0,
+                        "csv_path": str(csv_path),
+                        "mode": "cmj",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            return []
+
+        async def fake_prepare(*args, **kwargs):
+            return True
+
+        async def fake_acquire(*args, **kwargs):
+            return True
+
+        consumed_generations = []
+        original_consume = client.dual.consume_control_command
+
+        def consume_then_stop(path, generation):
+            consumed_generations.append(generation)
+            original_consume(path, generation)
+            raise StopLoop()
+
+        with tempfile.TemporaryDirectory() as directory:
+            control_path = Path(directory) / "control.json"
+            state_path = Path(directory) / "state.json"
+            csv_path = Path(directory) / "cmj.csv"
+            control_path.write_text(
+                '{"action":"connect","generation":"connect-generation"}',
+                encoding="utf-8",
+            )
+
+            with mock.patch("scripts.kinvent_kplates_bumble.require_bumble"):
+                with mock.patch.dict(
+                    sys.modules,
+                    {
+                        "bumble": types.SimpleNamespace(),
+                        "bumble.device": types.SimpleNamespace(Device=FakeDevice),
+                        "bumble.hci": types.SimpleNamespace(Address=lambda value: value),
+                        "bumble.transport": types.SimpleNamespace(
+                            open_transport=mock.AsyncMock(
+                                return_value=FakeTransport()
+                            )
+                        ),
+                    },
+                ):
+                    with mock.patch.object(
+                        client, "connect_plate", side_effect=fake_connect
+                    ), mock.patch.object(
+                        client, "run_official_gatt_preflight", mock.AsyncMock()
+                    ), mock.patch.object(
+                        client, "configure_streams", mock.AsyncMock()
+                    ), mock.patch.object(
+                        client,
+                        "settle_initial_streams",
+                        side_effect=fake_settle,
+                    ), mock.patch.object(
+                        client, "validate_live_streams", mock.AsyncMock()
+                    ), mock.patch.object(
+                        client,
+                        "wait_for_cmj_preparation",
+                        side_effect=fake_prepare,
+                    ), mock.patch.object(
+                        client,
+                        "acquire_once_managed",
+                        side_effect=fake_acquire,
+                    ), mock.patch.object(
+                        client, "park_measurement_streams", mock.AsyncMock()
+                    ), mock.patch.object(
+                        client.dual,
+                        "consume_control_command",
+                        side_effect=consume_then_stop,
+                    ):
+                        with self.assertRaises(StopLoop):
+                            asyncio.run(
+                                client.run_persistent(
+                                    control_path,
+                                    state_path,
+                                )
+                            )
+
+            command = json.loads(control_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(consumed_generations, ["test-generation"])
+        self.assertEqual(command["action"], "idle")
+        self.assertEqual(command["generation"], "test-generation")
+
     def test_bumble_notification_feeds_plate_decoder(self):
         client = KPlatesBumbleClient(
             transport="usb:0",
