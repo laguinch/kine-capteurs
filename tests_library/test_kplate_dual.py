@@ -1575,6 +1575,63 @@ class KPlateDualTest(unittest.TestCase):
         self.assertIn(0.354, sleep_calls)
         self.assertIn(1.646, sleep_calls)
 
+    def test_bumble_stream_configuration_keeps_sequence_on_command_disallowed(self):
+        class CommandDisallowed(Exception):
+            def __str__(self):
+                return "HCI_Error(hci/COMMAND_DISALLOWED_ERROR [0xC])"
+
+        global_writes = []
+        uart_value_handle = self.module.UART_VALUE_HANDLE
+
+        class FakeConnection:
+            async def update_parameters(self, *values):
+                raise CommandDisallowed()
+
+        class FakeClient:
+            def __init__(self, side):
+                self.side = side
+
+            async def write_value(self, handle, value, with_response=False):
+                if handle == uart_value_handle and not with_response:
+                    global_writes.append((self.side, value))
+
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            write_delay=0,
+        )
+        left, right = client.dual.plates
+        client.connections = {
+            right: FakeConnection(),
+            left: FakeConnection(),
+        }
+        right.handle = 0x10
+        left.handle = 0x11
+
+        async def immediate_sleep(delay):
+            return None
+
+        with mock.patch(
+            "scripts.kinvent_kplates_bumble.asyncio.sleep",
+            immediate_sleep,
+        ):
+            asyncio.run(
+                client.configure_streams(
+                    {
+                        right: FakeClient("droite"),
+                        left: FakeClient("gauche"),
+                    }
+                )
+            )
+
+        self.assertIn(("droite", b"\x09"), global_writes)
+        self.assertIn(("gauche", b"\x09"), global_writes)
+        self.assertIn(("droite", b"\x11"), global_writes)
+        self.assertIn(("gauche", b"\x11"), global_writes)
+
     def test_bumble_connect_uses_official_create_connection_preferences(self):
         class FakeConnectionParametersPreferences:
             def __init__(

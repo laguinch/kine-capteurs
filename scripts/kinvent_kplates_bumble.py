@@ -85,6 +85,10 @@ def format_hci_reason(reason):
     return f"0x{value:02x}"
 
 
+def is_hci_command_disallowed(exc):
+    return "COMMAND_DISALLOWED" in str(exc)
+
+
 class KPlatesBumbleClient:
     def __init__(
         self,
@@ -534,6 +538,14 @@ class KPlatesBumbleClient:
             try:
                 await connection.update_parameters(0x0009, 0x0018, 0, 0x0200)
             except Exception as exc:
+                if is_hci_command_disallowed(exc):
+                    print(
+                        "Réglage radio "
+                        f"{plate.side} refusé par le contrôleur "
+                        "(COMMAND_DISALLOWED); séquence officielle conservée.",
+                        flush=True,
+                    )
+                    continue
                 print(
                     "Échec réglage radio "
                     f"{plate.side}: {type(exc).__name__}: {exc}",
