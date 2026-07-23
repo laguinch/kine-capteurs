@@ -132,7 +132,10 @@ class KPlatesBumbleClient:
         plate.last_notification_at = time.monotonic()
         sample = plate.decode(bytes(payload))
         if sample:
-            self.dual.pair_samples()
+            if self.dual.acquisition_mode == "cmj":
+                self.dual.write_cmj_event(plate)
+            else:
+                self.dual.pair_samples()
 
     def connected_side_names(self):
         return [
@@ -850,8 +853,13 @@ class KPlatesBumbleClient:
         deadline = start + duration
         next_keepalive = start + self.dual.keepalive_interval
         next_progress = start
-        last_pair_count = self.dual.paired_samples
-        last_pair_at = start
+        if self.dual.acquisition_mode == "cmj":
+            last_measure_count = self.dual.cmj_samples
+            silence_label = "aucun événement CMJ reçu"
+        else:
+            last_measure_count = self.dual.paired_samples
+            silence_label = "aucune paire synchronisée reçue"
+        last_measure_at = start
         completed = True
 
         while time.monotonic() < deadline:
@@ -867,12 +875,17 @@ class KPlatesBumbleClient:
                 break
             await asyncio.sleep(0.05)
             now = time.monotonic()
-            if self.dual.paired_samples > last_pair_count:
-                last_pair_count = self.dual.paired_samples
-                last_pair_at = now
-            if now - last_pair_at > stream_silence_timeout:
+            current_measure_count = (
+                self.dual.cmj_samples
+                if self.dual.acquisition_mode == "cmj"
+                else self.dual.paired_samples
+            )
+            if current_measure_count > last_measure_count:
+                last_measure_count = current_measure_count
+                last_measure_at = now
+            if now - last_measure_at > stream_silence_timeout:
                 raise RuntimeError(
-                    "Flux de mesure absent: aucune paire synchronisée reçue."
+                    f"Flux de mesure absent: {silence_label}."
                 )
             if self.dual.keepalive_interval > 0 and now >= next_keepalive:
                 await self.write_all(clients, b"\xff", 0.0)

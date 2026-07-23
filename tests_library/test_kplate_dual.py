@@ -2185,6 +2185,46 @@ class KPlateDualTest(unittest.TestCase):
             ]
             self.assertEqual(len(subscribers), 1)
 
+    def test_bumble_payload_writes_cmj_event_in_cmj_mode(self):
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+        )
+        left, _right = client.dual.plates
+        left.decode = mock.Mock(return_value={"force_kg": 10.0, "t": 1})
+        client.dual.acquisition_mode = "cmj"
+        client.dual.write_cmj_event = mock.Mock()
+        client.dual.pair_samples = mock.Mock()
+
+        client.handle_payload(left, b"\x01\x02")
+
+        client.dual.write_cmj_event.assert_called_once_with(left)
+        client.dual.pair_samples.assert_not_called()
+
+    def test_bumble_payload_pairs_samples_in_balance_mode(self):
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+        )
+        left, _right = client.dual.plates
+        left.decode = mock.Mock(return_value={"force_kg": 10.0, "t": 1})
+        client.dual.acquisition_mode = "balance"
+        client.dual.write_cmj_event = mock.Mock()
+        client.dual.pair_samples = mock.Mock()
+
+        client.handle_payload(left, b"\x01\x02")
+
+        client.dual.pair_samples.assert_called_once_with()
+        client.dual.write_cmj_event.assert_not_called()
+
     def test_bumble_wake_uses_official_plate_sequence(self):
         class FakeClient:
             def __init__(self):
@@ -2779,6 +2819,30 @@ class KPlateDualTest(unittest.TestCase):
         right.handle = 0x11
 
         with self.assertRaisesRegex(RuntimeError, "aucune paire synchronisée"):
+            asyncio.run(
+                client.acquire_once_managed(
+                    {left: object(), right: object()},
+                    1.0,
+                    stop_requested=lambda: False,
+                    stream_silence_timeout=0.0,
+                )
+            )
+
+    def test_bumble_managed_cmj_acquisition_fails_when_events_are_silent(self):
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+        )
+        left, right = client.dual.plates
+        left.handle = 0x10
+        right.handle = 0x11
+        client.dual.acquisition_mode = "cmj"
+
+        with self.assertRaisesRegex(RuntimeError, "aucun événement CMJ"):
             asyncio.run(
                 client.acquire_once_managed(
                     {left: object(), right: object()},
