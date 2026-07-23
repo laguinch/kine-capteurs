@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SERVICE_NAME="${KINE_SERVICE_NAME:-kine-capteurs}"
+SERVICE_NAME="kine-capteurs"
 BLUETOOTH_SERVICE_NAME="${KINE_BLUETOOTH_SERVICE_NAME:-kine-capteurs-bluetooth}"
 SERVICE_USER="${KINE_SERVICE_USER:-${SUDO_USER:-$USER}}"
 PYTHON_BIN="$PROJECT_DIR/.venv/bin/python"
@@ -23,6 +23,11 @@ trap cleanup EXIT
 cd "$PROJECT_DIR"
 mkdir -p storage/raw_data
 touch "$UPDATE_MARKER"
+
+if [[ "${KINE_SERVICE_NAME:-}" != "" && "${KINE_SERVICE_NAME:-}" != "$SERVICE_NAME" ]]; then
+  echo "Nom de service hérité ignoré: KINE_SERVICE_NAME=${KINE_SERVICE_NAME}."
+  echo "Le service principal reste: $SERVICE_NAME."
+fi
 
 echo "Mise à jour du code..."
 git pull --ff-only
