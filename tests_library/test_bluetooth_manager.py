@@ -49,7 +49,7 @@ class BluetoothManagerTest(unittest.TestCase):
         )
         self.assertEqual(
             bluetooth.state.call_args.kwargs["kplates_backend"],
-            KPLATES_BACKEND_HCI,
+            KPLATES_BACKEND_BUMBLE,
         )
         self.assertEqual(
             bluetooth.state.call_args.kwargs["hci_adapter"],
@@ -79,7 +79,7 @@ class BluetoothManagerTest(unittest.TestCase):
             bluetooth.state.call_args.kwargs["error"],
         )
 
-    def test_kplates_default_launch_uses_direct_hci_on_nrf(self):
+    def test_kplates_default_launch_uses_bumble_on_nrf(self):
         with tempfile.TemporaryDirectory() as directory:
             raw_dir = Path(directory) / "raw"
             base_dir = Path(directory) / "project"
@@ -101,16 +101,16 @@ class BluetoothManagerTest(unittest.TestCase):
                 bluetooth.launch("kplates")
 
         command = popen.call_args.args[0]
-        self.assertIn("kinvent_dual_hci.py", command[2])
-        self.assertIn("--adapter", command)
-        self.assertEqual(command[command.index("--adapter") + 1], "hci0")
-        self.assertNotIn("--transport", command)
+        self.assertIn("kinvent_kplates_bumble.py", command[2])
+        self.assertIn("--transport", command)
+        self.assertEqual(command[command.index("--transport") + 1], "usb:0")
+        self.assertNotIn("--adapter", command)
         bluetooth.state.assert_called_once_with("active")
 
-    def test_kplates_hci_adapter_can_be_selected_for_nrf_index_changes(self):
+    def test_kplates_hci_backend_can_still_be_selected_explicitly(self):
         with tempfile.TemporaryDirectory() as directory, mock.patch.dict(
             "os.environ",
-            {"KINE_HCI_ADAPTER": "hci1"},
+            {"KINE_KPLATES_BACKEND": KPLATES_BACKEND_HCI, "KINE_HCI_ADAPTER": "hci1"},
             clear=False,
         ):
             raw_dir = Path(directory) / "raw"
@@ -133,6 +133,7 @@ class BluetoothManagerTest(unittest.TestCase):
                 bluetooth.launch("kplates")
 
         command = popen.call_args.args[0]
+        self.assertIn("kinvent_dual_hci.py", command[2])
         self.assertEqual(command[command.index("--adapter") + 1], "hci1")
 
     def test_kplates_bumble_backend_remains_available_for_diagnostics(self):

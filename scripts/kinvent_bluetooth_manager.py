@@ -86,7 +86,7 @@ KPLATES_BACKEND_BUMBLE = "bumble"
 
 def kplates_backend_from_environment():
     return (
-        os.environ.get("KINE_KPLATES_BACKEND", KPLATES_BACKEND_HCI)
+        os.environ.get("KINE_KPLATES_BACKEND", KPLATES_BACKEND_BUMBLE)
         .strip()
         .lower()
         .replace("_", "-")

@@ -128,12 +128,11 @@ La configuration permanente est :
 
 - `KINE_BLUETOOTH_BACKEND=bumble`
 - `KINE_BUMBLE_TRANSPORT=usb:0`
-- `KINE_KPLATES_BACKEND=hci-direct`
+- `KINE_KPLATES_BACKEND=bumble`
 - `KINE_HCI_ADAPTER=hci0`
 
-Pour approfondir Bumble sur les plateformes sans modifier le serveur stable,
-utiliser le diagnostic dédié. Il teste la droite seule, la gauche seule, la
-double connexion seule, puis le double flux officiel, avec capture USB et log
+Pour vérifier Bumble sur les plateformes avec la séquence utile, utiliser le
+diagnostic dédié. Il lance le double flux officiel, avec capture USB et log
 centralisé :
 
 ```bash

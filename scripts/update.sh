@@ -52,9 +52,9 @@ if ! grep -q '^KINE_BUMBLE_TRANSPORT=' .env; then
 fi
 
 if grep -q '^KINE_KPLATES_BACKEND=' .env; then
-  sed -i 's/^KINE_KPLATES_BACKEND=.*/KINE_KPLATES_BACKEND=hci-direct/' .env
+  sed -i 's/^KINE_KPLATES_BACKEND=.*/KINE_KPLATES_BACKEND=bumble/' .env
 else
-  echo "KINE_KPLATES_BACKEND=hci-direct" >> .env
+  echo "KINE_KPLATES_BACKEND=bumble" >> .env
 fi
 
 if grep -q '^KINE_HCI_ADAPTER=' .env; then
@@ -63,7 +63,7 @@ else
   echo "KINE_HCI_ADAPTER=hci0" >> .env
 fi
 
-echo "Bluetooth permanent configuré: plateformes en HCI direct/nRF52840, autres capteurs en Bumble/nRF52840."
+echo "Bluetooth permanent configuré: tous les capteurs en Bumble/nRF52840."
 
 echo "Vérification du projet..."
 "$PYTHON_BIN" -m unittest discover -s tests_library -p 'test*.py'
