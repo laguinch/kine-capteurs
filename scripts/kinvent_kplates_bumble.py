@@ -46,7 +46,12 @@ OFFICIAL_CONNECT_INTERVAL_MAX_MS = 50
 OFFICIAL_CONNECT_SUPERVISION_TIMEOUT_MS = 5000
 OFFICIAL_CONNECT_SCAN_INTERVAL_MS = 10
 OFFICIAL_CONNECT_SCAN_WINDOW_MS = 10
-OFFICIAL_CONNECT_OWN_ADDRESS_TYPE = 0
+# L'application Android officielle utilise une adresse locale non nulle. Le
+# nRF52840 HCI USB Zephyr expose en revanche une adresse publique nulle
+# (00:00:00:00:00:00). Bumble initialise une adresse random statique
+# F0:F1:F2:F3:F4:F5; on l'utilise donc pour obtenir une identité centrale
+# stable et non nulle, au plus proche du comportement effectif d'Android.
+NRF52840_STABLE_RANDOM_OWN_ADDRESS_TYPE = 1
 OFFICIAL_INITIAL_DISCONNECT_REASON = 0x3E
 OFFICIAL_GATT_SETTLE_AFTER_CONNECT_S = 1.47
 HCI_REASON_LABELS = {
@@ -227,12 +232,14 @@ class KPlatesBumbleClient:
         try:
             # Paramètres initiaux observés dans la capture officielle Android:
             # HCI_LE_Create_Connection scan=0x0010/0x0010,
-            # own_address_type=public, min=0x0018, max=0x0028,
-            # supervision=0x01f4. Bumble exprime les durées en ms et les
-            # convertit ensuite en unités HCI. Son API expose l'adresse propre
-            # et les paramètres de connexion, mais pas le scan interval/window
-            # d'initiation; on aligne donc temporairement ses constantes sur
-            # les valeurs officielles, puis on les restaure aussitôt après.
+            # min=0x0018, max=0x0028, supervision=0x01f4. Bumble exprime les
+            # durées en ms et les convertit ensuite en unités HCI. Son API
+            # expose l'adresse propre et les paramètres de connexion, mais pas
+            # le scan interval/window d'initiation; on aligne donc
+            # temporairement ses constantes sur les valeurs officielles, puis
+            # on les restaure aussitôt après. Pour l'adresse locale, on utilise
+            # la random statique Bumble, car le contrôleur nRF52840 n'a pas
+            # d'adresse publique valide.
             connection_preferences = {
                 HCI_LE_1M_PHY: ConnectionParametersPreferences(
                     connection_interval_min=OFFICIAL_CONNECT_INTERVAL_MIN_MS,
@@ -259,7 +266,7 @@ class KPlatesBumbleClient:
                 connection = await device.connect(
                     remote_address,
                     connection_parameters_preferences=connection_preferences,
-                    own_address_type=OFFICIAL_CONNECT_OWN_ADDRESS_TYPE,
+                    own_address_type=NRF52840_STABLE_RANDOM_OWN_ADDRESS_TYPE,
                     timeout=connect_timeout,
                 )
             finally:
@@ -323,7 +330,7 @@ class KPlatesBumbleClient:
                 active=True,
                 scan_interval=OFFICIAL_CONNECT_SCAN_INTERVAL_MS,
                 scan_window=OFFICIAL_CONNECT_SCAN_WINDOW_MS,
-                own_address_type=OFFICIAL_CONNECT_OWN_ADDRESS_TYPE,
+                own_address_type=NRF52840_STABLE_RANDOM_OWN_ADDRESS_TYPE,
                 filter_duplicates=False,
                 scanning_phys=(HCI_LE_1M_PHY,),
             )

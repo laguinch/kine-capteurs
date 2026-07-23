@@ -1651,7 +1651,7 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(preferences.supervision_timeout, 5000)
         self.assertEqual(preferences.min_ce_length, 0)
         self.assertEqual(preferences.max_ce_length, 0)
-        self.assertEqual(device.kwargs["own_address_type"], 0)
+        self.assertEqual(device.kwargs["own_address_type"], 1)
         self.assertEqual(device.kwargs["timeout"], 15.0)
 
     def test_bumble_connect_lets_bumble_handle_timeout_and_cancel(self):
@@ -1751,7 +1751,7 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(device.scan_kwargs["active"], True)
         self.assertEqual(device.scan_kwargs["scan_interval"], 10)
         self.assertEqual(device.scan_kwargs["scan_window"], 10)
-        self.assertEqual(device.scan_kwargs["own_address_type"], 0)
+        self.assertEqual(device.scan_kwargs["own_address_type"], 1)
         self.assertEqual(device.scan_kwargs["filter_duplicates"], False)
         self.assertEqual(device.scan_kwargs["scanning_phys"], (1,))
         self.assertTrue(device.stopped)
