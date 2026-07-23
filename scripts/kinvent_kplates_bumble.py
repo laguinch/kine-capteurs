@@ -1180,6 +1180,9 @@ class KPlatesBumbleClient:
         clients = {}
         connected = False
         streams_active = False
+        degraded_error = None
+        degraded_mode = "balance"
+        degraded_csv_path = None
         next_idle_keepalive = time.monotonic() + self.dual.keepalive_interval
         next_idle_state_refresh = time.monotonic()
 
@@ -1230,12 +1233,18 @@ class KPlatesBumbleClient:
                     self.disconnected.clear()
                     connected = False
                     streams_active = False
+                    degraded_error = None
+                    degraded_csv_path = None
+                    degraded_mode = "balance"
                     generation = requested or generation
                     write_state("disconnected", generation=generation)
                     return
 
                 if action == "connect" and requested and requested != generation:
                     generation = requested
+                    degraded_error = None
+                    degraded_csv_path = None
+                    degraded_mode = "balance"
                     write_state("connecting", generation=generation)
                     try:
                         selected = self.selected_plates("both", "right-first")
@@ -1274,6 +1283,12 @@ class KPlatesBumbleClient:
                         if missing_streams:
                             connected = bool(sides)
                             streams_active = False
+                            degraded_error = (
+                                "Connexion Bluetooth établie, mais "
+                                "aucune mesure initiale reçue pour : "
+                                + ", ".join(missing_streams)
+                                + "."
+                            )
                             write_state(
                                 "degraded" if sides else "disconnected",
                                 generation=generation,
@@ -1283,27 +1298,22 @@ class KPlatesBumbleClient:
                                     )
                                 ),
                                 mode="balance",
-                                error=(
-                                    "Connexion Bluetooth établie, mais "
-                                    "aucune mesure initiale reçue pour : "
-                                    + ", ".join(missing_streams)
-                                    + "."
-                                ),
+                                error=degraded_error,
                             )
                             continue
                         if len(sides) != 2:
                             connected = bool(sides)
                             streams_active = False
+                            degraded_error = (
+                                "Une plateforme s'est déconnectée pendant "
+                                "l'initialisation. Reconnectez les capteurs."
+                            )
                             write_state(
                                 "degraded" if sides else "disconnected",
                                 generation=generation,
                                 connected_sides=sides,
                                 mode="balance",
-                                error=(
-                                    "Une plateforme s'est déconnectée pendant "
-                                    "l'initialisation. Reconnectez les "
-                                    "capteurs."
-                                ),
+                                error=degraded_error,
                             )
                             continue
                     except BaseException as exc:
@@ -1319,6 +1329,9 @@ class KPlatesBumbleClient:
                         raise
                     connected = True
                     streams_active = True
+                    degraded_error = None
+                    degraded_csv_path = None
+                    degraded_mode = "balance"
                     next_idle_keepalive = time.monotonic() + self.dual.keepalive_interval
                     next_idle_state_refresh = time.monotonic()
                     write_state(
@@ -1333,15 +1346,16 @@ class KPlatesBumbleClient:
                     sides = self.connected_side_names()
                     if not connected or len(sides) != 2:
                         generation = requested
+                        degraded_error = (
+                            "Les deux plateformes doivent être connectées "
+                            "avant de démarrer le jeu."
+                        )
                         write_state(
                             "degraded" if sides else "disconnected",
                             generation=requested,
                             connected_sides=sides,
                             mode="balance",
-                            error=(
-                                "Les deux plateformes doivent être "
-                                "connectées avant de démarrer le jeu."
-                            ),
+                            error=degraded_error,
                         )
                         self.dual.consume_control_command(control_path, generation)
                         continue
@@ -1393,17 +1407,19 @@ class KPlatesBumbleClient:
                     except RuntimeError as exc:
                         self.dual.close_csv()
                         streams_active = False
+                        degraded_error = (
+                            str(exc) + " Reconnectez les plateformes."
+                        )
+                        degraded_csv_path = command["csv_path"]
+                        degraded_mode = mode
                         write_state(
                             "degraded",
                             generation=generation,
-                            csv_path=command["csv_path"],
+                            csv_path=degraded_csv_path,
                             mode=mode,
                             connected_sides=self.connected_side_names(),
                             interrupted=True,
-                            error=(
-                                str(exc)
-                                + " Reconnectez les plateformes."
-                            ),
+                            error=degraded_error,
                         )
                         self.dual.consume_control_command(control_path, generation)
                         continue
@@ -1412,6 +1428,9 @@ class KPlatesBumbleClient:
                     streams_active = False
                     sides = self.connected_side_names()
                     if len(sides) == 2:
+                        degraded_error = None
+                        degraded_csv_path = None
+                        degraded_mode = "balance"
                         write_state(
                             "idle",
                             generation=generation,
@@ -1424,6 +1443,12 @@ class KPlatesBumbleClient:
                             result_available=(mode == "cmj"),
                         )
                     else:
+                        degraded_error = (
+                            "Un flux de plateforme ne répond plus. "
+                            "Reconnectez les capteurs."
+                        )
+                        degraded_csv_path = command["csv_path"]
+                        degraded_mode = mode
                         write_state(
                             "degraded" if sides else "disconnected",
                             generation=generation,
@@ -1435,10 +1460,7 @@ class KPlatesBumbleClient:
                             stopped=True,
                             interrupted=True,
                             result_available=False,
-                            error=(
-                                "Un flux de plateforme ne répond plus. "
-                                "Reconnectez les capteurs."
-                            ),
+                            error=degraded_error,
                         )
                     self.dual.consume_control_command(control_path, generation)
                     next_idle_keepalive = time.monotonic() + self.dual.keepalive_interval
@@ -1453,7 +1475,17 @@ class KPlatesBumbleClient:
 
                 if connected and time.monotonic() >= next_idle_state_refresh:
                     sides = self.connected_side_names()
-                    if len(sides) == 2:
+                    if degraded_error:
+                        write_state(
+                            "degraded",
+                            generation=generation,
+                            csv_path=degraded_csv_path,
+                            connected_sides=sides,
+                            mode=degraded_mode,
+                            interrupted=True,
+                            error=degraded_error,
+                        )
+                    elif len(sides) == 2:
                         write_state(
                             "idle",
                             generation=generation,

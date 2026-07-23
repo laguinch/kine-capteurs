@@ -2320,6 +2320,145 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(command["action"], "idle")
         self.assertEqual(command["generation"], "test-generation")
 
+    def test_bumble_persistent_start_error_is_not_overwritten_by_idle_refresh(self):
+        class StopLoop(Exception):
+            pass
+
+        class FakeTransport:
+            source = object()
+            sink = object()
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                return None
+
+        class FakeConnection:
+            handle = 0x10
+
+            def __init__(self):
+                self.gatt_client = types.SimpleNamespace(
+                    notification_subscribers={}
+                )
+
+            def on(self, event, handler):
+                return handler
+
+            async def disconnect(self):
+                return None
+
+        class FakeDevice:
+            @classmethod
+            def with_hci(cls, *args, **kwargs):
+                return cls()
+
+            async def power_on(self):
+                return None
+
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+            write_delay=0,
+        )
+
+        async def fake_connect(device, plate, Address, connect_timeout):
+            plate.handle = 0x10
+            return FakeConnection()
+
+        async def fake_settle(clients):
+            control_path.write_text(
+                json.dumps(
+                    {
+                        "action": "start",
+                        "generation": "start-generation",
+                        "duration": 10,
+                        "csv_path": str(csv_path),
+                        "mode": "cmj",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            return []
+
+        async def fake_validate(clients):
+            raise RuntimeError("Flux de mesure absent: droite.")
+
+        degraded_writes = 0
+        original_write_state = client.dual.write_worker_state
+
+        def write_state_then_stop(path, phase, **state):
+            nonlocal degraded_writes
+            original_write_state(path, phase=phase, **state)
+            if (
+                phase == "degraded"
+                and "Flux de mesure absent" in state.get("error", "")
+            ):
+                degraded_writes += 1
+                if degraded_writes == 2:
+                    raise StopLoop()
+
+        with tempfile.TemporaryDirectory() as directory:
+            control_path = Path(directory) / "control.json"
+            state_path = Path(directory) / "state.json"
+            csv_path = Path(directory) / "cmj.csv"
+            control_path.write_text(
+                '{"action":"connect","generation":"connect-generation"}',
+                encoding="utf-8",
+            )
+
+            with mock.patch("scripts.kinvent_kplates_bumble.require_bumble"):
+                with mock.patch.dict(
+                    sys.modules,
+                    {
+                        "bumble": types.SimpleNamespace(),
+                        "bumble.device": types.SimpleNamespace(Device=FakeDevice),
+                        "bumble.hci": types.SimpleNamespace(Address=lambda value: value),
+                        "bumble.transport": types.SimpleNamespace(
+                            open_transport=mock.AsyncMock(
+                                return_value=FakeTransport()
+                            )
+                        ),
+                    },
+                ):
+                    with mock.patch.object(
+                        client, "connect_plate", side_effect=fake_connect
+                    ), mock.patch.object(
+                        client, "run_official_gatt_preflight", mock.AsyncMock()
+                    ), mock.patch.object(
+                        client, "configure_streams", mock.AsyncMock()
+                    ), mock.patch.object(
+                        client,
+                        "settle_initial_streams",
+                        side_effect=fake_settle,
+                    ), mock.patch.object(
+                        client,
+                        "validate_live_streams",
+                        side_effect=fake_validate,
+                    ), mock.patch.object(
+                        client.dual,
+                        "write_worker_state",
+                        side_effect=write_state_then_stop,
+                    ):
+                        with self.assertRaises(StopLoop):
+                            asyncio.run(
+                                client.run_persistent(
+                                    control_path,
+                                    state_path,
+                                )
+                            )
+
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(state["phase"], "degraded")
+        self.assertEqual(state["mode"], "cmj")
+        self.assertIn("Flux de mesure absent: droite.", state["error"])
+        self.assertEqual(degraded_writes, 2)
+
     def test_bumble_notification_feeds_plate_decoder(self):
         client = KPlatesBumbleClient(
             transport="usb:0",
