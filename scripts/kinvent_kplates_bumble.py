@@ -295,7 +295,13 @@ class KPlatesBumbleClient:
         )
         return connection
 
-    async def wait_for_official_advertisement(self, device, plate, timeout=8.0):
+    async def wait_for_official_advertisement(
+        self,
+        device,
+        plate,
+        timeout=8.0,
+        forbid_other_plates=False,
+    ):
         from bumble.hci import HCI_LE_1M_PHY
 
         loop = asyncio.get_running_loop()
@@ -350,6 +356,20 @@ class KPlatesBumbleClient:
                     "Publicité vue pendant recherche "
                     f"{plate.side}: {normalized} {text}".strip(),
                     flush=True,
+                )
+            if (
+                forbid_other_plates
+                and normalized in known_addresses
+                and normalized != plate.address.upper()
+                and not found.done()
+            ):
+                found.set_exception(
+                    RuntimeError(
+                        "Mauvaise plateforme visible pendant la phase "
+                        f"{plate.side} seule: {normalized}. "
+                        "Éteins complètement l'autre plateforme avant de "
+                        "relancer cette phase."
+                    )
                 )
             if normalized == plate.address.upper() and not found.done():
                 found.set_result(address)
@@ -805,6 +825,7 @@ class KPlatesBumbleClient:
                     device,
                     plate,
                     min(8.0, connect_timeout),
+                    forbid_other_plates=len(selected) == 1,
                 )
                 connection = await self.connect_plate(
                     device,
@@ -978,6 +999,7 @@ class KPlatesBumbleClient:
                                 device,
                                 plate,
                                 min(8.0, connect_timeout),
+                                forbid_other_plates=len(selected) == 1,
                             )
                             connection = await self.connect_plate(
                                 device,

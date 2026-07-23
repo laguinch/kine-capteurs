@@ -1756,6 +1756,58 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(device.scan_kwargs["scanning_phys"], (1,))
         self.assertTrue(device.stopped)
 
+    def test_bumble_single_plate_diagnostic_rejects_other_plate_advertisement(self):
+        class FakeDevice:
+            def __init__(self):
+                self.handler = None
+                self.stopped = False
+
+            def on(self, event, handler):
+                self.handler = handler
+                return handler
+
+            def remove_listener(self, event, handler):
+                self.handler = None
+
+            async def start_scanning(self, **kwargs):
+                self.handler(types.SimpleNamespace(address="E8:EB:1B:79:B1:AB/P"))
+
+            async def stop_scanning(self):
+                self.stopped = True
+
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            write_delay=0,
+        )
+        left_plate = client.dual.plates[0]
+        device = FakeDevice()
+
+        with mock.patch.dict(
+            sys.modules,
+            {
+                "bumble": types.SimpleNamespace(),
+                "bumble.hci": types.SimpleNamespace(HCI_LE_1M_PHY=1),
+            },
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "Mauvaise plateforme visible.*E8:EB:1B:79:B1:AB",
+            ):
+                asyncio.run(
+                    client.wait_for_official_advertisement(
+                        device,
+                        left_plate,
+                        1.0,
+                        forbid_other_plates=True,
+                    )
+                )
+
+        self.assertTrue(device.stopped)
+
     def test_bumble_run_scans_before_connecting_plate(self):
         class FakeTransport:
             source = object()
@@ -1800,7 +1852,7 @@ class KPlateDualTest(unittest.TestCase):
             csv_path=None,
             write_delay=0,
         )
-        async def fake_scan(device, plate, timeout):
+        async def fake_scan(device, plate, timeout, **kwargs):
             calls.append(("scan", plate.side))
 
         async def fake_connect(device, plate, Address, connect_timeout):
