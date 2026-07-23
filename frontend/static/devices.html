@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Appareils — Kine Capteurs</title>
+    <link rel="stylesheet" href="/static/styles.css?v=10">
+  </head>
+  <body>
+    <main class="shell">
+      <nav class="sensor-nav">
+        <a href="/">Accueil</a>
+        <a href="/capteurs">Tests</a>
+        <a class="active" href="/appareils">Appareils</a>
+        <a href="/kforceplates">K‑Force Plates</a>
+        <a href="/kpush">K‑Push</a>
+        <a href="/kpull">K‑Pull</a>
+        <a href="/kmove">K‑Move</a>
+      </nav>
+
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Appareils</p>
+          <h1>Connexions Kinvent</h1>
+          <p class="subtitle">
+            Gardez un œil sur le capteur actuellement connecté au dongle nRF52840.
+          </p>
+        </div>
+        <div class="connection">
+          <span id="managerDot" class="status-dot"></span>
+          <span id="managerText">Lecture…</span>
+        </div>
+      </header>
+
+      <section class="panel devices-manager">
+        <div>
+          <p class="eyebrow">Gestionnaire Bluetooth</p>
+          <h2 id="managerTitle">—</h2>
+          <p id="managerDetails" class="subtitle">—</p>
+        </div>
+        <button id="disconnectCurrentButton" class="secondary" type="button">
+          Déconnecter l’appareil actif
+        </button>
+      </section>
+
+      <section id="devicesGrid" class="choice-grid sensor-choice-grid devices-grid">
+      </section>
+    </main>
+    <script src="/static/devices.js?v=1"></script>
+  </body>
+</html>

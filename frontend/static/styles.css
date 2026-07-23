@@ -635,6 +635,34 @@ button:disabled { opacity: .45; cursor: default; }
 .message.error { background: #fde7e5; color: #8d2c28; }
 .hidden { display: none !important; }
 
+.devices-manager {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.devices-grid .choice-card {
+  min-height: 260px;
+}
+.device-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.device-addresses {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+.device-error {
+  color: #8d2c28 !important;
+}
+.device-open {
+  align-self: flex-start;
+  text-decoration: none;
+}
+
 .global-protocol-setup {
   display: grid;
   gap: 16px;

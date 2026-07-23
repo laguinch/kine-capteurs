@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from api.routes.devices import router as devices_router
 from api.routes.evaluations import router as evaluations_router
 from api.routes.kplates import router as kplates_router
 from api.routes.kmove import router as kmove_router
@@ -15,6 +16,7 @@ from database.database import init_db
 
 app = FastAPI(title="Kine Capteurs")
 init_db()
+app.include_router(devices_router)
 app.include_router(kplates_router)
 app.include_router(kpush_router)
 app.include_router(kpull_router)
@@ -72,6 +74,11 @@ def patient_session(patient_id: str):
 @app.get("/capteurs")
 def sensors():
     return frontend_page("sensors.html")
+
+
+@app.get("/appareils")
+def devices():
+    return frontend_page("devices.html")
 
 
 @app.get("/kforceplates")
