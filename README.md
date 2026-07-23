@@ -103,11 +103,16 @@ Le serveur installe deux services distincts :
 - `kine-capteurs-bluetooth.service` pour le gestionnaire Bluetooth Kinvent
   unique.
 
-Ce gestionnaire utilise exclusivement le dongle nRF52840 flashé avec le
-firmware Zephyr HCI USB, via Bumble (`usb:0`). Il reste le point d'entrée unique
-pour les K-Force Plates, K-Push, K-Pull et K-Move. Changer de capteur
-déconnecte proprement le capteur actuel, puis connecte le suivant sans revenir
-à l'ancien chemin HCI direct.
+Ce gestionnaire reste le point d'entrée unique pour les K-Force Plates, K-Push,
+K-Pull et K-Move. Changer de capteur déconnecte proprement le capteur actuel,
+puis connecte le suivant sans réinitialisation intermédiaire.
+
+La configuration stable actuelle conserve les K-Force Plates en HCI direct sur
+le dongle nRF52840 Zephyr, car c'est le dernier chemin validé par plusieurs
+tests terrain. Bumble reste disponible pour les autres capteurs et pour le
+diagnostic approfondi des plateformes, mais il ne doit pas remplacer le HCI
+direct en production tant que la double connexion plateformes n'est pas
+validée.
 
 Le bouton « Déconnecter » ferme uniquement la liaison avec le capteur actif
 afin de préserver sa batterie. Le gestionnaire système reste disponible pour
@@ -123,6 +128,23 @@ La configuration permanente est :
 
 - `KINE_BLUETOOTH_BACKEND=bumble`
 - `KINE_BUMBLE_TRANSPORT=usb:0`
+- `KINE_KPLATES_BACKEND=hci-direct`
+- `KINE_HCI_ADAPTER=hci0`
+
+Pour approfondir Bumble sur les plateformes sans modifier le serveur stable,
+utiliser le diagnostic dédié. Il teste la droite seule, la gauche seule, la
+double connexion seule, puis le double flux officiel, avec capture USB et log
+centralisé :
+
+```bash
+cd /opt/kine-capteurs-staging
+bash scripts/run_kplates_bumble_diagnostic.sh
+```
+
+Les fichiers générés sont dans `/tmp/` :
+
+- `/tmp/kplates-bumble-diagnostic-*.log`
+- `/tmp/kplates-bumble-diagnostic-*.pcap`
 
 Un diagnostic Bumble ponctuel peut valider un capteur :
 
