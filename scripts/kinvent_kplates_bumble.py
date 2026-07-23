@@ -256,13 +256,10 @@ class KPlatesBumbleClient:
                 bumble_device.DEVICE_DEFAULT_CONNECT_SCAN_WINDOW = (
                     OFFICIAL_CONNECT_SCAN_WINDOW_MS
                 )
-                connection = await asyncio.wait_for(
-                    device.connect(
-                        remote_address,
-                        connection_parameters_preferences=connection_preferences,
-                        own_address_type=OFFICIAL_CONNECT_OWN_ADDRESS_TYPE,
-                        timeout=connect_timeout,
-                    ),
+                connection = await device.connect(
+                    remote_address,
+                    connection_parameters_preferences=connection_preferences,
+                    own_address_type=OFFICIAL_CONNECT_OWN_ADDRESS_TYPE,
                     timeout=connect_timeout,
                 )
             finally:

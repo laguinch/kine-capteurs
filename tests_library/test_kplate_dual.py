@@ -1650,6 +1650,58 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(device.kwargs["own_address_type"], 0)
         self.assertEqual(device.kwargs["timeout"], 15.0)
 
+    def test_bumble_connect_lets_bumble_handle_timeout_and_cancel(self):
+        class FakeConnectionParametersPreferences:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+
+        class FakeDevice:
+            async def connect(self, remote_address, **kwargs):
+                raise TimeoutError("internal bumble timeout")
+
+        class FakeAddress:
+            PUBLIC_DEVICE_ADDRESS = 0
+            RANDOM_DEVICE_ADDRESS = 1
+
+            def __init__(self, value, address_type):
+                self.value = value
+                self.address_type = address_type
+
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            write_delay=0,
+        )
+        plate = client.dual.plates[1]
+
+        with mock.patch("scripts.kinvent_kplates_bumble.asyncio.wait_for") as wait_for:
+            with mock.patch.dict(
+                sys.modules,
+                {
+                    "bumble": types.SimpleNamespace(),
+                    "bumble.device": types.SimpleNamespace(
+                        ConnectionParametersPreferences=FakeConnectionParametersPreferences,
+                        DEVICE_DEFAULT_CONNECT_SCAN_INTERVAL=60,
+                        DEVICE_DEFAULT_CONNECT_SCAN_WINDOW=60,
+                    ),
+                    "bumble.hci": types.SimpleNamespace(HCI_LE_1M_PHY=1),
+                },
+            ):
+                with self.assertRaises(TimeoutError):
+                    asyncio.run(
+                        client.connect_plate(
+                            FakeDevice(),
+                            plate,
+                            FakeAddress,
+                            15.0,
+                        )
+                    )
+
+        wait_for.assert_not_called()
+
     def test_bumble_notification_feeds_plate_decoder(self):
         client = KPlatesBumbleClient(
             transport="usb:0",
