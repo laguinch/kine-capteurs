@@ -1920,8 +1920,9 @@ class KPlateDualTest(unittest.TestCase):
                 self.label = label
                 self.events = events
 
-            async def discover_services(self):
-                self.events.append(f"discover:{self.label}")
+            async def discover_services(self, uuids=()):
+                if not uuids:
+                    self.events.append(f"discover:{self.label}")
 
             async def read_value(self, handle):
                 self.events.append((f"read:{self.label}", handle))
@@ -1959,14 +1960,59 @@ class KPlateDualTest(unittest.TestCase):
             ],
         )
 
+    def test_bumble_gatt_discovery_starts_with_official_att_prime(self):
+        class FakeConnection:
+            async def update_parameters(self, interval_min, interval_max, latency, timeout):
+                events.append(
+                    (
+                        "radio",
+                        interval_min,
+                        interval_max,
+                        latency,
+                        timeout,
+                    )
+                )
+
+        class FakeClient:
+            async def request_mtu(self, mtu):
+                events.append(("mtu", mtu))
+
+            async def discover_services(self, uuids=()):
+                events.append(("discover", tuple(uuids)))
+
+        events = []
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+        )
+        right = client.dual.plates[1]
+        client.connections[right] = FakeConnection()
+
+        asyncio.run(client.discover_official_services(right, FakeClient()))
+
+        self.assertEqual(
+            events,
+            [
+                ("mtu", 158),
+                ("discover", ("49535343-fe7d-4ae5-8fa9-9fafd205e455",)),
+                ("radio", 0x0006, 0x0006, 0, 0x01F4),
+                ("discover", ()),
+            ],
+        )
+
     def test_bumble_gatt_preflight_keeps_started_official_discovery(self):
         class FakeClient:
             def __init__(self, label, events):
                 self.label = label
                 self.events = events
 
-            async def discover_services(self):
-                self.events.append(f"discover:{self.label}")
+            async def discover_services(self, uuids=()):
+                if not uuids:
+                    self.events.append(f"discover:{self.label}")
 
             async def read_value(self, handle):
                 self.events.append((f"read:{self.label}", handle))

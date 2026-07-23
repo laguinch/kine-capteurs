@@ -41,6 +41,8 @@ from scripts.kinvent_raw_hci import (  # noqa: E402
 
 
 KPLATE_MODEL_NUMBER_HANDLE = 0x0016
+KPLATE_UART_SERVICE_UUID = "49535343-fe7d-4ae5-8fa9-9fafd205e455"
+OFFICIAL_GATT_MTU = 158
 OFFICIAL_CONNECT_INTERVAL_MIN_MS = 30
 OFFICIAL_CONNECT_INTERVAL_MAX_MS = 50
 OFFICIAL_CONNECT_SUPERVISION_TIMEOUT_MS = 5000
@@ -49,6 +51,9 @@ OFFICIAL_CONNECT_SCAN_WINDOW_MS = 10
 OFFICIAL_CONNECT_OWN_ADDRESS_TYPE = 0
 OFFICIAL_INITIAL_DISCONNECT_REASON = 0x3E
 OFFICIAL_GATT_SETTLE_AFTER_CONNECT_S = 0.15
+OFFICIAL_GATT_PRIME_INTERVAL_MIN = 0x0006
+OFFICIAL_GATT_PRIME_INTERVAL_MAX = 0x0006
+OFFICIAL_GATT_PRIME_SUPERVISION_TIMEOUT = 0x01F4
 HCI_REASON_LABELS = {
     0x08: "supervision timeout",
     0x13: "remote user terminated",
@@ -418,6 +423,46 @@ class KPlatesBumbleClient:
     async def wait_official_gatt_settle(self, plate):
         await asyncio.sleep(OFFICIAL_GATT_SETTLE_AFTER_CONNECT_S)
 
+    async def prime_official_gatt(self, plate, client):
+        # Juste après la reconnexion droite initiale, la capture Android ne
+        # démarre pas directement par la découverte complète des services.
+        # Elle échange d'abord le MTU ATT, recherche le service propriétaire
+        # Kinvent, puis applique une première fenêtre radio 7,5 ms avant de
+        # poursuivre le pré-vol GATT. Ces opérations sont du GATT/HCI standard
+        # observé dans la capture, pas des commandes capteur inventées.
+        if hasattr(client, "request_mtu"):
+            print(f"MTU GATT officiel {plate.side}: {OFFICIAL_GATT_MTU}.", flush=True)
+            await client.request_mtu(OFFICIAL_GATT_MTU)
+
+        print(
+            f"Recherche service Kinvent officiel {plate.side}: "
+            f"{KPLATE_UART_SERVICE_UUID}.",
+            flush=True,
+        )
+        try:
+            await client.discover_services([KPLATE_UART_SERVICE_UUID])
+        except Exception as exc:
+            # La capture officielle montre que cette recherche peut ne pas
+            # retourner le service attendu, puis Android poursuit la découverte
+            # complète. On ne masque pas les déconnexions: CancelledError reste
+            # une BaseException et remonte au gestionnaire de 0x3e.
+            print(
+                "Recherche service Kinvent "
+                f"{plate.side}: {type(exc).__name__}: {exc}",
+                flush=True,
+            )
+
+        connection = self.connections.get(plate)
+        if connection is None or plate in self.disconnected:
+            return
+        print(f"Réglage radio GATT officiel {plate.side}...", flush=True)
+        await connection.update_parameters(
+            OFFICIAL_GATT_PRIME_INTERVAL_MIN,
+            OFFICIAL_GATT_PRIME_INTERVAL_MAX,
+            0,
+            OFFICIAL_GATT_PRIME_SUPERVISION_TIMEOUT,
+        )
+
     async def configure_streams(self, clients):
         connected = list(clients.keys())
         if not connected:
@@ -617,6 +662,7 @@ class KPlatesBumbleClient:
 
     async def discover_official_services(self, plate, client):
         print(f"Découverte GATT {plate.side}...", flush=True)
+        await self.prime_official_gatt(plate, client)
         await client.discover_services()
 
     async def read_official_model(self, plate, client):
