@@ -11,6 +11,7 @@ const state = {
   cmjReady: false,
   savedEvaluations: new Set(),
   bluetoothChanging: false,
+  starting: false,
 };
 
 const flowParams = new URLSearchParams(window.location.search);
@@ -58,6 +59,7 @@ function missingMeasurementText(data) {
 function updateStatus(data) {
   const running = Boolean(data.running);
   const validating = Boolean(data.validating_streams);
+  const starting = state.starting;
   const connecting = state.bluetoothChanging || ["connecting", "recovering"].includes(data.worker_phase);
   const degraded = data.worker_phase === "degraded";
   const ready = platformsReady(data);
@@ -89,7 +91,7 @@ function updateStatus(data) {
         : ready
           ? "Plateformes connectées"
           : "Service Bluetooth arrêté";
-  $("startButton").disabled = running || !ready;
+  $("startButton").disabled = starting || running || !ready;
   $("stopButton").disabled = !running;
   $("connectButton").disabled = running || connecting || ready;
   $("disconnectButton").disabled = running || connecting || (!data.bluetooth_connected && !degraded);
@@ -379,6 +381,9 @@ async function poll() {
 }
 
 async function start() {
+  if (state.starting) return;
+  state.starting = true;
+  $("startButton").disabled = true;
   setMessage("");
   resetMeasurement();
   state.awaitingTare = true;
@@ -408,6 +413,7 @@ async function start() {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || "Démarrage impossible");
+    state.starting = false;
     state.awaitingTare = Boolean(data.tare_required);
     updateStatus(data);
     setMessage(
@@ -418,6 +424,7 @@ async function start() {
         : "Plateformes connectées. Démarrage de l’enregistrement…"
     );
   } catch (error) {
+    state.starting = false;
     state.awaitingTare = false;
     state.awaitingReady = false;
     setMessage(error.message, true);

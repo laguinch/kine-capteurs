@@ -25,6 +25,7 @@ const game = {
   saved: false,
   csvPath: null,
   connecting: false,
+  starting: false,
   interrupted: false,
 };
 
@@ -127,6 +128,7 @@ function updateStatus(data) {
   const running = Boolean(data.running);
   const serverConnecting = data.worker_phase === "connecting";
   const connecting = game.connecting;
+  const starting = game.starting;
   const waitingForMeasures = waitingForInitialMeasurements(data);
   const interrupted = serverStoppedAbnormally(data) && !waitingForMeasures;
   $("gameStatusDot").className = `status-dot ${running || ready || connecting || serverConnecting || waitingForMeasures ? "running" : interrupted ? "error" : ""}`;
@@ -146,13 +148,13 @@ function updateStatus(data) {
         ? "Connexion partielle"
         : "Déconnecté";
   $("connectButton").disabled = connecting || running;
-  $("startGameButton").disabled = connecting || running || !ready;
+  $("startGameButton").disabled = starting || connecting || running || !ready;
   $("stopGameButton").disabled = !running;
   document.querySelectorAll(".connect-action").forEach((button) => {
     button.disabled = connecting || running;
   });
   document.querySelectorAll(".start-action").forEach((button) => {
-    button.disabled = connecting || running || !ready;
+    button.disabled = starting || connecting || running || !ready;
   });
   document.querySelectorAll(".stop-action").forEach((button) => {
     button.disabled = !running;
@@ -255,6 +257,12 @@ async function connect() {
 }
 
 async function startGame() {
+  if (game.starting || game.running) return;
+  game.starting = true;
+  $("startGameButton").disabled = true;
+  document.querySelectorAll(".start-action").forEach((button) => {
+    button.disabled = true;
+  });
   game.score = 0;
   game.startedAt = null;
   game.lastGateAt = 0;
@@ -282,9 +290,11 @@ async function startGame() {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || "Démarrage impossible");
+    game.starting = false;
     game.running = true;
     updateStatus(data);
   } catch (error) {
+    game.starting = false;
     game.running = false;
     game.playing = false;
     message(error.message, true);
@@ -300,6 +310,7 @@ async function stopGame() {
 }
 
 function finishGame() {
+  game.starting = false;
   if (!game.running) return;
   game.running = false;
   game.playing = false;
@@ -309,6 +320,7 @@ function finishGame() {
 }
 
 function interruptGame(data) {
+  game.starting = false;
   game.running = false;
   game.playing = false;
   game.interrupted = true;

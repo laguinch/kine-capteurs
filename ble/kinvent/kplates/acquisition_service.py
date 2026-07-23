@@ -53,6 +53,9 @@ class DualPlateAcquisitionService:
                 raise RuntimeError(
                     "Le service Bluetooth permanent n'est pas démarré."
                 )
+            control = self._read_control()
+            if control.get("action") == "start":
+                raise RuntimeError("Une acquisition est déjà en cours.")
             if worker.get("phase") not in {"idle", "degraded"}:
                 if worker.get("phase") == "active":
                     raise RuntimeError("Une acquisition est déjà en cours.")

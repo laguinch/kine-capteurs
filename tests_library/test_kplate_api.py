@@ -456,6 +456,30 @@ class KPlateApiTest(unittest.TestCase):
             ):
                 service.start(filename="partial.csv")
 
+    def test_start_rejects_pending_start_command(self):
+        service = DualPlateAcquisitionService()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            service._control_path = root / "control.json"
+            service._worker_state_path = root / "state.json"
+            service._worker_state_path.write_text(
+                (
+                    f'{{"phase":"idle","pid":{os.getpid()},'
+                    '"connected_sides":["gauche","droite"]}'
+                ),
+                encoding="utf-8",
+            )
+            service._control_path.write_text(
+                '{"action":"start","generation":"pending-start"}',
+                encoding="utf-8",
+            )
+
+            with self.no_manager_state(), self.assertRaisesRegex(
+                RuntimeError,
+                "déjà en cours",
+            ):
+                service.start(filename="second.csv")
+
     def test_detects_external_persistent_worker(self):
         service = DualPlateAcquisitionService()
 
