@@ -300,6 +300,7 @@ class KPlatesBumbleClient:
 
         loop = asyncio.get_running_loop()
         found = loop.create_future()
+        seen = {}
 
         def advertisement_address(args):
             if not args:
@@ -309,6 +310,19 @@ class KPlatesBumbleClient:
                 return first.address
             return first
 
+        def advertisement_text(args):
+            parts = []
+            for item in args:
+                for attr in ("name", "local_name", "complete_name"):
+                    value = getattr(item, attr, None)
+                    if value:
+                        parts.append(str(value))
+                for attr in ("data", "advertising_data"):
+                    value = getattr(item, attr, None)
+                    if value:
+                        parts.append(str(value))
+            return " ".join(parts)
+
         def normalize_address(value):
             if value is None:
                 return ""
@@ -316,7 +330,28 @@ class KPlatesBumbleClient:
 
         def on_advertisement(*args):
             address = advertisement_address(args)
-            if normalize_address(address) == plate.address.upper() and not found.done():
+            normalized = normalize_address(address)
+            text = advertisement_text(args)
+            marker = f"{normalized} {text}".upper()
+            known_addresses = {
+                known_plate.address.upper() for known_plate in self.dual.plates
+            }
+            if (
+                normalized not in seen
+                and (
+                    normalized in known_addresses
+                    or "KFORCE" in marker
+                    or "K-FORCE" in marker
+                    or "KINV" in marker
+                )
+            ):
+                seen[normalized] = text
+                print(
+                    "Publicité vue pendant recherche "
+                    f"{plate.side}: {normalized} {text}".strip(),
+                    flush=True,
+                )
+            if normalized == plate.address.upper() and not found.done():
                 found.set_result(address)
 
         print(
@@ -338,6 +373,15 @@ class KPlatesBumbleClient:
             print(
                 f"Publicité {plate.side} trouvée avant connexion.",
                 flush=True,
+            )
+        except TimeoutError:
+            seen_list = (
+                ", ".join(sorted(address for address in seen if address))
+                or "aucune publicité Kinvent vue"
+            )
+            raise TimeoutError(
+                f"Publicité {plate.side} introuvable après {timeout:.1f} s "
+                f"(attendue {plate.address}). Publicités utiles vues: {seen_list}."
             )
         finally:
             if handler is not None:
