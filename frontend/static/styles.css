@@ -682,20 +682,20 @@ button:disabled { opacity: .45; cursor: default; }
   color: #8d2c28 !important;
 }
 .device-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: nowrap;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: stretch;
   width: 100%;
 }
 .device-actions button {
   box-sizing: border-box;
-  flex: 1 1 0;
   min-width: 0;
-  padding-left: 10px;
-  padding-right: 10px;
-  align-self: stretch;
+  width: 100%;
+  padding-left: 6px;
+  padding-right: 6px;
   white-space: nowrap;
+  font-size: .9rem;
 }
 
 .global-protocol-setup {
@@ -914,5 +914,14 @@ button:disabled { opacity: .45; cursor: default; }
   .global-recap-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .global-recap-row { min-height: 116px; }
   input, select, button, .download { width: 100%; text-align: center; }
+  .device-actions {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .device-actions button {
+    width: 100%;
+    padding-left: 4px;
+    padding-right: 4px;
+    font-size: .82rem;
+  }
   .metric-card b { font-size: 2rem; }
 }
