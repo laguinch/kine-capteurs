@@ -330,6 +330,33 @@ class KPlateApiTest(unittest.TestCase):
         self.assertEqual(status["csv_path"], str(csv_path))
         self.assertEqual(service._generation, "worker-generation")
 
+    def test_active_worker_clears_stale_finished_timestamp(self):
+        service = DualPlateAcquisitionService()
+        service._finished_at = (
+            datetime.now(timezone.utc) - timedelta(seconds=5)
+        ).isoformat()
+        started_at = datetime.now(timezone.utc).isoformat()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            csv_path = root / "active.csv"
+            service._worker_state_path = root / "state.json"
+            service._worker_state_path.write_text(
+                (
+                    f'{{"phase":"active","pid":{os.getpid()},'
+                    '"generation":"worker-generation",'
+                    f'"started_at":"{started_at}",'
+                    f'"csv_path":"{csv_path}",'
+                    '"connected_sides":["gauche","droite"]}'
+                ),
+                encoding="utf-8",
+            )
+
+            with self.no_manager_state():
+                status = service.status()
+
+        self.assertTrue(status["running"])
+        self.assertIsNone(service._finished_at)
+
     def test_disconnection_freezes_acquisition_timer(self):
         service = DualPlateAcquisitionService()
         service._generation = "interrupted-test"

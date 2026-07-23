@@ -2852,6 +2852,39 @@ class KPlateDualTest(unittest.TestCase):
                 )
             )
 
+    def test_bumble_cmj_preparation_waits_for_stable_body_mass(self):
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+        )
+        left, right = client.dual.plates
+        left.handle = 0x10
+        right.handle = 0x11
+        client.dual.cmj_samples = 1
+
+        with mock.patch(
+            "scripts.kinvent_kplates_bumble.detect_stable_body_mass",
+            return_value={
+                "ready": True,
+                "status": "ready",
+                "body_mass_kg": 82.0,
+            },
+        ):
+            prepared = asyncio.run(
+                client.wait_for_cmj_preparation(
+                    {left: object(), right: object()},
+                    "cmj.csv",
+                    stop_requested=lambda: False,
+                    preparation_timeout=0.2,
+                )
+            )
+
+        self.assertTrue(prepared)
+
     def test_bumble_connect_only_fails_when_initial_connection_drops(self):
         client = KPlatesBumbleClient(
             transport="usb:0",

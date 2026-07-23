@@ -190,6 +190,7 @@ class DualPlateAcquisitionService:
                     self._csv_path = Path(worker["csv_path"])
                 if worker.get("started_at"):
                     self._started_at = worker["started_at"]
+                self._finished_at = None
 
             if generation_matches:
                 if worker.get("csv_path"):

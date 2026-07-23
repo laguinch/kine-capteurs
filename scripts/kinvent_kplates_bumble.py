@@ -27,6 +27,7 @@ from ble.kinvent.bumble_backend import (  # noqa: E402
     BumbleBackendError,
     require_bumble,
 )
+from ble.kinvent.kplates.cmj_analysis import detect_stable_body_mass  # noqa: E402
 from scripts.kinvent_dual_hci import (  # noqa: E402
     KPLATE_INIT_STEPS,
     KPLATE_PARK_DELAY,
@@ -896,6 +897,65 @@ class KPlatesBumbleClient:
                 next_progress = now + 5.0
         return completed
 
+    async def wait_for_cmj_preparation(
+        self,
+        clients,
+        csv_path,
+        stop_requested,
+        preparation_timeout=60.0,
+        stream_silence_timeout=3.0,
+    ):
+        print(
+            "Préparation CMJ Bumble: montez sur les plateformes et "
+            "restez immobile.",
+            flush=True,
+        )
+        start = time.monotonic()
+        deadline = start + preparation_timeout
+        next_keepalive = start + self.dual.keepalive_interval
+        next_progress = start
+        last_sample_count = self.dual.cmj_samples
+        last_sample_at = start
+
+        while time.monotonic() < deadline:
+            if stop_requested():
+                return False
+            self.require_connected_plates(
+                list(clients.keys()),
+                "Préparation CMJ interrompue",
+            )
+            await asyncio.sleep(0.05)
+            now = time.monotonic()
+            if self.dual.cmj_samples > last_sample_count:
+                last_sample_count = self.dual.cmj_samples
+                last_sample_at = now
+            if now - last_sample_at > stream_silence_timeout:
+                raise RuntimeError(
+                    "Flux de mesure absent: aucun événement CMJ reçu."
+                )
+            preparation = detect_stable_body_mass(csv_path)
+            if preparation.get("ready"):
+                print(
+                    "Préparation CMJ validée: "
+                    f"{preparation['body_mass_kg']:.1f} kg stable.",
+                    flush=True,
+                )
+                return True
+            if self.dual.keepalive_interval > 0 and now >= next_keepalive:
+                await self.write_all(clients, b"\xff", 0.0)
+                next_keepalive = now + self.dual.keepalive_interval
+            if now >= next_progress:
+                print(
+                    "Préparation CMJ en attente: "
+                    f"{preparation.get('status', 'waiting_presence')}.",
+                    flush=True,
+                )
+                next_progress = now + 5.0
+
+        raise RuntimeError(
+            "Préparation CMJ expirée: aucun poids stable n'a été détecté."
+        )
+
     async def discover_official_services(self, plate, client):
         print(f"Découverte GATT {plate.side}...", flush=True)
         await client.discover_services()
@@ -1293,15 +1353,31 @@ class KPlatesBumbleClient:
                             connected_sides=self.connected_side_names(),
                         )
                         streams_active = True
-                        completed = await self.acquire_once_managed(
-                            clients,
-                            duration,
-                            stop_requested=lambda: (
+                        def stop_requested():
+                            return (
                                 read_json(control_path).get("action") == "stop"
                                 and read_json(control_path).get("generation")
                                 == generation
-                            ),
-                        )
+                            )
+
+                        if mode == "cmj":
+                            completed = await self.wait_for_cmj_preparation(
+                                clients,
+                                command["csv_path"],
+                                stop_requested=stop_requested,
+                            )
+                            if completed:
+                                completed = await self.acquire_once_managed(
+                                    clients,
+                                    duration,
+                                    stop_requested=stop_requested,
+                                )
+                        else:
+                            completed = await self.acquire_once_managed(
+                                clients,
+                                duration,
+                                stop_requested=stop_requested,
+                            )
                     except RuntimeError as exc:
                         self.dual.close_csv()
                         streams_active = False
