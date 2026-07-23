@@ -1,6 +1,7 @@
 import subprocess
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest import mock
 
@@ -244,15 +245,56 @@ class BluetoothManagerTest(unittest.TestCase):
         bluetooth.target = "kplates"
         bluetooth.child = mock.Mock(pid=123)
         bluetooth.child.poll.return_value = None
+        updated_at = datetime.now(timezone.utc).isoformat()
 
         with tempfile.TemporaryDirectory() as directory, mock.patch(
             "scripts.kinvent_bluetooth_manager.RAW_DIR",
             Path(directory),
         ):
             state = Path(directory) / "kplates_worker_state.json"
-            state.write_text('{"pid":123,"phase":"idle"}', encoding="utf-8")
+            state.write_text(
+                (
+                    '{"pid":123,"phase":"idle",'
+                    f'"updated_at":"{updated_at}"'
+                    "}"
+                ),
+                encoding="utf-8",
+            )
 
             self.assertTrue(bluetooth.current_target_is_active("kplates"))
+
+    def test_manager_relaunches_kplates_when_worker_state_is_stale(self):
+        bluetooth = KinventBluetoothManager()
+        bluetooth.target = "kplates"
+        bluetooth.state = mock.Mock()
+        bluetooth.child = mock.Mock(pid=123)
+        bluetooth.child.poll.return_value = None
+        updated_at = (
+            datetime.now(timezone.utc) - timedelta(seconds=120)
+        ).isoformat()
+
+        with tempfile.TemporaryDirectory() as directory, mock.patch(
+            "scripts.kinvent_bluetooth_manager.RAW_DIR",
+            Path(directory),
+        ):
+            state = Path(directory) / "kplates_worker_state.json"
+            state.write_text(
+                (
+                    '{"pid":123,"phase":"idle",'
+                    f'"updated_at":"{updated_at}"'
+                    "}"
+                ),
+                encoding="utf-8",
+            )
+
+            self.assertFalse(bluetooth.current_target_is_active("kplates"))
+
+        bluetooth.state.assert_called_once()
+        self.assertEqual(bluetooth.state.call_args.args[0], "switching")
+        self.assertIn(
+            "périmé",
+            bluetooth.state.call_args.kwargs["error"],
+        )
 
     def test_manager_relaunches_kplates_when_worker_pid_is_stale(self):
         bluetooth = KinventBluetoothManager()

@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -29,6 +30,7 @@ from ble.kinvent.bumble_backend import (  # noqa: E402
 
 
 RAW_DIR = BASE_DIR / "storage" / "raw_data"
+WORKER_IDLE_STALE_SECONDS = 30.0
 
 TARGETS = {
     "kplates": {
@@ -334,7 +336,40 @@ class KinventBluetoothManager:
                 ),
             )
             return False
+        if not self.worker_state_is_fresh(worker):
+            print(
+                "État worker périmé du pilote capteur; "
+                f"relance demandée: {requested}.",
+                flush=True,
+            )
+            self.state(
+                "switching",
+                requested_target=requested,
+                stale_target=self.target,
+                stale_child_pid=self.child.pid,
+                error=(
+                    "État worker périmé du pilote capteur; "
+                    "relance demandée."
+                ),
+            )
+            return False
         return True
+
+    @staticmethod
+    def worker_state_is_fresh(worker):
+        if worker.get("phase") not in {"idle", "degraded"}:
+            return True
+        updated_at = worker.get("updated_at")
+        if not updated_at:
+            return False
+        try:
+            updated = datetime.fromisoformat(updated_at)
+        except (TypeError, ValueError):
+            return False
+        if updated.tzinfo is None:
+            updated = updated.replace(tzinfo=timezone.utc)
+        age = (datetime.now(timezone.utc) - updated).total_seconds()
+        return age <= WORKER_IDLE_STALE_SECONDS
 
     def run(self):
         self.start()
