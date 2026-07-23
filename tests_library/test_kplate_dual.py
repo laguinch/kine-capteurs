@@ -2249,12 +2249,19 @@ class KPlateDualTest(unittest.TestCase):
             return True
 
         consumed_generations = []
+        active_states = []
         original_consume = client.dual.consume_control_command
+        original_write_state = client.dual.write_worker_state
 
         def consume_then_stop(path, generation):
             consumed_generations.append(generation)
             original_consume(path, generation)
             raise StopLoop()
+
+        def record_write_state(path, phase, **state):
+            if phase == "active":
+                active_states.append(state.copy())
+            original_write_state(path, phase=phase, **state)
 
         with tempfile.TemporaryDirectory() as directory:
             control_path = Path(directory) / "control.json"
@@ -2303,6 +2310,10 @@ class KPlateDualTest(unittest.TestCase):
                         client, "park_measurement_streams", mock.AsyncMock()
                     ), mock.patch.object(
                         client.dual,
+                        "write_worker_state",
+                        side_effect=record_write_state,
+                    ), mock.patch.object(
+                        client.dual,
                         "consume_control_command",
                         side_effect=consume_then_stop,
                     ):
@@ -2317,6 +2328,9 @@ class KPlateDualTest(unittest.TestCase):
             command = json.loads(control_path.read_text(encoding="utf-8"))
 
         self.assertEqual(consumed_generations, ["test-generation"])
+        self.assertEqual(len(active_states), 2)
+        self.assertNotIn("started_at", active_states[0])
+        self.assertIn("started_at", active_states[1])
         self.assertEqual(command["action"], "idle")
         self.assertEqual(command["generation"], "test-generation")
 

@@ -271,6 +271,29 @@ class KPlateApiTest(unittest.TestCase):
         self.assertEqual(control["mode"], "cmj")
         self.assertEqual(control["duration"], 10.0)
 
+    def test_cmj_start_waits_for_preparation_before_timer(self):
+        service = DualPlateAcquisitionService()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            service._control_path = root / "control.json"
+            service._worker_state_path = root / "state.json"
+            service._worker_state_path.write_text(
+                (
+                    f'{{"phase":"idle","pid":{os.getpid()},'
+                    '"connected_sides":["gauche","droite"]}'
+                ),
+                encoding="utf-8",
+            )
+            with self.no_manager_state(), mock.patch.object(
+                acquisition_module,
+                "BASE_DIR",
+                root,
+            ):
+                status = service.start(filename="cmj.csv", mode="cmj")
+
+        self.assertIsNone(status["started_at"])
+        self.assertIsNone(status["elapsed_seconds"])
+
     def test_worker_error_is_reported(self):
         service = DualPlateAcquisitionService()
         with tempfile.TemporaryDirectory() as directory:

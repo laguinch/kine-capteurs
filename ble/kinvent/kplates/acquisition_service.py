@@ -89,7 +89,7 @@ class DualPlateAcquisitionService:
             self._csv_path = BASE_DIR / "storage" / "raw_data" / filename
             self._csv_path.parent.mkdir(parents=True, exist_ok=True)
             self._generation = uuid.uuid4().hex
-            self._started_at = now_iso()
+            self._started_at = None if mode == "cmj" else now_iso()
             self._finished_at = None
             self._tare_required = recalibrate or not self._calibration_path.exists()
             if mode not in {"balance", "cmj"}:

@@ -1374,9 +1374,13 @@ class KPlatesBumbleClient:
                             "active",
                             generation=generation,
                             csv_path=command["csv_path"],
-                            started_at=now_iso(),
                             mode=mode,
                             connected_sides=self.connected_side_names(),
+                            **(
+                                {"started_at": now_iso()}
+                                if mode != "cmj"
+                                else {}
+                            ),
                         )
                         streams_active = True
                         def stop_requested():
@@ -1393,6 +1397,14 @@ class KPlatesBumbleClient:
                                 stop_requested=stop_requested,
                             )
                             if completed:
+                                write_state(
+                                    "active",
+                                    generation=generation,
+                                    csv_path=command["csv_path"],
+                                    started_at=now_iso(),
+                                    mode=mode,
+                                    connected_sides=self.connected_side_names(),
+                                )
                                 completed = await self.acquire_once_managed(
                                     clients,
                                     duration,
