@@ -1767,12 +1767,19 @@ class KPlateDualTest(unittest.TestCase):
             async def __aexit__(self, *args):
                 return None
 
+        calls = []
+
         class FakeConnection:
-            handle = 0x10
-            gatt_client = object()
+            def __init__(self, side):
+                self.side = side
+                self.handle = 0x10
+                self.gatt_client = object()
 
             def on(self, event, handler):
                 return handler
+
+            async def disconnect(self):
+                calls.append(("disconnect", self.side))
 
         class FakeDevice:
             def __init__(self, *args, **kwargs):
@@ -1793,14 +1800,13 @@ class KPlateDualTest(unittest.TestCase):
             csv_path=None,
             write_delay=0,
         )
-        calls = []
-
         async def fake_scan(device, plate, timeout):
             calls.append(("scan", plate.side))
 
         async def fake_connect(device, plate, Address, connect_timeout):
             calls.append(("connect", plate.side))
-            return FakeConnection()
+            plate.handle = 0x10
+            return FakeConnection(plate.side)
 
         with mock.patch("scripts.kinvent_kplates_bumble.require_bumble"):
             with mock.patch.dict(
@@ -1827,7 +1833,10 @@ class KPlateDualTest(unittest.TestCase):
                         )
                         asyncio.run(awaitable)
 
-        self.assertEqual(calls, [("scan", "droite"), ("connect", "droite")])
+        self.assertEqual(
+            calls,
+            [("scan", "droite"), ("connect", "droite"), ("disconnect", "droite")],
+        )
 
     def test_bumble_notification_feeds_plate_decoder(self):
         client = KPlatesBumbleClient(

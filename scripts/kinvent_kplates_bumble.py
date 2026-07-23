@@ -545,6 +545,19 @@ class KPlatesBumbleClient:
         await self.write_all(clients, b"\x90", 0.70)
         await self.write_all(clients, b"\x11", 0.25)
 
+    async def disconnect_connected_plates(self):
+        for plate, connection in self.connections.items():
+            if plate in self.disconnected or plate.handle is None:
+                continue
+            try:
+                await connection.disconnect()
+            except Exception as exc:
+                print(
+                    f"Déconnexion finale ignorée {plate.side}: "
+                    f"{type(exc).__name__}: {exc}",
+                    flush=True,
+                )
+
     async def hold_links(self, clients, duration, label):
         if duration <= 0:
             return
@@ -781,6 +794,7 @@ class KPlatesBumbleClient:
                 start = time.monotonic()
                 while time.monotonic() - start < duration:
                     await asyncio.sleep(0.5)
+                await self.disconnect_connected_plates()
                 return
 
             if gatt_preflight == "official-discovery":
@@ -839,17 +853,7 @@ class KPlatesBumbleClient:
                 "Maintien Bluetooth Bumble après acquisition",
             )
 
-            for plate, connection in self.connections.items():
-                if plate in self.disconnected or plate.handle is None:
-                    continue
-                try:
-                    await connection.disconnect()
-                except Exception as exc:
-                    print(
-                        f"Déconnexion finale ignorée {plate.side}: "
-                        f"{type(exc).__name__}: {exc}",
-                        flush=True,
-                    )
+            await self.disconnect_connected_plates()
 
     async def run_persistent(self, control_file, state_file, connect_timeout=15.0):
         require_bumble()
