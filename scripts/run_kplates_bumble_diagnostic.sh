@@ -12,6 +12,7 @@ CSV_PREFIX="storage/raw_data/kplates_bumble_diagnostic_$STAMP"
 USBMON_IFACE="${USBMON_IFACE:-usbmon1}"
 PYTHON_BIN="${PYTHON_BIN:-.venv/bin/python}"
 TRANSPORT="${KINE_BUMBLE_TRANSPORT:-usb:0}"
+AUTO_CONFIRM="${KPLATES_BUMBLE_DIAGNOSTIC_AUTO:-0}"
 
 mkdir -p storage/raw_data
 
@@ -20,6 +21,26 @@ SERVICE_WAS_ACTIVE="unknown"
 
 log() {
   echo "$@" | tee -a "$LOG"
+}
+
+confirm_phase() {
+  local title="$1"
+  shift
+  log ""
+  log "================================================================"
+  log "PHASE: $title"
+  log "================================================================"
+  while (($#)); do
+    log "$1"
+    shift
+  done
+  log "----------------------------------------------------------------"
+  if [[ "$AUTO_CONFIRM" == "1" ]]; then
+    log "Mode automatique: validation passée."
+    return 0
+  fi
+  read -r -p "Quand c'est prêt, appuie sur Entrée pour lancer cette phase (Ctrl+C pour arrêter). "
+  log "Validation utilisateur: $title"
 }
 
 run_step() {
@@ -51,6 +72,13 @@ log "Interface capture USB: $USBMON_IFACE"
 log "Log: $LOG"
 log "Capture: $PCAP"
 
+confirm_phase \
+  "Préparation générale" \
+  "1. Allume les deux plateformes." \
+  "2. Pose-les au sol, proches du dongle nRF52840." \
+  "3. Ne monte pas dessus pour l'instant." \
+  "4. Ne lance aucun jeu ni test depuis l'interface web pendant ce diagnostic."
+
 log ""
 log "===== environnement ====="
 {
@@ -65,6 +93,11 @@ log "===== environnement ====="
 
 if systemctl is-active --quiet kine-capteurs-bluetooth; then
   SERVICE_WAS_ACTIVE="active"
+  confirm_phase \
+    "Libération du dongle Bluetooth" \
+    "Le service Bluetooth normal va être arrêté temporairement." \
+    "C'est nécessaire pour que Bumble prenne le contrôle exclusif du dongle." \
+    "À la fin du diagnostic, le service sera redémarré automatiquement."
   log ""
   log "Arrêt temporaire du service Bluetooth pour libérer le dongle."
   sudo systemctl stop kine-capteurs-bluetooth 2>&1 | tee -a "$LOG"
@@ -85,6 +118,12 @@ COMMON_ARGS=(
   --calibration-file storage/raw_data/kplates_calibration.json
 )
 
+confirm_phase \
+  "1/4 — Plateforme droite seule" \
+  "Objectif: vérifier que la plateforme droite fonctionne seule avec Bumble." \
+  "Plateformes: droite allumée, gauche allumée possible mais inutilisée." \
+  "Action physique: ne monte pas dessus, laisse les plateformes vides." \
+  "Durée prévue: environ 10 secondes."
 run_step "droite seule" \
   sudo "$PYTHON_BIN" -u scripts/kinvent_kplates_bumble.py \
     "${COMMON_ARGS[@]}" \
@@ -92,6 +131,11 @@ run_step "droite seule" \
     --duration 10 \
     --csv "${CSV_PREFIX}_right.csv"
 
+confirm_phase \
+  "2/4 — Plateforme gauche seule" \
+  "Objectif: vérifier que la plateforme gauche fonctionne seule avec Bumble." \
+  "Action physique: ne monte pas dessus, laisse les plateformes vides." \
+  "Durée prévue: environ 10 secondes."
 run_step "gauche seule" \
   sudo "$PYTHON_BIN" -u scripts/kinvent_kplates_bumble.py \
     "${COMMON_ARGS[@]}" \
@@ -99,6 +143,12 @@ run_step "gauche seule" \
     --duration 10 \
     --csv "${CSV_PREFIX}_left.csv"
 
+confirm_phase \
+  "3/4 — Double connexion sans flux" \
+  "Objectif: vérifier que Bumble tient deux connexions BLE simultanées sans mesures." \
+  "Action physique: ne monte pas dessus." \
+  "À surveiller: les deux plateformes doivent passer/connecter normalement." \
+  "Durée prévue: environ 20 secondes."
 run_step "double connexion seule" \
   sudo "$PYTHON_BIN" -u scripts/kinvent_kplates_bumble.py \
     "${COMMON_ARGS[@]}" \
@@ -107,6 +157,13 @@ run_step "double connexion seule" \
     --duration 20 \
     --csv "${CSV_PREFIX}_connect_only.csv"
 
+confirm_phase \
+  "4/4 — Double flux officiel avec appuis" \
+  "Objectif: vérifier que Bumble tient les deux plateformes avec le flux de mesures officiel." \
+  "Début de phase: laisse les plateformes vides pendant la connexion et la tare." \
+  "Quand tu vois « Flux droite démarré » et « Flux gauche démarré », monte calmement dessus." \
+  "Ensuite: reste stable 5 secondes, puis transfère doucement le poids gauche/droite." \
+  "Durée prévue: 30 secondes de flux + 30 secondes de maintien Bluetooth."
 run_step "double flux officiel" \
   sudo "$PYTHON_BIN" -u scripts/kinvent_kplates_bumble.py \
     "${COMMON_ARGS[@]}" \
@@ -122,4 +179,3 @@ grep -E 'Ordre|Connexion plateforme|Pré-vol|Découverte|Lecture modèle|Flux .*
 log ""
 log "===== fichiers ====="
 ls -lh "$LOG" "$PCAP" "${CSV_PREFIX}"*.csv 2>/dev/null | tee -a "$LOG" || true
-
