@@ -288,6 +288,55 @@ class KPlatesBumbleClient:
         )
         return connection
 
+    async def wait_for_official_advertisement(self, device, plate, timeout=8.0):
+        from bumble.hci import HCI_LE_1M_PHY
+
+        loop = asyncio.get_running_loop()
+        found = loop.create_future()
+
+        def advertisement_address(args):
+            if not args:
+                return None
+            first = args[0]
+            if hasattr(first, "address"):
+                return first.address
+            return first
+
+        def normalize_address(value):
+            if value is None:
+                return ""
+            return str(value).split("/")[0].upper()
+
+        def on_advertisement(*args):
+            address = advertisement_address(args)
+            if normalize_address(address) == plate.address.upper() and not found.done():
+                found.set_result(address)
+
+        print(
+            f"Recherche officielle Bumble {plate.side}: {plate.address}...",
+            flush=True,
+        )
+        handler = device.on("advertisement", on_advertisement)
+        try:
+            await device.start_scanning(
+                legacy=True,
+                active=True,
+                scan_interval=OFFICIAL_CONNECT_SCAN_INTERVAL_MS,
+                scan_window=OFFICIAL_CONNECT_SCAN_WINDOW_MS,
+                own_address_type=OFFICIAL_CONNECT_OWN_ADDRESS_TYPE,
+                filter_duplicates=False,
+                scanning_phys=(HCI_LE_1M_PHY,),
+            )
+            await asyncio.wait_for(found, timeout=timeout)
+            print(
+                f"Publicité {plate.side} trouvée avant connexion.",
+                flush=True,
+            )
+        finally:
+            if handler is not None:
+                device.remove_listener("advertisement", handler)
+            await device.stop_scanning()
+
     async def complete_initial_official_discovery(
         self,
         device,
@@ -684,6 +733,11 @@ class KPlatesBumbleClient:
             started_discoveries = {}
             preflight_announced = False
             for plate in selected:
+                await self.wait_for_official_advertisement(
+                    device,
+                    plate,
+                    min(8.0, connect_timeout),
+                )
                 connection = await self.connect_plate(
                     device,
                     plate,
@@ -861,6 +915,11 @@ class KPlatesBumbleClient:
                         all_clients = {}
                         started_discoveries = {}
                         for plate in selected:
+                            await self.wait_for_official_advertisement(
+                                device,
+                                plate,
+                                min(8.0, connect_timeout),
+                            )
                             connection = await self.connect_plate(
                                 device,
                                 plate,

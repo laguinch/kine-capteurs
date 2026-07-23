@@ -1702,6 +1702,129 @@ class KPlateDualTest(unittest.TestCase):
 
         wait_for.assert_not_called()
 
+    def test_bumble_official_advertisement_scan_uses_hci_direct_parameters(self):
+        class FakeDevice:
+            def __init__(self):
+                self.scan_kwargs = None
+                self.handler = None
+                self.stopped = False
+
+            def on(self, event, handler):
+                self.handler = handler
+                return handler
+
+            def remove_listener(self, event, handler):
+                self.handler = None
+
+            async def start_scanning(self, **kwargs):
+                self.scan_kwargs = kwargs
+                self.handler(types.SimpleNamespace(address="E8:EB:1B:79:B1:AB/P"))
+
+            async def stop_scanning(self):
+                self.stopped = True
+
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            write_delay=0,
+        )
+        plate = client.dual.plates[1]
+        device = FakeDevice()
+
+        with mock.patch.dict(
+            sys.modules,
+            {
+                "bumble": types.SimpleNamespace(),
+                "bumble.hci": types.SimpleNamespace(HCI_LE_1M_PHY=1),
+            },
+        ):
+            asyncio.run(client.wait_for_official_advertisement(device, plate, 1.0))
+
+        self.assertEqual(device.scan_kwargs["legacy"], True)
+        self.assertEqual(device.scan_kwargs["active"], True)
+        self.assertEqual(device.scan_kwargs["scan_interval"], 10)
+        self.assertEqual(device.scan_kwargs["scan_window"], 10)
+        self.assertEqual(device.scan_kwargs["own_address_type"], 0)
+        self.assertEqual(device.scan_kwargs["filter_duplicates"], False)
+        self.assertEqual(device.scan_kwargs["scanning_phys"], (1,))
+        self.assertTrue(device.stopped)
+
+    def test_bumble_run_scans_before_connecting_plate(self):
+        class FakeTransport:
+            source = object()
+            sink = object()
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                return None
+
+        class FakeConnection:
+            handle = 0x10
+            gatt_client = object()
+
+            def on(self, event, handler):
+                return handler
+
+        class FakeDevice:
+            def __init__(self, *args, **kwargs):
+                self.powered = False
+
+            @classmethod
+            def with_hci(cls, *args, **kwargs):
+                return cls()
+
+            async def power_on(self):
+                self.powered = True
+
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            write_delay=0,
+        )
+        calls = []
+
+        async def fake_scan(device, plate, timeout):
+            calls.append(("scan", plate.side))
+
+        async def fake_connect(device, plate, Address, connect_timeout):
+            calls.append(("connect", plate.side))
+            return FakeConnection()
+
+        with mock.patch("scripts.kinvent_kplates_bumble.require_bumble"):
+            with mock.patch.dict(
+                sys.modules,
+                {
+                    "bumble": types.SimpleNamespace(),
+                    "bumble.device": types.SimpleNamespace(Device=FakeDevice),
+                    "bumble.hci": types.SimpleNamespace(Address=lambda value: value),
+                    "bumble.transport": types.SimpleNamespace(
+                        open_transport=mock.AsyncMock(return_value=FakeTransport())
+                    ),
+                },
+            ):
+                with mock.patch.object(
+                    client, "wait_for_official_advertisement", side_effect=fake_scan
+                ):
+                    with mock.patch.object(
+                        client, "connect_plate", side_effect=fake_connect
+                    ):
+                        awaitable = client.run(
+                            duration=0,
+                            sides="right",
+                            diagnostic="connect-only",
+                        )
+                        asyncio.run(awaitable)
+
+        self.assertEqual(calls, [("scan", "droite"), ("connect", "droite")])
+
     def test_bumble_notification_feeds_plate_decoder(self):
         client = KPlatesBumbleClient(
             transport="usb:0",
