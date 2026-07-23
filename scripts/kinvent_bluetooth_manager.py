@@ -271,6 +271,15 @@ class KinventBluetoothManager:
         if requested != self.target or self.child is None:
             return False
         if self.child.poll() is not None:
+            self.state(
+                "idle",
+                stale_target=self.target,
+                stale_child_pid=self.child.pid,
+                error=(
+                    "Pilote capteur arrêté sans état final; "
+                    "relance demandée."
+                ),
+            )
             return False
         config = TARGETS.get(requested) or {}
         state_name = config.get("state")
@@ -283,6 +292,16 @@ class KinventBluetoothManager:
                 f"{requested}.",
                 flush=True,
             )
+            self.state(
+                "switching",
+                requested_target=requested,
+                stale_target=self.target,
+                stale_child_pid=self.child.pid,
+                error=(
+                    "Pilote capteur actif sans état worker; "
+                    "relance demandée."
+                ),
+            )
             return False
         worker_pid = worker.get("pid")
         if worker_pid != self.child.pid:
@@ -290,6 +309,17 @@ class KinventBluetoothManager:
                 "État worker désynchronisé du pilote capteur; "
                 f"relance demandée: {requested}.",
                 flush=True,
+            )
+            self.state(
+                "switching",
+                requested_target=requested,
+                stale_target=self.target,
+                stale_child_pid=self.child.pid,
+                worker_pid=worker_pid,
+                error=(
+                    "État worker désynchronisé du pilote capteur; "
+                    "relance demandée."
+                ),
             )
             return False
         return True

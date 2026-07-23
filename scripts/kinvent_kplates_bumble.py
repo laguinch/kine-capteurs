@@ -1186,6 +1186,7 @@ class KPlatesBumbleClient:
         def write_state(phase, **state):
             self.dual.write_worker_state(state_path, phase=phase, **state)
 
+        write_state("starting")
         async with await open_transport(self.transport) as hci_transport:
             device = Device.with_hci(
                 "Kine Capteurs Bumble",
