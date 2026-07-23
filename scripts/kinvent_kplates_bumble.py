@@ -881,27 +881,6 @@ class KPlatesBumbleClient:
                 self.connections[plate] = connection
                 self.register_disconnect_logger(connection, plate)
                 all_clients[plate] = connection.gatt_client
-                if (
-                    diagnostic != "connect-only"
-                    and gatt_preflight == "official-discovery"
-                    and len(selected) > 1
-                    and not started_discoveries
-                ):
-                    print(
-                        "Pré-vol GATT officiel pour "
-                        f"{connected_sides(selected)}...",
-                        flush=True,
-                    )
-                    preflight_announced = True
-                    await self.complete_initial_official_discovery(
-                        device,
-                        plate,
-                        Address,
-                        connection,
-                        all_clients,
-                        started_discoveries,
-                        connect_timeout,
-                    )
 
             if diagnostic == "connect-only":
                 self.require_connected_plates(
@@ -1057,21 +1036,6 @@ class KPlatesBumbleClient:
                             self.connections[plate] = connection
                             self.register_disconnect_logger(connection, plate)
                             all_clients[plate] = connection.gatt_client
-                            if len(selected) > 1 and not started_discoveries:
-                                print(
-                                    "Pré-vol GATT officiel pour "
-                                    f"{connected_sides(selected)}...",
-                                    flush=True,
-                                )
-                                await self.complete_initial_official_discovery(
-                                    device,
-                                    plate,
-                                    Address,
-                                    connection,
-                                    all_clients,
-                                    started_discoveries,
-                                    connect_timeout,
-                                )
                         await self.run_official_gatt_preflight(
                             all_clients,
                             started_discoveries=started_discoveries,

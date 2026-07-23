@@ -1882,7 +1882,7 @@ class KPlateDualTest(unittest.TestCase):
             def __init__(self, side):
                 self.side = side
                 self.handle = 0x10
-                self.gatt_client = object()
+                self.gatt_client = types.SimpleNamespace(notification_subscribers={})
 
             def on(self, event, handler):
                 return handler
@@ -1964,7 +1964,7 @@ class KPlateDualTest(unittest.TestCase):
             def __init__(self, side):
                 self.side = side
                 self.handle = 0x10
-                self.gatt_client = object()
+                self.gatt_client = types.SimpleNamespace(notification_subscribers={})
 
             def on(self, event, handler):
                 return handler
@@ -2029,6 +2029,110 @@ class KPlateDualTest(unittest.TestCase):
                 ("connect", "gauche"),
                 ("disconnect", "droite"),
                 ("disconnect", "gauche"),
+            ],
+        )
+
+    def test_bumble_dual_run_connects_both_plates_before_gatt_preflight(self):
+        class FakeTransport:
+            source = object()
+            sink = object()
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                return None
+
+        calls = []
+
+        class FakeConnection:
+            def __init__(self, side):
+                self.side = side
+                self.handle = 0x10
+                self.gatt_client = types.SimpleNamespace(notification_subscribers={})
+
+            def on(self, event, handler):
+                return handler
+
+            async def disconnect(self):
+                calls.append(("disconnect", self.side))
+
+        class FakeDevice:
+            @classmethod
+            def with_hci(cls, *args, **kwargs):
+                return cls()
+
+            async def power_on(self):
+                return None
+
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            write_delay=0,
+        )
+
+        async def fake_connect(device, plate, Address, connect_timeout):
+            calls.append(("connect", plate.side))
+            plate.handle = 0x10
+            return FakeConnection(plate.side)
+
+        async def fake_preflight(clients, **kwargs):
+            calls.append(("preflight", tuple(plate.side for plate in clients)))
+
+        async def fake_configure(clients):
+            calls.append(("configure", tuple(plate.side for plate in clients)))
+
+        async def fake_acquire(*args, **kwargs):
+            calls.append(("acquire",))
+
+        async def fake_park(*args, **kwargs):
+            calls.append(("park",))
+
+        with mock.patch("scripts.kinvent_kplates_bumble.require_bumble"):
+            with mock.patch.dict(
+                sys.modules,
+                {
+                    "bumble": types.SimpleNamespace(),
+                    "bumble.device": types.SimpleNamespace(Device=FakeDevice),
+                    "bumble.hci": types.SimpleNamespace(Address=lambda value: value),
+                    "bumble.transport": types.SimpleNamespace(
+                        open_transport=mock.AsyncMock(return_value=FakeTransport())
+                    ),
+                },
+            ):
+                with mock.patch.object(client, "connect_plate", side_effect=fake_connect):
+                    with mock.patch.object(
+                        client,
+                        "run_official_gatt_preflight",
+                        side_effect=fake_preflight,
+                    ):
+                        with mock.patch.object(
+                            client,
+                            "configure_streams",
+                            side_effect=fake_configure,
+                        ):
+                            with mock.patch.object(
+                                client,
+                                "acquire_once",
+                                side_effect=fake_acquire,
+                            ):
+                                with mock.patch.object(
+                                    client,
+                                    "park_measurement_streams",
+                                    side_effect=fake_park,
+                                ):
+                                    asyncio.run(client.run(duration=0, sides="both"))
+
+        self.assertEqual(
+            calls[:4],
+            [
+                ("connect", "droite"),
+                ("connect", "gauche"),
+                ("preflight", ("droite", "gauche")),
+                ("configure", ("droite", "gauche")),
             ],
         )
 
