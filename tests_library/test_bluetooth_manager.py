@@ -70,7 +70,11 @@ class BluetoothManagerTest(unittest.TestCase):
         bluetooth = KinventBluetoothManager()
         bluetooth.state = mock.Mock()
 
-        recovered = bluetooth.recover_controller_after_failure("kplates", 1)
+        with tempfile.TemporaryDirectory() as directory, mock.patch(
+            "scripts.kinvent_bluetooth_manager.RAW_DIR",
+            Path(directory),
+        ):
+            recovered = bluetooth.recover_controller_after_failure("kplates", 1)
 
         self.assertFalse(recovered)
         bluetooth.state.assert_called_once()
