@@ -89,6 +89,29 @@ class DevicesApiTest(unittest.TestCase):
 
         self.assertEqual(context.exception.status_code, 404)
 
+    @unittest.skipUnless(
+        importlib.util.find_spec("fastapi"),
+        "FastAPI est installé dans l'environnement serveur.",
+    )
+    def test_disconnect_device_uses_existing_sensor_services(self):
+        import api.routes.devices as devices_module
+
+        with mock.patch.object(
+            devices_module.kpush_service,
+            "disconnect",
+            return_value={"phase": "disconnected"},
+        ) as disconnect_kpush, mock.patch.object(
+            devices_module,
+            "devices_snapshot",
+            return_value={"devices": []},
+        ):
+            self.assertEqual(
+                devices_module.disconnect_device("kpush"),
+                {"devices": []},
+            )
+
+        disconnect_kpush.assert_called_once_with()
+
 
 if __name__ == "__main__":
     unittest.main()

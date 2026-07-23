@@ -687,10 +687,8 @@ button:disabled { opacity: .45; cursor: default; }
   flex-wrap: wrap;
   align-items: center;
 }
-.device-actions button,
-.device-open {
+.device-actions button {
   align-self: flex-start;
-  text-decoration: none;
 }
 
 .global-protocol-setup {

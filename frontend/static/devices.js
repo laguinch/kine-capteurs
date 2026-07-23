@@ -42,7 +42,12 @@ function deviceCard(device) {
         data-device-key="${device.key}"
         ${device.connected || actionInProgress ? "disabled" : ""}
       >${busy ? "Connexion…" : "Connecter"}</button>
-      <a class="secondary device-open" href="${device.open_path}">Ouvrir</a>
+      <button
+        class="secondary device-disconnect"
+        type="button"
+        data-device-key="${device.key}"
+        ${!device.connected || actionInProgress ? "disabled" : ""}
+      >${busy ? "Déconnexion…" : "Déconnecter"}</button>
     </div>
   `;
   return card;
@@ -74,6 +79,9 @@ function render(data) {
   grid.replaceChildren(...(data.devices || []).map(deviceCard));
   grid.querySelectorAll(".device-connect").forEach((button) => {
     button.addEventListener("click", () => connectDevice(button.dataset.deviceKey));
+  });
+  grid.querySelectorAll(".device-disconnect").forEach((button) => {
+    button.addEventListener("click", () => disconnectDevice(button.dataset.deviceKey));
   });
 }
 
@@ -110,6 +118,27 @@ async function connectDevice(deviceKey) {
   } catch (error) {
     $("managerDot").className = "status-dot error";
     $("managerText").textContent = "Connexion impossible";
+    $("managerDetails").textContent = error.message;
+  } finally {
+    actionInProgress = null;
+    await refresh();
+  }
+}
+
+async function disconnectDevice(deviceKey) {
+  if (!deviceKey || actionInProgress) return;
+  actionInProgress = deviceKey;
+  await refresh();
+  try {
+    const response = await fetch(`/api/devices/${deviceKey}/disconnect`, {
+      method: "POST",
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Déconnexion impossible");
+    render(data);
+  } catch (error) {
+    $("managerDot").className = "status-dot error";
+    $("managerText").textContent = "Déconnexion impossible";
     $("managerDetails").textContent = error.message;
   } finally {
     actionInProgress = null;

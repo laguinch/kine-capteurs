@@ -153,3 +153,21 @@ def connect_device(device_key: str):
     except RuntimeError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return devices_snapshot()
+
+
+@router.post("/{device_key}/disconnect")
+def disconnect_device(device_key: str):
+    try:
+        if device_key == "kplates":
+            dual_plate_service.disconnect()
+        elif device_key == "kpush":
+            kpush_service.disconnect()
+        elif device_key == "kpull":
+            kpull_service.disconnect()
+        elif device_key == "kmove":
+            kmove_service.disconnect()
+        else:
+            raise HTTPException(status_code=404, detail="Appareil inconnu.")
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return devices_snapshot()
