@@ -85,6 +85,14 @@ def format_hci_reason(reason):
     return f"0x{value:02x}"
 
 
+def make_bumble_uuid(value):
+    try:
+        from bumble.core import UUID
+    except ImportError:
+        return value
+    return UUID(value)
+
+
 class KPlatesBumbleClient:
     def __init__(
         self,
@@ -440,7 +448,7 @@ class KPlatesBumbleClient:
             flush=True,
         )
         try:
-            await client.discover_services([KPLATE_UART_SERVICE_UUID])
+            await client.discover_services([make_bumble_uuid(KPLATE_UART_SERVICE_UUID)])
         except Exception as exc:
             # La capture officielle montre que cette recherche peut ne pas
             # retourner le service attendu, puis Android poursuit la découverte
