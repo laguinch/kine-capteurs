@@ -13,6 +13,7 @@ USBMON_IFACE="${USBMON_IFACE:-usbmon1}"
 PYTHON_BIN="${PYTHON_BIN:-.venv/bin/python}"
 TRANSPORT="${KINE_BUMBLE_TRANSPORT:-usb:0}"
 AUTO_CONFIRM="${KPLATES_BUMBLE_DIAGNOSTIC_AUTO:-0}"
+RUN_SINGLE_PHASES="${KPLATES_BUMBLE_DIAGNOSTIC_SINGLE:-0}"
 
 mkdir -p storage/raw_data
 
@@ -110,6 +111,7 @@ log "Diagnostic Bumble K-Force Plates"
 log "Projet: $PROJECT_DIR"
 log "Transport Bumble: $TRANSPORT"
 log "Interface capture USB: $USBMON_IFACE"
+log "Phases seules droite/gauche: $([[ "$RUN_SINGLE_PHASES" == "1" ]] && echo "activées" || echo "ignorées par défaut")"
 log "Log: $LOG"
 log "Capture: $PCAP"
 
@@ -162,51 +164,58 @@ COMMON_ARGS=(
   --calibration-file storage/raw_data/kplates_calibration.json
 )
 
-confirm_phase \
-  "1/4 — Plateforme droite seule" \
-  "Objectif: vérifier que la plateforme droite fonctionne seule avec Bumble." \
-  "Plateformes: droite allumée, gauche complètement éteinte." \
-  "Important: si la gauche est allumée, cette phase n'est pas interprétable." \
-  "Action physique: ne monte pas dessus, laisse les plateformes vides." \
-  "Durée prévue: environ 10 secondes."
-run_required_step "droite seule" \
-  sudo "$PYTHON_BIN" -u scripts/kinvent_kplates_bumble.py \
-    "${COMMON_ARGS[@]}" \
-    --sides right \
-    --duration 10 \
-    --csv "${CSV_PREFIX}_right.csv"
+if [[ "$RUN_SINGLE_PHASES" == "1" ]]; then
+  confirm_phase \
+    "1/4 — Plateforme droite seule" \
+    "Objectif: vérifier que la plateforme droite fonctionne seule avec Bumble." \
+    "Plateformes: droite allumée, gauche complètement éteinte." \
+    "Important: si la gauche est allumée, cette phase n'est pas interprétable." \
+    "Action physique: ne monte pas dessus, laisse les plateformes vides." \
+    "Durée prévue: environ 10 secondes."
+  run_required_step "droite seule" \
+    sudo "$PYTHON_BIN" -u scripts/kinvent_kplates_bumble.py \
+      "${COMMON_ARGS[@]}" \
+      --sides right \
+      --duration 10 \
+      --csv "${CSV_PREFIX}_right.csv"
+
+  confirm_phase \
+    "Vérification LED après droite seule" \
+    "Regarde la plateforme droite avant de continuer." \
+    "Si elle semble encore connectée ou dans un état anormal, attends quelques secondes." \
+    "Si elle ne revient pas en état disponible, éteins-la puis attends son arrêt complet." \
+    "Prépare ensuite la phase gauche: droite éteinte, gauche allumée."
+
+  confirm_phase \
+    "2/4 — Plateforme gauche seule" \
+    "Objectif: vérifier que la plateforme gauche fonctionne seule avec Bumble." \
+    "Plateformes: gauche allumée, droite complètement éteinte." \
+    "Important: si la droite est allumée, cette phase n'est pas interprétable." \
+    "Action physique: ne monte pas dessus, laisse les plateformes vides." \
+    "Durée prévue: environ 10 secondes."
+  run_required_step "gauche seule" \
+    sudo "$PYTHON_BIN" -u scripts/kinvent_kplates_bumble.py \
+      "${COMMON_ARGS[@]}" \
+      --sides left \
+      --duration 10 \
+      --csv "${CSV_PREFIX}_left.csv"
+
+  confirm_phase \
+    "Vérification LED après gauche seule" \
+    "Regarde la plateforme gauche avant de continuer." \
+    "Si elle semble encore connectée ou dans un état anormal, attends quelques secondes." \
+    "Si elle ne revient pas en état disponible, éteins-la puis attends son arrêt complet." \
+    "Prépare ensuite les phases doubles: rallume les deux plateformes et attends leur clignotement disponible."
+else
+  log ""
+  log "Phases droite seule/gauche seule ignorées."
+  log "Raison: le problème à diagnostiquer concerne les deux plateformes allumées ensemble."
+fi
 
 confirm_phase \
-  "Vérification LED après droite seule" \
-  "Regarde la plateforme droite avant de continuer." \
-  "Si elle semble encore connectée ou dans un état anormal, attends quelques secondes." \
-  "Si elle ne revient pas en état disponible, éteins-la puis attends son arrêt complet." \
-  "Prépare ensuite la phase gauche: droite éteinte, gauche allumée."
-
-confirm_phase \
-  "2/4 — Plateforme gauche seule" \
-  "Objectif: vérifier que la plateforme gauche fonctionne seule avec Bumble." \
-  "Plateformes: gauche allumée, droite complètement éteinte." \
-  "Important: si la droite est allumée, cette phase n'est pas interprétable." \
-  "Action physique: ne monte pas dessus, laisse les plateformes vides." \
-  "Durée prévue: environ 10 secondes."
-run_required_step "gauche seule" \
-  sudo "$PYTHON_BIN" -u scripts/kinvent_kplates_bumble.py \
-    "${COMMON_ARGS[@]}" \
-    --sides left \
-    --duration 10 \
-    --csv "${CSV_PREFIX}_left.csv"
-
-confirm_phase \
-  "Vérification LED après gauche seule" \
-  "Regarde la plateforme gauche avant de continuer." \
-  "Si elle semble encore connectée ou dans un état anormal, attends quelques secondes." \
-  "Si elle ne revient pas en état disponible, éteins-la puis attends son arrêt complet." \
-  "Prépare ensuite les phases doubles: rallume les deux plateformes et attends leur clignotement disponible."
-
-confirm_phase \
-  "3/4 — Double connexion sans flux" \
+  "1/2 — Double connexion sans flux" \
   "Objectif: vérifier que Bumble tient deux connexions BLE simultanées sans mesures." \
+  "Plateformes: droite ET gauche allumées, disponibles, application Android fermée." \
   "Action physique: ne monte pas dessus." \
   "À surveiller: les deux plateformes doivent passer/connecter normalement." \
   "Durée prévue: environ 20 secondes."
@@ -219,8 +228,9 @@ run_required_step "double connexion seule" \
     --csv "${CSV_PREFIX}_connect_only.csv"
 
 confirm_phase \
-  "4/4 — Double flux officiel avec appuis" \
+  "2/2 — Double flux officiel avec appuis" \
   "Objectif: vérifier que Bumble tient les deux plateformes avec le flux de mesures officiel." \
+  "Plateformes: droite ET gauche allumées, disponibles, application Android fermée." \
   "Début de phase: laisse les plateformes vides pendant la connexion et la tare." \
   "Quand tu vois « Flux droite démarré » et « Flux gauche démarré », monte calmement dessus." \
   "Ensuite: reste stable 5 secondes, puis transfère doucement le poids gauche/droite." \
