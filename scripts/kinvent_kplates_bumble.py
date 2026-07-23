@@ -653,11 +653,12 @@ class KPlatesBumbleClient:
         await self.write_all(clients, b"\x11", 0.25)
 
     async def disconnect_connected_plates(self):
-        for plate, connection in self.connections.items():
+        for plate, connection in reversed(list(self.connections.items())):
             if plate in self.disconnected or plate.handle is None:
                 continue
             try:
                 await connection.disconnect()
+                await asyncio.sleep(0.10)
             except Exception as exc:
                 print(
                     f"Déconnexion finale ignorée {plate.side}: "

@@ -2027,8 +2027,8 @@ class KPlateDualTest(unittest.TestCase):
             [
                 ("connect", "droite"),
                 ("connect", "gauche"),
-                ("disconnect", "droite"),
                 ("disconnect", "gauche"),
+                ("disconnect", "droite"),
             ],
         )
 
@@ -2705,6 +2705,44 @@ class KPlateDualTest(unittest.TestCase):
                 [right, left],
                 "Diagnostic connexion seule incomplet",
             )
+
+    def test_bumble_disconnects_plates_in_reverse_connection_order(self):
+        events = []
+
+        class FakeConnection:
+            def __init__(self, side):
+                self.side = side
+
+            async def disconnect(self):
+                events.append(self.side)
+
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+        )
+        left, right = client.dual.plates
+        right.handle = 0x10
+        left.handle = 0x11
+        client.connections = {
+            right: FakeConnection("droite"),
+            left: FakeConnection("gauche"),
+        }
+
+        async def immediate_sleep(delay):
+            events.append(("sleep", delay))
+
+        with mock.patch(
+            "scripts.kinvent_kplates_bumble.asyncio.sleep",
+            immediate_sleep,
+        ):
+            asyncio.run(client.disconnect_connected_plates())
+
+        self.assertEqual(events[0], "gauche")
+        self.assertEqual(events[2], "droite")
 
 
 if __name__ == "__main__":
