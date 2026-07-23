@@ -1848,11 +1848,46 @@ class KPlateDualTest(unittest.TestCase):
         connection = FakeConnection()
 
         client.register_disconnect_logger(connection, left)
-        connection.callbacks["disconnection"](62)
+        with mock.patch("builtins.print") as print_mock:
+            connection.callbacks["disconnection"](62)
 
         self.assertIn(left, client.disconnected)
         self.assertEqual(client.disconnect_reasons[left], 0x3E)
         self.assertIsNone(left.handle)
+        self.assertIn(
+            "0x3e (connection failed to establish)",
+            print_mock.call_args.args[0],
+        )
+
+    def test_bumble_disconnect_logger_labels_supervision_timeout(self):
+        class FakeConnection:
+            def __init__(self):
+                self.callbacks = {}
+
+            def on(self, event_name, callback):
+                self.callbacks[event_name] = callback
+
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+        )
+        right = client.dual.plates[1]
+        connection = FakeConnection()
+
+        client.register_disconnect_logger(connection, right)
+        with mock.patch("builtins.print") as print_mock:
+            connection.callbacks["disconnection"](8)
+
+        self.assertIn(right, client.disconnected)
+        self.assertEqual(client.disconnect_reasons[right], 0x08)
+        self.assertIn(
+            "0x08 (supervision timeout)",
+            print_mock.call_args.args[0],
+        )
 
     def test_bumble_reconnects_initial_official_0x3e_once(self):
         class FakeConnection:

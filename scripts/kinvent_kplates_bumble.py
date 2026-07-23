@@ -45,6 +45,13 @@ OFFICIAL_CONNECT_INTERVAL_MAX_MS = 50
 OFFICIAL_CONNECT_SUPERVISION_TIMEOUT_MS = 5000
 OFFICIAL_INITIAL_DISCONNECT_REASON = 0x3E
 OFFICIAL_GATT_SETTLE_AFTER_CONNECT_S = 0.15
+HCI_REASON_LABELS = {
+    0x08: "supervision timeout",
+    0x13: "remote user terminated",
+    0x16: "local host terminated",
+    0x22: "LMP response timeout",
+    0x3E: "connection failed to establish",
+}
 
 
 def connected_sides(plates):
@@ -56,6 +63,17 @@ def read_json(path):
         return json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, ValueError, json.JSONDecodeError):
         return {}
+
+
+def format_hci_reason(reason):
+    try:
+        value = int(reason)
+    except (TypeError, ValueError):
+        return repr(reason)
+    label = HCI_REASON_LABELS.get(value)
+    if label:
+        return f"0x{value:02x} ({label})"
+    return f"0x{value:02x}"
 
 
 class KPlatesBumbleClient:
@@ -121,8 +139,9 @@ class KPlatesBumbleClient:
         def log_disconnection(reason=None, *args, **kwargs):
             if reason is None and args:
                 reason = args[0]
+            formatted_reason = format_hci_reason(reason)
             print(
-                f"Déconnexion Bumble {plate.side}: {reason!r}",
+                f"Déconnexion Bumble {plate.side}: {formatted_reason}",
                 flush=True,
             )
             plate.handle = None
@@ -358,7 +377,15 @@ class KPlatesBumbleClient:
             if plate in self.disconnected:
                 continue
             print(f"Réglage radio {plate.side}...", flush=True)
-            await connection.update_parameters(0x0009, 0x0018, 0, 0x0200)
+            try:
+                await connection.update_parameters(0x0009, 0x0018, 0, 0x0200)
+            except Exception as exc:
+                print(
+                    "Échec réglage radio "
+                    f"{plate.side}: {type(exc).__name__}: {exc}",
+                    flush=True,
+                )
+                raise
 
         await self.write_all(clients, b"\x10", 0.25)
 
