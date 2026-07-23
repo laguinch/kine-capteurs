@@ -161,9 +161,21 @@ class KinventBluetoothManager:
             "error",
             failed_target=failed_target,
             return_code=return_code,
-            error="Pilote Bluetooth interrompu; reconnexion manuelle requise.",
+            error=self.failure_message(failed_target),
         )
         return False
+
+    @staticmethod
+    def failure_message(failed_target):
+        if failed_target:
+            config = TARGETS.get(failed_target) or {}
+            state_name = config.get("state")
+            if state_name:
+                worker = read_json(RAW_DIR / state_name)
+                error = worker.get("error") or worker.get("last_error")
+                if error:
+                    return error
+        return "Pilote Bluetooth interrompu; reconnexion manuelle requise."
 
     def stop_child(self):
         if self.child is None or self.target is None:
@@ -384,11 +396,16 @@ class KinventBluetoothManager:
                                 failed_target,
                                 return_code,
                             )
-                        self.state(
-                            self.child_exit_phase(return_code, recovered),
-                            return_code=return_code,
-                            failed_target=failed_target,
-                        )
+                        next_phase = self.child_exit_phase(return_code, recovered)
+                        next_state = {
+                            "return_code": return_code,
+                            "failed_target": failed_target,
+                        }
+                        if next_phase == "error":
+                            next_state["error"] = self.failure_message(
+                                failed_target
+                            )
+                        self.state(next_phase, **next_state)
                 time.sleep(0.2)
         finally:
             self.stop_child()

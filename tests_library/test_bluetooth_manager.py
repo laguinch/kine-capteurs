@@ -79,6 +79,32 @@ class BluetoothManagerTest(unittest.TestCase):
             bluetooth.state.call_args.kwargs["error"],
         )
 
+    def test_failed_bumble_child_reports_worker_error(self):
+        bluetooth = KinventBluetoothManager()
+        bluetooth.state = mock.Mock()
+
+        with tempfile.TemporaryDirectory() as directory, mock.patch(
+            "scripts.kinvent_bluetooth_manager.RAW_DIR",
+            Path(directory),
+        ):
+            state = Path(directory) / "kplates_worker_state.json"
+            state.write_text(
+                (
+                    '{"phase":"error",'
+                    '"error":"Dongle Bumble indisponible: device not found"}'
+                ),
+                encoding="utf-8",
+            )
+
+            recovered = bluetooth.recover_controller_after_failure("kplates", 1)
+
+        self.assertFalse(recovered)
+        self.assertEqual(bluetooth.state.call_args.args[0], "error")
+        self.assertEqual(
+            bluetooth.state.call_args.kwargs["error"],
+            "Dongle Bumble indisponible: device not found",
+        )
+
     def test_kplates_default_launch_uses_bumble_on_nrf(self):
         with tempfile.TemporaryDirectory() as directory:
             raw_dir = Path(directory) / "raw"
