@@ -141,6 +141,14 @@ class KPlatesBumbleClient:
             if plate.handle is not None and plate not in self.disconnected
         ]
 
+    def connected_side_names_except(self, missing_sides):
+        missing = set(missing_sides)
+        return [
+            side
+            for side in self.connected_side_names()
+            if side not in missing
+        ]
+
     def missing_connected_sides(self, plates):
         return [
             plate.side
@@ -614,6 +622,118 @@ class KPlatesBumbleClient:
         for plate in connected:
             print(f"Flux {plate.side} démarré.", flush=True)
 
+    async def wait_for_initial_tare(self, clients, timeout=8.0):
+        connected = list(clients.keys())
+        if all(plate.offsets is not None for plate in connected):
+            return
+        print("Tare initiale des plateformes: laissez-les vides.", flush=True)
+        deadline = time.monotonic() + timeout
+        while (
+            time.monotonic() < deadline
+            and any(plate.offsets is None for plate in connected)
+        ):
+            self.require_connected_plates(
+                connected,
+                "Tare initiale interrompue",
+            )
+            await asyncio.sleep(0.05)
+        missing = [
+            plate.side
+            for plate in connected
+            if plate.offsets is None
+        ]
+        if missing:
+            raise RuntimeError(
+                "Tare initiale incomplète pour : " + ", ".join(missing)
+            )
+        self.dual.save_calibration()
+
+    async def settle_initial_streams(self, clients, duration=2.0):
+        """Vérifie que les flux Bumble produisent vraiment des mesures."""
+        await self.wait_for_initial_tare(clients)
+        print(
+            "Stabilisation initiale des flux pendant "
+            f"{duration:.0f} secondes...",
+            flush=True,
+        )
+        connected = list(clients.keys())
+        before = {
+            plate.side: (
+                plate.notifications,
+                plate.measurements,
+                plate.rejected_frames,
+            )
+            for plate in connected
+        }
+        deadline = time.monotonic() + duration
+        while time.monotonic() < deadline:
+            self.require_connected_plates(
+                connected,
+                "Stabilisation initiale interrompue",
+            )
+            await asyncio.sleep(0.05)
+        missing = []
+        for plate in connected:
+            (
+                previous_notifications,
+                previous_measurements,
+                previous_rejected,
+            ) = before[plate.side]
+            notification_delta = plate.notifications - previous_notifications
+            measurement_delta = plate.measurements - previous_measurements
+            rejected_delta = plate.rejected_frames - previous_rejected
+            print(
+                f"Flux initial {plate.side}: "
+                f"{notification_delta} notification(s), "
+                f"{measurement_delta} mesure(s) valide(s), "
+                f"{rejected_delta} trame(s) rejetée(s).",
+                flush=True,
+            )
+            if measurement_delta == 0:
+                missing.append(plate.side)
+        if not missing:
+            self.dual.validate_loaded_calibration_at_rest()
+        return missing
+
+    async def validate_live_streams(self, clients, timeout=3.0):
+        """Exige une nouvelle mesure valide avant de lancer une acquisition."""
+        connected = list(clients.keys())
+        self.require_connected_plates(
+            connected,
+            "Validation du flux impossible",
+        )
+        before_measurements = {
+            plate.side: plate.measurements for plate in connected
+        }
+        await self.wake_measurement_streams(clients)
+        deadline = time.monotonic() + timeout
+        if all(
+            plate.measurements > before_measurements[plate.side]
+            for plate in connected
+        ):
+            return
+        while time.monotonic() < deadline:
+            self.require_connected_plates(
+                connected,
+                "Validation du flux interrompue",
+            )
+            if all(
+                plate.measurements > before_measurements[plate.side]
+                for plate in connected
+            ):
+                return
+            await asyncio.sleep(0.05)
+        silent = [
+            plate.side
+            for plate in connected
+            if plate.measurements <= before_measurements[plate.side]
+        ]
+        if not silent:
+            return
+        raise RuntimeError(
+            "Flux de mesure absent: " + ", ".join(silent) + "."
+        )
+
     async def park_measurement_streams(self, clients, commands=3):
         connected = [
             plate
@@ -718,12 +838,20 @@ class KPlatesBumbleClient:
                 print(f"Temps restant: {remaining:4.1f} s", flush=True)
                 next_progress = now + 5.0
 
-    async def acquire_once_managed(self, clients, duration, stop_requested):
+    async def acquire_once_managed(
+        self,
+        clients,
+        duration,
+        stop_requested,
+        stream_silence_timeout=3.0,
+    ):
         print(f"Acquisition double Bumble pendant {duration:.1f} s...", flush=True)
         start = time.monotonic()
         deadline = start + duration
         next_keepalive = start + self.dual.keepalive_interval
         next_progress = start
+        last_pair_count = self.dual.paired_samples
+        last_pair_at = start
         completed = True
 
         while time.monotonic() < deadline:
@@ -739,6 +867,13 @@ class KPlatesBumbleClient:
                 break
             await asyncio.sleep(0.05)
             now = time.monotonic()
+            if self.dual.paired_samples > last_pair_count:
+                last_pair_count = self.dual.paired_samples
+                last_pair_at = now
+            if now - last_pair_at > stream_silence_timeout:
+                raise RuntimeError(
+                    "Flux de mesure absent: aucune paire synchronisée reçue."
+                )
             if self.dual.keepalive_interval > 0 and now >= next_keepalive:
                 await self.write_all(clients, b"\xff", 0.0)
                 next_keepalive = now + self.dual.keepalive_interval
@@ -1048,7 +1183,30 @@ class KPlatesBumbleClient:
                         clients = all_clients
                         self.subscribe_measurement_notifications(clients)
                         await self.configure_streams(clients)
+                        missing_streams = await self.settle_initial_streams(
+                            clients,
+                        )
                         sides = self.connected_side_names()
+                        if missing_streams:
+                            connected = bool(sides)
+                            streams_active = False
+                            write_state(
+                                "degraded" if sides else "disconnected",
+                                generation=generation,
+                                connected_sides=(
+                                    self.connected_side_names_except(
+                                        missing_streams
+                                    )
+                                ),
+                                mode="balance",
+                                error=(
+                                    "Connexion Bluetooth établie, mais "
+                                    "aucune mesure initiale reçue pour : "
+                                    + ", ".join(missing_streams)
+                                    + "."
+                                ),
+                            )
+                            continue
                         if len(sides) != 2:
                             connected = bool(sides)
                             streams_active = False
@@ -1105,31 +1263,49 @@ class KPlatesBumbleClient:
                         continue
                     duration = float(command["duration"])
                     mode = command.get("mode", "balance")
-                    self.dual.paired_samples = 0
-                    self.dual.cmj_samples = 0
-                    self.dual.dropped_samples = {"gauche": 0, "droite": 0}
-                    for plate in self.dual.plates:
-                        plate.samples.clear()
-                    self.dual.open_csv(command["csv_path"], mode)
-                    write_state(
-                        "active",
-                        generation=generation,
-                        csv_path=command["csv_path"],
-                        started_at=now_iso(),
-                        mode=mode,
-                        connected_sides=self.connected_side_names(),
-                    )
-                    if not streams_active:
-                        await self.wake_measurement_streams(clients)
+                    try:
+                        await self.validate_live_streams(clients)
+                        self.dual.paired_samples = 0
+                        self.dual.cmj_samples = 0
+                        self.dual.dropped_samples = {"gauche": 0, "droite": 0}
+                        for plate in self.dual.plates:
+                            plate.samples.clear()
+                        self.dual.open_csv(command["csv_path"], mode)
+                        write_state(
+                            "active",
+                            generation=generation,
+                            csv_path=command["csv_path"],
+                            started_at=now_iso(),
+                            mode=mode,
+                            connected_sides=self.connected_side_names(),
+                        )
                         streams_active = True
-                    completed = await self.acquire_once_managed(
-                        clients,
-                        duration,
-                        stop_requested=lambda: (
-                            read_json(control_path).get("action") == "stop"
-                            and read_json(control_path).get("generation") == generation
-                        ),
-                    )
+                        completed = await self.acquire_once_managed(
+                            clients,
+                            duration,
+                            stop_requested=lambda: (
+                                read_json(control_path).get("action") == "stop"
+                                and read_json(control_path).get("generation")
+                                == generation
+                            ),
+                        )
+                    except RuntimeError as exc:
+                        self.dual.close_csv()
+                        streams_active = False
+                        write_state(
+                            "degraded",
+                            generation=generation,
+                            csv_path=command["csv_path"],
+                            mode=mode,
+                            connected_sides=self.connected_side_names(),
+                            interrupted=True,
+                            error=(
+                                str(exc)
+                                + " Reconnectez les plateformes."
+                            ),
+                        )
+                        self.dual.consume_control_command(control_path, generation)
+                        continue
                     self.dual.close_csv()
                     await self.park_measurement_streams(clients, commands=3)
                     streams_active = False

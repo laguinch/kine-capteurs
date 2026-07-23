@@ -2225,6 +2225,86 @@ class KPlateDualTest(unittest.TestCase):
             [b"\x90", b"\x11"],
         )
 
+    def test_bumble_initial_settle_reports_silent_streams(self):
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+        )
+        left, right = client.dual.plates
+        for plate in (left, right):
+            plate.handle = 0x10
+            plate.offsets = {
+                "av_d": 0,
+                "av_g": 0,
+                "ar_g": 0,
+                "ar_d": 0,
+            }
+
+        missing = asyncio.run(
+            client.settle_initial_streams(
+                {left: object(), right: object()},
+                duration=0.0,
+            )
+        )
+
+        self.assertEqual(missing, ["gauche", "droite"])
+
+    def test_bumble_managed_start_requires_fresh_measurements(self):
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+        )
+        left, right = client.dual.plates
+        left.handle = 0x10
+        right.handle = 0x11
+
+        async def wake_without_measurements(clients):
+            del clients
+
+        client.wake_measurement_streams = wake_without_measurements
+
+        with self.assertRaisesRegex(RuntimeError, "Flux de mesure absent"):
+            asyncio.run(
+                client.validate_live_streams(
+                    {left: object(), right: object()},
+                    timeout=0.0,
+                )
+            )
+
+    def test_bumble_managed_start_accepts_fresh_measurements(self):
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+        )
+        left, right = client.dual.plates
+        left.handle = 0x10
+        right.handle = 0x11
+
+        async def wake_with_measurements(clients):
+            for plate in clients:
+                plate.measurements += 1
+
+        client.wake_measurement_streams = wake_with_measurements
+
+        asyncio.run(
+            client.validate_live_streams(
+                {left: object(), right: object()},
+                timeout=0.0,
+            )
+        )
+
     def test_bumble_gatt_preflight_discovers_in_official_connection_order(self):
         class FakeClient:
             def __init__(self, label, events):
@@ -2684,6 +2764,29 @@ class KPlateDualTest(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "droite 0x08"):
             asyncio.run(client.acquire_once({left: object(), right: object()}, 1.0))
+
+    def test_bumble_managed_acquisition_fails_when_pairs_are_silent(self):
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+        )
+        left, right = client.dual.plates
+        left.handle = 0x10
+        right.handle = 0x11
+
+        with self.assertRaisesRegex(RuntimeError, "aucune paire synchronisée"):
+            asyncio.run(
+                client.acquire_once_managed(
+                    {left: object(), right: object()},
+                    1.0,
+                    stop_requested=lambda: False,
+                    stream_silence_timeout=0.0,
+                )
+            )
 
     def test_bumble_connect_only_fails_when_initial_connection_drops(self):
         client = KPlatesBumbleClient(
