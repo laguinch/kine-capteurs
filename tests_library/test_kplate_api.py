@@ -353,7 +353,36 @@ class KPlateApiTest(unittest.TestCase):
             frozen = first["elapsed_seconds"]
 
         self.assertFalse(first["running"])
+        self.assertEqual(first["worker_phase"], "disconnected")
+        self.assertEqual(first["last_error"], "Plateforme gauche déconnectée")
         self.assertEqual(second["elapsed_seconds"], frozen)
+
+    def test_interrupted_disconnection_is_exposed_to_games(self):
+        service = DualPlateAcquisitionService()
+        service._generation = "official-disconnect"
+        service._started_at = datetime.now(timezone.utc).isoformat()
+        with tempfile.TemporaryDirectory() as directory:
+            service._worker_state_path = Path(directory) / "state.json"
+            service._worker_state_path.write_text(
+                (
+                    f'{{"phase":"degraded","pid":{os.getpid()},'
+                    '"generation":"official-disconnect",'
+                    '"interrupted":true,'
+                    '"connected_sides":["droite"],'
+                    '"error":"Un flux de plateforme ne répond plus. '
+                    'Reconnectez les capteurs."}'
+                ),
+                encoding="utf-8",
+            )
+
+            with self.no_manager_state():
+                status = service.status()
+
+        self.assertFalse(status["running"])
+        self.assertTrue(status["interrupted"])
+        self.assertEqual(status["worker_phase"], "degraded")
+        self.assertEqual(status["connected_sides"], ["droite"])
+        self.assertIn("Reconnectez les capteurs", status["last_error"])
 
     def test_second_test_reuses_persistent_bluetooth_process(self):
         service = DualPlateAcquisitionService()

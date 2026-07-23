@@ -25,6 +25,7 @@ const game = {
   saved: false,
   csvPath: null,
   connecting: false,
+  interrupted: false,
 };
 
 const laneCount = 5;
@@ -95,6 +96,25 @@ function waitingForInitialMeasurements(data) {
   );
 }
 
+function serverStoppedAbnormally(data) {
+  return Boolean(
+    data.interrupted
+    || data.last_error
+    || ["error", "disconnected", "degraded"].includes(data.worker_phase)
+  );
+}
+
+function interruptedGameMessage(data) {
+  const error = typeof data.last_error === "string" ? data.last_error : "";
+  if (error.includes("déconnectée") || error.includes("déconnecté")) {
+    return "Jeu interrompu : une plateforme s’est déconnectée. Descendez des plateformes, reconnectez les capteurs, puis relancez le jeu.";
+  }
+  if (error) {
+    return `Jeu interrompu : ${error}`;
+  }
+  return "Jeu interrompu : reconnectez les plateformes, puis relancez le jeu.";
+}
+
 function syncAvailabilityMessage(data, ready, running) {
   void data;
   void ready;
@@ -108,7 +128,8 @@ function updateStatus(data) {
   const serverConnecting = data.worker_phase === "connecting";
   const connecting = game.connecting;
   const waitingForMeasures = waitingForInitialMeasurements(data);
-  $("gameStatusDot").className = `status-dot ${running || ready || connecting || serverConnecting || waitingForMeasures ? "running" : data.last_error ? "error" : ""}`;
+  const interrupted = serverStoppedAbnormally(data) && !waitingForMeasures;
+  $("gameStatusDot").className = `status-dot ${running || ready || connecting || serverConnecting || waitingForMeasures ? "running" : interrupted ? "error" : ""}`;
   $("gameStatusText").textContent = running
     ? game.playing
       ? "Jeu en cours"
@@ -119,10 +140,10 @@ function updateStatus(data) {
       ? "Plateformes connectées"
       : waitingForMeasures
         ? "Mesures en attente"
+      : interrupted
+        ? "Recalibrage requis"
       : connected
         ? "Connexion partielle"
-      : data.last_error
-        ? "Erreur"
         : "Déconnecté";
   $("connectButton").disabled = connecting || running;
   $("startGameButton").disabled = connecting || running || !ready;
@@ -143,7 +164,11 @@ function updateStatus(data) {
     updateControls(data.measurement);
   }
   if (!running && game.running) {
-    finishGame();
+    if (serverStoppedAbnormally(data)) {
+      interruptGame(data);
+    } else {
+      finishGame();
+    }
   }
   syncAvailabilityMessage(data, ready, running);
 }
@@ -240,6 +265,7 @@ async function startGame() {
   game.lastMeasurementTimestamp = null;
   game.saved = false;
   game.csvPath = null;
+  game.interrupted = false;
   $("scoreValue").textContent = "0";
   $("gameTimer").textContent = "00:00";
   message("Préparation du jeu : attente des premières mesures des plateformes.");
@@ -280,6 +306,16 @@ function finishGame() {
   game.obstacles = [];
   message(`Jeu terminé. Score : ${game.score}.`, false, true);
   saveTrainingSummary();
+}
+
+function interruptGame(data) {
+  game.running = false;
+  game.playing = false;
+  game.interrupted = true;
+  game.obstacles = [];
+  $("gameStatusDot").className = "status-dot error";
+  $("gameStatusText").textContent = "Recalibrage requis";
+  message(interruptedGameMessage(data), true);
 }
 
 async function saveTrainingSummary() {
