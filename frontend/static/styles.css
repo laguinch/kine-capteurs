@@ -684,11 +684,15 @@ button:disabled { opacity: .45; cursor: default; }
 .device-actions {
   display: flex;
   gap: 10px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
+  width: 100%;
 }
 .device-actions button {
-  align-self: flex-start;
+  flex: 1 1 0;
+  min-width: 0;
+  align-self: stretch;
+  white-space: nowrap;
 }
 
 .global-protocol-setup {
