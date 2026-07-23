@@ -91,10 +91,11 @@ log "Capture: $PCAP"
 
 confirm_phase \
   "Préparation générale" \
-  "1. Allume les deux plateformes." \
-  "2. Pose-les au sol, proches du dongle nRF52840." \
-  "3. Ne monte pas dessus pour l'instant." \
-  "4. Ne lance aucun jeu ni test depuis l'interface web pendant ce diagnostic."
+  "1. Ferme complètement l'application Kinvent Android." \
+  "2. Coupe le Bluetooth du téléphone Android pendant tout le diagnostic." \
+  "3. Pose les plateformes au sol, proches du dongle nRF52840." \
+  "4. Ne monte pas dessus pour l'instant." \
+  "5. Ne lance aucun jeu ni test depuis l'interface web pendant ce diagnostic."
 
 log ""
 log "===== environnement ====="
@@ -138,7 +139,8 @@ COMMON_ARGS=(
 confirm_phase \
   "1/4 — Plateforme droite seule" \
   "Objectif: vérifier que la plateforme droite fonctionne seule avec Bumble." \
-  "Plateformes: droite allumée, gauche allumée possible mais inutilisée." \
+  "Plateformes: droite allumée, gauche complètement éteinte." \
+  "Important: si la gauche est allumée, cette phase n'est pas interprétable." \
   "Action physique: ne monte pas dessus, laisse les plateformes vides." \
   "Durée prévue: environ 10 secondes."
 run_required_step "droite seule" \
@@ -152,11 +154,14 @@ confirm_phase \
   "Vérification LED après droite seule" \
   "Regarde la plateforme droite avant de continuer." \
   "Si elle semble encore connectée ou dans un état anormal, attends quelques secondes." \
-  "Si elle ne revient pas en état disponible, éteins/rallume la plateforme puis attends son clignotement normal."
+  "Si elle ne revient pas en état disponible, éteins-la puis attends son arrêt complet." \
+  "Prépare ensuite la phase gauche: droite éteinte, gauche allumée."
 
 confirm_phase \
   "2/4 — Plateforme gauche seule" \
   "Objectif: vérifier que la plateforme gauche fonctionne seule avec Bumble." \
+  "Plateformes: gauche allumée, droite complètement éteinte." \
+  "Important: si la droite est allumée, cette phase n'est pas interprétable." \
   "Action physique: ne monte pas dessus, laisse les plateformes vides." \
   "Durée prévue: environ 10 secondes."
 run_required_step "gauche seule" \
@@ -170,7 +175,8 @@ confirm_phase \
   "Vérification LED après gauche seule" \
   "Regarde la plateforme gauche avant de continuer." \
   "Si elle semble encore connectée ou dans un état anormal, attends quelques secondes." \
-  "Si elle ne revient pas en état disponible, éteins/rallume la plateforme puis attends son clignotement normal."
+  "Si elle ne revient pas en état disponible, éteins-la puis attends son arrêt complet." \
+  "Prépare ensuite les phases doubles: rallume les deux plateformes et attends leur clignotement disponible."
 
 confirm_phase \
   "3/4 — Double connexion sans flux" \
