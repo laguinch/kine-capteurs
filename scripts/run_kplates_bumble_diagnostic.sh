@@ -71,6 +71,30 @@ run_required_step() {
   exit "$code"
 }
 
+require_nrf_ready() {
+  log ""
+  log "===== vérification dongle nRF52840 ====="
+
+  if ! lsusb | grep -q '2fe3:000b'; then
+    log "ERREUR: dongle nRF52840 Zephyr HCI USB introuvable dans lsusb."
+    log "Action: débranche/rebranche le dongle nRF52840, attends 5 secondes, puis relance ce diagnostic."
+    exit 1
+  fi
+
+  local hci_output
+  hci_output="$(hciconfig -a 2>/dev/null || true)"
+  log "$hci_output"
+
+  if echo "$hci_output" | grep -q 'ACL MTU: 0:0'; then
+    log "ERREUR: le dongle nRF52840 est visible en USB mais son contrôleur HCI n'est pas initialisé correctement."
+    log "Indice: hciconfig affiche « ACL MTU: 0:0 », état typique après un blocage USB/HCI."
+    log "Action: débranche/rebranche physiquement le dongle nRF52840, attends 5 secondes, puis relance ce diagnostic sans refaire update.sh."
+    exit 1
+  fi
+
+  log "Dongle nRF52840 visible et contrôleur HCI initialisé."
+}
+
 cleanup() {
   if [[ -n "$MON_PID" ]]; then
     sudo kill "$MON_PID" >/dev/null 2>&1 || true
@@ -122,6 +146,8 @@ if systemctl is-active --quiet kine-capteurs-bluetooth; then
 else
   SERVICE_WAS_ACTIVE="inactive"
 fi
+
+require_nrf_ready
 
 log ""
 log "Activation usbmon et capture USB."
