@@ -645,11 +645,34 @@ button:disabled { opacity: .45; cursor: default; }
 .devices-grid .choice-card {
   min-height: 260px;
 }
+.devices-grid .choice-card.connected {
+  background:
+    linear-gradient(145deg, rgba(22, 179, 121, .20), rgba(255, 255, 255, .92) 58%),
+    #f0fbf5;
+  border-color: rgba(22, 179, 121, .45);
+  box-shadow: 0 22px 52px rgba(22, 179, 121, .16);
+}
+.devices-grid .choice-card.connected .choice-kicker,
+.devices-grid .choice-card.connected .device-state-badge {
+  background: rgba(22, 179, 121, .14);
+  color: #087649;
+}
+.devices-grid .choice-card.disconnected {
+  opacity: .82;
+}
 .device-card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+.device-state-badge {
+  align-self: flex-start;
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: #eef2f0;
+  color: var(--muted);
+  font-weight: 850;
 }
 .device-addresses {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -658,6 +681,13 @@ button:disabled { opacity: .45; cursor: default; }
 .device-error {
   color: #8d2c28 !important;
 }
+.device-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.device-actions button,
 .device-open {
   align-self: flex-start;
   text-decoration: none;

@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from ble.common.devices import KMOVE, KPLATE_LEFT, KPLATE_RIGHT, KPULL, KPUSH
 from ble.kinvent.bluetooth_manager import manager_state, request_sensor
@@ -134,4 +134,22 @@ def list_devices():
 @router.post("/disconnect")
 def disconnect_current_device():
     request_sensor(None)
+    return devices_snapshot()
+
+
+@router.post("/{device_key}/connect")
+def connect_device(device_key: str):
+    try:
+        if device_key == "kplates":
+            dual_plate_service.connect()
+        elif device_key == "kpush":
+            kpush_service.connect()
+        elif device_key == "kpull":
+            kpull_service.connect()
+        elif device_key == "kmove":
+            kmove_service.connect()
+        else:
+            raise HTTPException(status_code=404, detail="Appareil inconnu.")
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     return devices_snapshot()

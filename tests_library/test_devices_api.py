@@ -53,6 +53,42 @@ class DevicesApiTest(unittest.TestCase):
         self.assertTrue(kplates["active"])
         self.assertEqual(len(kplates["addresses"]), 2)
 
+    @unittest.skipUnless(
+        importlib.util.find_spec("fastapi"),
+        "FastAPI est installé dans l'environnement serveur.",
+    )
+    def test_connect_device_uses_existing_sensor_services(self):
+        import api.routes.devices as devices_module
+
+        with mock.patch.object(
+            devices_module.dual_plate_service,
+            "connect",
+            return_value={"worker_phase": "idle"},
+        ) as connect_kplates, mock.patch.object(
+            devices_module,
+            "devices_snapshot",
+            return_value={"devices": []},
+        ):
+            self.assertEqual(
+                devices_module.connect_device("kplates"),
+                {"devices": []},
+            )
+
+        connect_kplates.assert_called_once_with()
+
+    @unittest.skipUnless(
+        importlib.util.find_spec("fastapi"),
+        "FastAPI est installé dans l'environnement serveur.",
+    )
+    def test_unknown_device_connection_is_rejected(self):
+        from fastapi import HTTPException
+        import api.routes.devices as devices_module
+
+        with self.assertRaises(HTTPException) as context:
+            devices_module.connect_device("unknown")
+
+        self.assertEqual(context.exception.status_code, 404)
+
 
 if __name__ == "__main__":
     unittest.main()
