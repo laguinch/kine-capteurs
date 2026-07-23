@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import importlib
 import json
 import sys
 import time
@@ -43,6 +44,9 @@ KPLATE_MODEL_NUMBER_HANDLE = 0x0016
 OFFICIAL_CONNECT_INTERVAL_MIN_MS = 30
 OFFICIAL_CONNECT_INTERVAL_MAX_MS = 50
 OFFICIAL_CONNECT_SUPERVISION_TIMEOUT_MS = 5000
+OFFICIAL_CONNECT_SCAN_INTERVAL_MS = 10
+OFFICIAL_CONNECT_SCAN_WINDOW_MS = 10
+OFFICIAL_CONNECT_OWN_ADDRESS_TYPE = 0
 OFFICIAL_INITIAL_DISCONNECT_REASON = 0x3E
 OFFICIAL_GATT_SETTLE_AFTER_CONNECT_S = 0.15
 HCI_REASON_LABELS = {
@@ -209,6 +213,8 @@ class KPlatesBumbleClient:
         from bumble.device import ConnectionParametersPreferences
         from bumble.hci import HCI_LE_1M_PHY
 
+        bumble_device = importlib.import_module("bumble.device")
+
         remote_address = make_remote_address(
             plate.address,
             self.address_type,
@@ -220,9 +226,13 @@ class KPlatesBumbleClient:
         )
         try:
             # Paramètres initiaux observés dans la capture officielle Android:
-            # HCI_LE_Create_Connection min=0x0018, max=0x0028,
-            # supervision=0x01f4. Bumble exprime ces valeurs en ms et les
-            # convertit ensuite en unités HCI.
+            # HCI_LE_Create_Connection scan=0x0010/0x0010,
+            # own_address_type=public, min=0x0018, max=0x0028,
+            # supervision=0x01f4. Bumble exprime les durées en ms et les
+            # convertit ensuite en unités HCI. Son API expose l'adresse propre
+            # et les paramètres de connexion, mais pas le scan interval/window
+            # d'initiation; on aligne donc temporairement ses constantes sur
+            # les valeurs officielles, puis on les restaure aussitôt après.
             connection_preferences = {
                 HCI_LE_1M_PHY: ConnectionParametersPreferences(
                     connection_interval_min=OFFICIAL_CONNECT_INTERVAL_MIN_MS,
@@ -233,14 +243,35 @@ class KPlatesBumbleClient:
                     max_ce_length=0,
                 )
             }
-            connection = await asyncio.wait_for(
-                device.connect(
-                    remote_address,
-                    connection_parameters_preferences=connection_preferences,
-                    timeout=connect_timeout,
-                ),
-                timeout=connect_timeout,
+            original_connect_scan_interval = (
+                bumble_device.DEVICE_DEFAULT_CONNECT_SCAN_INTERVAL
             )
+            original_connect_scan_window = (
+                bumble_device.DEVICE_DEFAULT_CONNECT_SCAN_WINDOW
+            )
+            try:
+                bumble_device.DEVICE_DEFAULT_CONNECT_SCAN_INTERVAL = (
+                    OFFICIAL_CONNECT_SCAN_INTERVAL_MS
+                )
+                bumble_device.DEVICE_DEFAULT_CONNECT_SCAN_WINDOW = (
+                    OFFICIAL_CONNECT_SCAN_WINDOW_MS
+                )
+                connection = await asyncio.wait_for(
+                    device.connect(
+                        remote_address,
+                        connection_parameters_preferences=connection_preferences,
+                        own_address_type=OFFICIAL_CONNECT_OWN_ADDRESS_TYPE,
+                        timeout=connect_timeout,
+                    ),
+                    timeout=connect_timeout,
+                )
+            finally:
+                bumble_device.DEVICE_DEFAULT_CONNECT_SCAN_INTERVAL = (
+                    original_connect_scan_interval
+                )
+                bumble_device.DEVICE_DEFAULT_CONNECT_SCAN_WINDOW = (
+                    original_connect_scan_window
+                )
         except Exception as exc:
             if "MEMORY_CAPACITY_EXCEEDED_ERROR" in str(exc):
                 raise RuntimeError(

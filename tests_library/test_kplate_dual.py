@@ -1624,7 +1624,9 @@ class KPlateDualTest(unittest.TestCase):
             {
                 "bumble": types.SimpleNamespace(),
                 "bumble.device": types.SimpleNamespace(
-                    ConnectionParametersPreferences=FakeConnectionParametersPreferences
+                    ConnectionParametersPreferences=FakeConnectionParametersPreferences,
+                    DEVICE_DEFAULT_CONNECT_SCAN_INTERVAL=60,
+                    DEVICE_DEFAULT_CONNECT_SCAN_WINDOW=60,
                 ),
                 "bumble.hci": types.SimpleNamespace(HCI_LE_1M_PHY=1),
             },
@@ -1645,6 +1647,7 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(preferences.supervision_timeout, 5000)
         self.assertEqual(preferences.min_ce_length, 0)
         self.assertEqual(preferences.max_ce_length, 0)
+        self.assertEqual(device.kwargs["own_address_type"], 0)
         self.assertEqual(device.kwargs["timeout"], 15.0)
 
     def test_bumble_notification_feeds_plate_decoder(self):
