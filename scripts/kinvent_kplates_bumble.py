@@ -141,6 +141,30 @@ class KPlatesBumbleClient:
             if plate.handle is not None and plate not in self.disconnected
         ]
 
+    def missing_connected_sides(self, plates):
+        return [
+            plate.side
+            for plate in plates
+            if plate.handle is None or plate in self.disconnected
+        ]
+
+    def require_connected_plates(self, plates, context):
+        missing = [
+            plate for plate in plates if plate.handle is None or plate in self.disconnected
+        ]
+        if missing:
+            details = []
+            for plate in missing:
+                reason = self.disconnect_reasons.get(plate)
+                if reason is None:
+                    details.append(plate.side)
+                else:
+                    details.append(f"{plate.side} {format_hci_reason(reason)}")
+            raise RuntimeError(
+                f"{context}: plateforme(s) déconnectée(s): "
+                f"{', '.join(details)}."
+            )
+
     def subscribe_measurement_notifications(self, clients):
         for plate, client in clients.items():
             client.notification_subscribers.setdefault(
@@ -653,6 +677,10 @@ class KPlatesBumbleClient:
 
         while time.monotonic() < deadline:
             await asyncio.sleep(0.05)
+            self.require_connected_plates(
+                list(clients.keys()),
+                f"Lien Bluetooth interrompu pendant {label}",
+            )
             now = time.monotonic()
             if self.dual.keepalive_interval > 0 and now >= next_keepalive:
                 await self.write_all(clients, b"\xff", 0.0)
@@ -676,6 +704,10 @@ class KPlatesBumbleClient:
 
         while time.monotonic() < deadline:
             await asyncio.sleep(0.05)
+            self.require_connected_plates(
+                list(clients.keys()),
+                "Flux de plateforme interrompu pendant l'acquisition",
+            )
             now = time.monotonic()
             if self.dual.keepalive_interval > 0 and now >= next_keepalive:
                 await self.write_all(clients, b"\xff", 0.0)
@@ -872,6 +904,10 @@ class KPlatesBumbleClient:
                     )
 
             if diagnostic == "connect-only":
+                self.require_connected_plates(
+                    selected,
+                    "Diagnostic connexion seule incomplet",
+                )
                 print(
                     f"Diagnostic connexion seule pendant {duration:.1f} s...",
                     flush=True,
@@ -879,6 +915,10 @@ class KPlatesBumbleClient:
                 start = time.monotonic()
                 while time.monotonic() - start < duration:
                     await asyncio.sleep(0.5)
+                    self.require_connected_plates(
+                        selected,
+                        "Diagnostic connexion seule interrompu",
+                    )
                 await self.disconnect_connected_plates()
                 return
 

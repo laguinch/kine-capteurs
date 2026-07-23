@@ -2563,6 +2563,45 @@ class KPlateDualTest(unittest.TestCase):
 
         self.assertFalse(completed)
 
+    def test_bumble_unmanaged_acquisition_fails_when_plate_disconnects(self):
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+        )
+        left, right = client.dual.plates
+        left.handle = 0x10
+        right.handle = None
+        client.disconnected.add(right)
+        client.disconnect_reasons[right] = 0x08
+
+        with self.assertRaisesRegex(RuntimeError, "droite 0x08"):
+            asyncio.run(client.acquire_once({left: object(), right: object()}, 1.0))
+
+    def test_bumble_connect_only_fails_when_initial_connection_drops(self):
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            tare_duration=0,
+        )
+        left, right = client.dual.plates
+        left.handle = 0x11
+        right.handle = None
+        client.disconnected.add(right)
+        client.disconnect_reasons[right] = 0x3E
+
+        with self.assertRaisesRegex(RuntimeError, "droite 0x3e"):
+            client.require_connected_plates(
+                [right, left],
+                "Diagnostic connexion seule incomplet",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
