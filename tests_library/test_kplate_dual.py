@@ -2136,6 +2136,47 @@ class KPlateDualTest(unittest.TestCase):
             ],
         )
 
+    def test_bumble_persistent_reports_usb_open_failure(self):
+        client = KPlatesBumbleClient(
+            transport="usb:0",
+            left_address="E8:EB:1B:6F:A7:5F",
+            right_address="E8:EB:1B:79:B1:AB",
+            address_type="public",
+            csv_path=None,
+            write_delay=0,
+        )
+
+        async def failing_open_transport(transport):
+            raise RuntimeError("device not found")
+
+        with tempfile.TemporaryDirectory() as directory:
+            control_path = Path(directory) / "control.json"
+            state_path = Path(directory) / "state.json"
+            control_path.write_text("{}", encoding="utf-8")
+
+            with mock.patch("scripts.kinvent_kplates_bumble.require_bumble"):
+                with mock.patch.dict(
+                    sys.modules,
+                    {
+                        "bumble": types.SimpleNamespace(),
+                        "bumble.device": types.SimpleNamespace(Device=object),
+                        "bumble.hci": types.SimpleNamespace(Address=lambda value: value),
+                        "bumble.transport": types.SimpleNamespace(
+                            open_transport=failing_open_transport
+                        ),
+                    },
+                ):
+                    with self.assertRaises(RuntimeError):
+                        asyncio.run(
+                            client.run_persistent(control_path, state_path)
+                        )
+
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(state["phase"], "error")
+        self.assertIn("Dongle Bumble indisponible", state["error"])
+        self.assertIn("device not found", state["last_error"])
+
     def test_bumble_notification_feeds_plate_decoder(self):
         client = KPlatesBumbleClient(
             transport="usb:0",

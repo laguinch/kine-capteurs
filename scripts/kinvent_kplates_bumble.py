@@ -1187,7 +1187,17 @@ class KPlatesBumbleClient:
             self.dual.write_worker_state(state_path, phase=phase, **state)
 
         write_state("starting")
-        async with await open_transport(self.transport) as hci_transport:
+        try:
+            transport = await open_transport(self.transport)
+        except Exception as exc:
+            message = (
+                "Dongle Bumble indisponible: "
+                f"{type(exc).__name__}: {exc}"
+            )
+            write_state("error", error=message, last_error=message)
+            raise
+
+        async with transport as hci_transport:
             device = Device.with_hci(
                 "Kine Capteurs Bumble",
                 Address("F0:F1:F2:F3:F4:F5"),
