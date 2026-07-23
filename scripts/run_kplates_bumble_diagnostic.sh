@@ -57,17 +57,18 @@ run_step() {
 run_required_step() {
   local name="$1"
   shift
-  if run_step "$name" "$@"; then
+  run_step "$name" "$@"
+  local code=$?
+  if [[ "$code" -eq 0 ]]; then
     return 0
   fi
 
-  local code=$?
   log ""
   log "ARRÊT DU DIAGNOSTIC"
   log "La phase « $name » a échoué avec le code $code."
   log "Les phases suivantes ne seraient pas interprétables, donc elles ne sont pas lancées."
   log "Dans ce cas, inutile de monter sur les plateformes: le flux de mesures n'a pas démarré."
-  return "$code"
+  exit "$code"
 }
 
 cleanup() {
