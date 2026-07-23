@@ -821,12 +821,13 @@ class KPlatesBumbleClient:
             started_discoveries = {}
             preflight_announced = False
             for plate in selected:
-                await self.wait_for_official_advertisement(
-                    device,
-                    plate,
-                    min(8.0, connect_timeout),
-                    forbid_other_plates=len(selected) == 1,
-                )
+                if len(selected) == 1:
+                    await self.wait_for_official_advertisement(
+                        device,
+                        plate,
+                        min(8.0, connect_timeout),
+                        forbid_other_plates=True,
+                    )
                 connection = await self.connect_plate(
                     device,
                     plate,
@@ -995,12 +996,6 @@ class KPlatesBumbleClient:
                         all_clients = {}
                         started_discoveries = {}
                         for plate in selected:
-                            await self.wait_for_official_advertisement(
-                                device,
-                                plate,
-                                min(8.0, connect_timeout),
-                                forbid_other_plates=len(selected) == 1,
-                            )
                             connection = await self.connect_plate(
                                 device,
                                 plate,
