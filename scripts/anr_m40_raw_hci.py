@@ -14,7 +14,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from ble.anr.protocol import decode_emg, encode_device_id  # noqa: E402
+from ble.anr.protocol import decode_battery, decode_emg, encode_device_id  # noqa: E402
 from scripts.kinvent_raw_hci import (  # noqa: E402
     ATT_OP_ERROR_RESPONSE,
     ATT_OP_MTU_REQUEST,
@@ -32,11 +32,14 @@ ATT_OP_FIND_INFORMATION_REQUEST = 0x04
 ATT_OP_FIND_INFORMATION_RESPONSE = 0x05
 ATT_OP_READ_BY_TYPE_REQUEST = 0x08
 ATT_OP_READ_BY_TYPE_RESPONSE = 0x09
+ATT_OP_READ_REQUEST = 0x0A
+ATT_OP_READ_RESPONSE = 0x0B
 
 UUID_CHARACTERISTIC = 0x2803
 UUID_CCCD = 0x2902
 UUID_ANALOG = 0x2A58
 UUID_DIGITAL = 0x2A56
+UUID_BATTERY = 0x2A19
 
 
 def uuid16_bytes(value):
@@ -122,6 +125,7 @@ class RawANRM40Client(RawKinventClient):
             ATT_OP_MTU_RESPONSE,
             ATT_OP_FIND_INFORMATION_RESPONSE,
             ATT_OP_READ_BY_TYPE_RESPONSE,
+            ATT_OP_READ_RESPONSE,
             ATT_OP_WRITE_RESPONSE,
         ):
             print(f"ATT reçu opcode=0x{opcode:02x}: {att.hex(' ')}")
@@ -175,6 +179,18 @@ class RawANRM40Client(RawKinventClient):
             timeout=timeout,
         )
 
+    def read_handle(self, handle, label):
+        print(f"{label}: lecture handle=0x{handle:04x}")
+        self.send_att(bytes([ATT_OP_READ_REQUEST]) + struct.pack("<H", handle))
+        response = self.wait_for_att_response(
+            {ATT_OP_READ_RESPONSE, ATT_OP_ERROR_RESPONSE},
+            timeout=5.0,
+        )
+        if response[0] == ATT_OP_ERROR_RESPONSE:
+            print(f"{label}: lecture indisponible ({response.hex(' ')})")
+            return None
+        return response[1:]
+
     def discover_characteristics(self):
         print("Découverte ATT ciblée des caractéristiques M40...")
         declarations = []
@@ -205,7 +221,7 @@ class RawANRM40Client(RawKinventClient):
                     }
                 )
                 last_decl = declaration_handle
-                if uuid in (UUID_ANALOG, UUID_DIGITAL):
+                if uuid in (UUID_ANALOG, UUID_DIGITAL, UUID_BATTERY):
                     self.characteristics[uuid] = declarations[-1]
                     print(
                         f"Caractéristique 0x{uuid:04x}: "
@@ -220,6 +236,8 @@ class RawANRM40Client(RawKinventClient):
             raise RuntimeError("Caractéristique EMG 0x2A58 introuvable.")
         if UUID_DIGITAL not in self.characteristics:
             print("Caractéristique device-id 0x2A56 introuvable.")
+        if UUID_BATTERY not in self.characteristics:
+            print("Caractéristique batterie 0x2A19 introuvable.")
         return declarations
 
     def find_cccd(self, declarations, characteristic):
@@ -274,6 +292,14 @@ class RawANRM40Client(RawKinventClient):
                 encode_device_id(self.device_id),
                 "Device ID M40",
             )
+        battery = self.characteristics.get(UUID_BATTERY)
+        if battery:
+            value = self.read_handle(battery["value_handle"], "Batterie M40")
+            if value is not None:
+                try:
+                    print(f"Batterie M40: {decode_battery(value)} %")
+                except ValueError as exc:
+                    print(f"Batterie M40: valeur invalide {value.hex(' ')} ({exc})")
         cccd = self.find_cccd(declarations, self.characteristics[UUID_ANALOG])
         self.notification_handle = self.characteristics[UUID_ANALOG]["value_handle"]
         self.write_request(cccd, b"\x01\x00", "Activation notifications EMG")

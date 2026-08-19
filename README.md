@@ -370,6 +370,9 @@ sudo .venv/bin/python -u scripts/anr_m40_raw_hci.py \
   --csv storage/raw_data/anr_m40_raw_hci_test.csv
 ```
 
+Ce diagnostic découvre aussi la batterie standard `0x2A19` quand le firmware du
+M40 l'expose.
+
 ## Diagnostic K-Pull
 
 Le K-Pull capturé est `KFORCELink02287`
