@@ -113,7 +113,6 @@ function update(data) {
   if (active) {
     state.history.push(Math.max(0, Number(m.emg_raw) || 0));
     if (state.history.length > 300) state.history.shift();
-    draw();
   }
 }
 

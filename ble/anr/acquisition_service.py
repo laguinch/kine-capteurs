@@ -121,7 +121,7 @@ class ANRM40AcquisitionService:
                 self._finished_at = None
                 self._write_control("stop", self._test_generation)
             elif self._recording:
-                self._append_recording_rows()
+                self._write_recording_csv()
                 self._recording = False
                 self._finished_at = now_iso()
                 self._write_control("stop", self._test_generation)
@@ -156,10 +156,14 @@ class ANRM40AcquisitionService:
         with self._lock:
             status = self.status()
             row = self._read_latest_row(self._live_path)
-            if self._recording:
-                self._append_recording_rows()
             measurement = None
             if row and status["phase"] in {"ready", "active"}:
+                emg_raw = int(float(row["emg_raw"]))
+                if self._recording:
+                    self._recording_max_emg = max(
+                        self._recording_max_emg,
+                        emg_raw,
+                    )
                 maximum = (
                     self._recording_max_emg
                     if self._recording
@@ -168,7 +172,7 @@ class ANRM40AcquisitionService:
                 measurement = {
                     "timestamp_utc": row["timestamp_utc"],
                     "elapsed_seconds": float(row["elapsed_seconds"]),
-                    "emg_raw": int(float(row["emg_raw"])),
+                    "emg_raw": emg_raw,
                     "max_emg_raw": maximum,
                     "battery_pct": status.get("battery_pct"),
                 }
@@ -273,6 +277,25 @@ class ANRM40AcquisitionService:
         with self._csv_path.open("w", newline="", encoding="utf-8") as target:
             writer = csv.DictWriter(target, fieldnames=FIELDS)
             writer.writeheader()
+
+    def _write_recording_csv(self):
+        if self._csv_path is None:
+            return
+        rows = self._recording_rows()
+        self._csv_path.parent.mkdir(parents=True, exist_ok=True)
+        with self._csv_path.open("w", newline="", encoding="utf-8") as target:
+            writer = csv.DictWriter(target, fieldnames=FIELDS)
+            writer.writeheader()
+            writer.writerows(rows)
+        self._recording_max_emg = 0
+        for row in rows:
+            try:
+                self._recording_max_emg = max(
+                    self._recording_max_emg,
+                    int(float(row["emg_raw"])),
+                )
+            except (KeyError, TypeError, ValueError):
+                continue
 
     def _append_recording_rows(self):
         if self._csv_path is None:

@@ -93,7 +93,7 @@ class ANRM40ApiTest(unittest.TestCase):
         self.assertEqual(status["phase"], "ready")
         self.assertEqual(status["battery_pct"], 29)
 
-    def test_latest_appends_recording_rows_once(self):
+    def test_latest_does_not_write_recording_rows_while_screen_polls(self):
         with tempfile.TemporaryDirectory() as directory:
             service = self.make_ready_service(directory)
             service._live_path.write_text(
@@ -119,6 +119,23 @@ class ANRM40ApiTest(unittest.TestCase):
 
             service.latest()
             service.latest()
+
+            with service._csv_path.open(encoding="utf-8", newline="") as source:
+                rows = list(csv.DictReader(source))
+
+        self.assertEqual(rows, [])
+
+    def test_stop_writes_recording_csv_once(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = self.make_ready_service(directory)
+            self.write_live_rows(service._live_path)
+            service._started_at = "2026-08-19T15:00:00+00:00"
+            service._recording = True
+            service._duration = 30
+            service._csv_path = Path(directory) / "test.csv"
+            service._initialize_recording_csv()
+
+            service.stop()
 
             with service._csv_path.open(encoding="utf-8", newline="") as source:
                 rows = list(csv.DictReader(source))
