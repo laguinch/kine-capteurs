@@ -194,4 +194,4 @@ $("stopButton").addEventListener("click", () => command("/api/anr-m40/stop"));
 
 draw();
 poll();
-window.setInterval(poll, 100);
+window.setInterval(poll, 50);
