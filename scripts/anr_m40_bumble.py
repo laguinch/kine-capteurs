@@ -50,6 +50,18 @@ IDENTITY_FIELDS = {
 }
 
 
+NRF52840_STABLE_RANDOM_OWN_ADDRESS_TYPE = 1
+CONNECT_SCAN_INTERVAL_MS = 10
+CONNECT_SCAN_WINDOW_MS = 10
+HCI_REASON_LABELS = {
+    0x08: "supervision timeout",
+    0x13: "remote user terminated",
+    0x16: "local host terminated",
+    0x22: "LMP response timeout",
+    0x3E: "connection failed to establish",
+}
+
+
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
@@ -110,6 +122,17 @@ def normalize_address(value):
     return str(value).split("/")[0].upper()
 
 
+def format_hci_reason(reason):
+    try:
+        value = int(reason)
+    except (TypeError, ValueError):
+        return repr(reason)
+    label = HCI_REASON_LABELS.get(value)
+    if label:
+        return f"0x{value:02x} ({label})"
+    return f"0x{value:02x}"
+
+
 def looks_like_m40(args):
     text = advertisement_text(args).upper()
     # Le scan Bumble n'expose pas toujours les manufacturer data sous la meme
@@ -145,8 +168,9 @@ async def discover_m40(device, timeout):
         await device.start_scanning(
             legacy=True,
             active=True,
-            scan_interval=10,
-            scan_window=10,
+            scan_interval=CONNECT_SCAN_INTERVAL_MS,
+            scan_window=CONNECT_SCAN_WINDOW_MS,
+            own_address_type=NRF52840_STABLE_RANDOM_OWN_ADDRESS_TYPE,
             filter_duplicates=False,
             scanning_phys=(HCI_LE_1M_PHY,),
         )
@@ -180,6 +204,7 @@ class ANRM40BumbleClient:
         self.csv_path = Path(csv_path) if csv_path else None
         self.csv_file = None
         self.csv_writer = None
+        self.disconnect_reason = None
 
         if self.csv_path:
             self.csv_path.parent.mkdir(parents=True, exist_ok=True)
@@ -213,8 +238,27 @@ class ANRM40BumbleClient:
             print(f"{elapsed:6.2f} s | EMG={emg:4d} / 1023", flush=True)
             self.last_print = time.monotonic()
 
+    def register_disconnect_logger(self, connection):
+        def log_disconnection(reason=None, *args, **kwargs):
+            self.disconnect_reason = reason
+            print(
+                f"Déconnexion ANR M40: {format_hci_reason(reason)}",
+                flush=True,
+            )
+
+        on_event = getattr(connection, "on", None)
+        if not callable(on_event):
+            return
+        for event_name in ("disconnection", "disconnect"):
+            try:
+                on_event(event_name, log_disconnection)
+            except Exception:
+                continue
+
     async def run(self, duration, scan_timeout=10.0, connect_timeout=15.0):
         require_bumble()
+        import importlib
+
         from bumble.device import Device
         from bumble.hci import Address
         from bumble.transport import open_transport
@@ -243,14 +287,48 @@ class ANRM40BumbleClient:
                 f"via {self.transport}...",
                 flush=True,
             )
-            connection = await asyncio.wait_for(
-                device.connect(remote_address),
-                timeout=connect_timeout,
+            bumble_device = importlib.import_module("bumble.device")
+            original_connect_scan_interval = (
+                bumble_device.DEVICE_DEFAULT_CONNECT_SCAN_INTERVAL
             )
+            original_connect_scan_window = (
+                bumble_device.DEVICE_DEFAULT_CONNECT_SCAN_WINDOW
+            )
+            try:
+                bumble_device.DEVICE_DEFAULT_CONNECT_SCAN_INTERVAL = (
+                    CONNECT_SCAN_INTERVAL_MS
+                )
+                bumble_device.DEVICE_DEFAULT_CONNECT_SCAN_WINDOW = (
+                    CONNECT_SCAN_WINDOW_MS
+                )
+                connection = await device.connect(
+                    remote_address,
+                    own_address_type=NRF52840_STABLE_RANDOM_OWN_ADDRESS_TYPE,
+                    timeout=connect_timeout,
+                )
+            finally:
+                bumble_device.DEVICE_DEFAULT_CONNECT_SCAN_INTERVAL = (
+                    original_connect_scan_interval
+                )
+                bumble_device.DEVICE_DEFAULT_CONNECT_SCAN_WINDOW = (
+                    original_connect_scan_window
+                )
             print("Connexion BLE etablie.", flush=True)
+            self.register_disconnect_logger(connection)
             client = connection.gatt_client
 
-            await asyncio.wait_for(discover_characteristics(client), timeout=15.0)
+            try:
+                await asyncio.wait_for(discover_characteristics(client), timeout=15.0)
+            except asyncio.CancelledError as exc:
+                detail = (
+                    f" Déconnexion: {format_hci_reason(self.disconnect_reason)}."
+                    if self.disconnect_reason is not None
+                    else ""
+                )
+                raise RuntimeError(
+                    "Découverte GATT interrompue juste après connexion ANR M40."
+                    + detail
+                ) from exc
 
             identity = {}
             for name, uuid in IDENTITY_FIELDS.items():
