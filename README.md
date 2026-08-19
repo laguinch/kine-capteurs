@@ -374,6 +374,11 @@ Ce diagnostic découvre aussi la batterie standard `0x2A19` quand le firmware du
 M40 l'expose.
 Si le M40 coupe la liaison pendant l'échange MTU, ajouter `--skip-mtu`.
 
+Dans l'application, l'ANR M40 est exposé comme un capteur à part entière :
+`/anr-m40`, `/anr-m40/test` et API `/api/anr-m40/*`. Le gestionnaire Bluetooth
+unique le lance en HCI direct avec `KINE_HCI_ADAPTER` et conserve BlueZ hors du
+chemin critique.
+
 ## Diagnostic K-Pull
 
 Le K-Pull capturé est `KFORCELink02287`

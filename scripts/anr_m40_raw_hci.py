@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import struct
 import sys
 import time
@@ -73,6 +74,7 @@ class RawANRM40Client(RawKinventClient):
         self.notification_handle = None
         self.csv_file = None
         self.csv_writer = None
+        self.control_file = None
         if csv_path:
             path = Path(csv_path)
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -80,6 +82,15 @@ class RawANRM40Client(RawKinventClient):
             self.csv_writer = csv.writer(self.csv_file)
             self.csv_writer.writerow(["timestamp_utc", "elapsed_seconds", "emg_raw"])
             self.csv_file.flush()
+
+    @staticmethod
+    def read_control(path):
+        if not path:
+            return {}
+        try:
+            return json.loads(Path(path).read_text(encoding="utf-8"))
+        except (OSError, ValueError, json.JSONDecodeError):
+            return {}
 
     def handle_att(self, att):
         opcode = att[0]
@@ -110,6 +121,8 @@ class RawANRM40Client(RawKinventClient):
 
             self.notifications += 1
             self.latest_emg = emg
+            if self.started_at is None:
+                self.started_at = time.monotonic()
             elapsed = time.monotonic() - self.started_at
             timestamp = now_iso()
             if self.csv_writer is not None:
@@ -326,6 +339,44 @@ class RawANRM40Client(RawKinventClient):
                 pass
             self.close()
 
+    def run_persistent(self, scan_timeout, connect_timeout, skip_mtu, control_file):
+        self.control_file = control_file
+        self.open()
+        try:
+            self.reset()
+            self.wait_for_advertisement(scan_timeout)
+            self.connect(connect_timeout)
+            self.configure_m40(skip_mtu=skip_mtu)
+            self.started_at = time.monotonic()
+            print("ANR M40 prêt; liaison Bluetooth conservée.")
+            last_command = None
+            while True:
+                command = self.read_control(control_file)
+                current = (
+                    command.get("action"),
+                    command.get("generation"),
+                )
+                if current != last_command:
+                    action, _ = current
+                    if action == "start":
+                        print("Flux ANR M40 actif.")
+                    elif action == "stop":
+                        print("Flux ANR M40 conservé au repos.")
+                    elif action == "disconnect":
+                        print("Déconnexion ANR M40 demandée par le gestionnaire.")
+                        self.disconnect_link()
+                        return
+                    last_command = current
+                packet = self.receive_packet()
+                if packet is not None:
+                    self.process_packet(packet)
+        finally:
+            try:
+                self.disconnect_link()
+            except Exception:
+                pass
+            self.close()
+
 
 def build_parser():
     parser = argparse.ArgumentParser(
@@ -354,6 +405,7 @@ def build_parser():
         help="Intervalle entre deux valeurs affichées; toutes restent en CSV.",
     )
     parser.add_argument("--csv")
+    parser.add_argument("--control-file")
     return parser
 
 
@@ -367,12 +419,20 @@ def main():
         device_id=args.device_id,
         print_interval=args.print_interval,
     )
-    client.run(
-        scan_timeout=args.scan_timeout,
-        connect_timeout=args.connect_timeout,
-        duration=args.duration,
-        skip_mtu=args.skip_mtu,
-    )
+    if args.duration <= 0:
+        client.run_persistent(
+            scan_timeout=args.scan_timeout,
+            connect_timeout=args.connect_timeout,
+            skip_mtu=args.skip_mtu,
+            control_file=args.control_file,
+        )
+    else:
+        client.run(
+            scan_timeout=args.scan_timeout,
+            connect_timeout=args.connect_timeout,
+            duration=args.duration,
+            skip_mtu=args.skip_mtu,
+        )
 
 
 if __name__ == "__main__":

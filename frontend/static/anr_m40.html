@@ -3,24 +3,24 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>K‑Push — Choix du test</title>
+    <title>ANR M40 — Choix du test</title>
     <link rel="stylesheet" href="/static/styles.css?v=12">
   </head>
   <body>
-    <main class="shell home-shell sensor-setup" data-sensor="kpush" data-test-path="/kpush/test">
+    <main class="shell home-shell sensor-setup" data-sensor="anr_m40" data-test-path="/anr-m40/test">
       <nav class="sensor-nav">
         <a href="/">Accueil</a>
         <a href="/appareils">Appareils</a>
         <a href="/kforceplates">K‑Force Plates</a>
-        <a class="active" href="/kpush">K‑Push</a>
+        <a href="/kpush">K‑Push</a>
         <a href="/kpull">K‑Pull</a>
         <a href="/kmove">K‑Move</a>
-        <a href="/anr-m40">ANR M40</a>
+        <a class="active" href="/anr-m40">ANR M40</a>
       </nav>
       <header class="hero">
-        <p class="eyebrow">K‑Push</p>
-        <h1>Choisir le test</h1>
-        <p class="subtitle">Sélectionnez l’articulation, puis l’amplitude testée.</p>
+        <p class="eyebrow">ANR M40</p>
+        <h1>Choisir le test EMG</h1>
+        <p class="subtitle">Sélectionnez l’articulation, puis le mouvement testé.</p>
       </header>
 
       <section class="setup-step">
@@ -29,7 +29,7 @@
       </section>
 
       <section id="movementStep" class="setup-step hidden">
-        <p class="eyebrow">Amplitude testée</p>
+        <p class="eyebrow">Mouvement testé</p>
         <h2 id="selectedJointTitle">—</h2>
         <div id="movementChoices" class="choice-grid movement-grid"></div>
       </section>

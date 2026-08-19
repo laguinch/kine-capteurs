@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from api.routes.anr_m40 import router as anr_m40_router
 from api.routes.devices import router as devices_router
 from api.routes.evaluations import router as evaluations_router
 from api.routes.kplates import router as kplates_router
@@ -21,6 +22,7 @@ app.include_router(kplates_router)
 app.include_router(kpush_router)
 app.include_router(kpull_router)
 app.include_router(kmove_router)
+app.include_router(anr_m40_router)
 app.include_router(patients_router)
 app.include_router(evaluations_router)
 app.mount(
@@ -134,6 +136,16 @@ def kmove():
 @app.get("/kmove/test")
 def kmove_test():
     return frontend_page("kmove_test.html")
+
+
+@app.get("/anr-m40")
+def anr_m40():
+    return frontend_page("anr_m40.html")
+
+
+@app.get("/anr-m40/test")
+def anr_m40_test():
+    return frontend_page("anr_m40_test.html")
 
 
 @app.get("/api/health")

@@ -25,8 +25,8 @@ def manager_state():
 
 
 def request_sensor(target):
-    if target not in {None, "kplates", "kpush", "kpull", "kmove"}:
-        raise ValueError(f"Capteur Kinvent inconnu: {target}")
+    if target not in {None, "kplates", "kpush", "kpull", "kmove", "anr_m40"}:
+        raise ValueError(f"Capteur inconnu: {target}")
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     command = {
         "action": "select" if target else "disconnect",

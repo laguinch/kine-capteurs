@@ -1,0 +1,90 @@
+import csv
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
+
+from ble.anr.acquisition_service import ANRM40AcquisitionService
+
+
+FIELDS = ["timestamp_utc", "elapsed_seconds", "emg_raw"]
+
+
+class ANRM40ApiTest(unittest.TestCase):
+    def make_ready_service(self, directory):
+        service = ANRM40AcquisitionService()
+        root = Path(directory)
+        service._live_path = root / "live.csv"
+        service._log_path = root / "worker.log"
+        service._control_path = root / "control.json"
+        service._log_path.write_text(
+            "Batterie M40: 30 %\nANR M40 prêt; liaison Bluetooth conservée.\n",
+            encoding="utf-8",
+        )
+        service._process = mock.Mock(pid=123)
+        service._process.poll.return_value = None
+        return service
+
+    def write_live_rows(self, path):
+        with path.open("w", newline="", encoding="utf-8") as target:
+            writer = csv.writer(target)
+            writer.writerow(FIELDS)
+            writer.writerow(["2026-08-19T15:00:01+00:00", 1.0, 18])
+            writer.writerow(["2026-08-19T15:00:02+00:00", 2.0, 42])
+
+    def test_connect_requests_anr_m40_from_unique_manager(self):
+        service = ANRM40AcquisitionService()
+        process = mock.Mock(pid=123)
+        process.poll.return_value = None
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            service._live_path = root / "live.csv"
+            service._log_path = root / "worker.log"
+            service._control_path = root / "control.json"
+            with mock.patch(
+                "ble.anr.acquisition_service.request_sensor"
+            ) as request, mock.patch(
+                "ble.anr.acquisition_service.ManagedSensorProcess",
+                return_value=process,
+            ):
+                status = service.connect()
+
+        request.assert_called_once_with("anr_m40")
+        self.assertTrue(status["connected"])
+        self.assertFalse(status["running"])
+
+    def test_latest_reports_emg_and_battery(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = self.make_ready_service(directory)
+            self.write_live_rows(service._live_path)
+            service._started_at = "2026-08-19T15:00:00+00:00"
+            service._recording = True
+            service._duration = 1_000_000_000
+            service._csv_path = Path(directory) / "test.csv"
+
+            latest = service.latest()
+
+        self.assertEqual(latest["phase"], "active")
+        self.assertEqual(latest["measurement"]["emg_raw"], 42)
+        self.assertEqual(latest["measurement"]["max_emg_raw"], 42)
+        self.assertEqual(latest["measurement"]["battery_pct"], 30)
+
+    def test_stop_keeps_anr_connected_and_ready(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = self.make_ready_service(directory)
+            self.write_live_rows(service._live_path)
+            service._started_at = "2026-08-19T15:00:00+00:00"
+            service._recording = True
+            service._csv_path = Path(directory) / "test.csv"
+
+            status = service.stop()
+            control = service._control_path.read_text()
+
+        self.assertFalse(status["running"])
+        self.assertTrue(status["connected"])
+        self.assertEqual(status["phase"], "ready")
+        self.assertIn('"action": "stop"', control)
+
+
+if __name__ == "__main__":
+    unittest.main()

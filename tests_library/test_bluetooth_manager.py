@@ -167,6 +167,37 @@ class BluetoothManagerTest(unittest.TestCase):
         self.assertIn("kinvent_dual_hci.py", command[2])
         self.assertEqual(command[command.index("--adapter") + 1], "hci1")
 
+    def test_anr_m40_launch_uses_raw_hci_adapter(self):
+        with tempfile.TemporaryDirectory() as directory, mock.patch.dict(
+            "os.environ",
+            {"KINE_HCI_ADAPTER": "hci0"},
+            clear=False,
+        ):
+            raw_dir = Path(directory) / "raw"
+            base_dir = Path(directory) / "project"
+            raw_dir.mkdir()
+            base_dir.mkdir()
+            bluetooth = KinventBluetoothManager()
+            bluetooth.state = mock.Mock()
+
+            with mock.patch(
+                "scripts.kinvent_bluetooth_manager.RAW_DIR",
+                raw_dir,
+            ), mock.patch(
+                "scripts.kinvent_bluetooth_manager.BASE_DIR",
+                base_dir,
+            ), mock.patch(
+                "scripts.kinvent_bluetooth_manager.subprocess.Popen"
+            ) as popen:
+                popen.return_value.pid = 4321
+                bluetooth.launch("anr_m40")
+
+        command = popen.call_args.args[0]
+        self.assertIn("anr_m40_raw_hci.py", command[2])
+        self.assertEqual(command[command.index("--adapter") + 1], "hci0")
+        self.assertIn("--skip-mtu", command)
+        self.assertNotIn("--transport", command)
+
     def test_kplates_bumble_backend_remains_available_for_diagnostics(self):
         with tempfile.TemporaryDirectory() as directory, mock.patch.dict(
             "os.environ",

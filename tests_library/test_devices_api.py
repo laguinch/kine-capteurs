@@ -40,13 +40,17 @@ class DevicesApiTest(unittest.TestCase):
             devices_module.kmove_service,
             "status",
             return_value={"phase": "disconnected", "connected": False},
+        ), mock.patch.object(
+            devices_module.anr_m40_service,
+            "status",
+            return_value={"phase": "disconnected", "connected": False},
         ):
             snapshot = devices_module.devices_snapshot()
 
         self.assertEqual(snapshot["manager"]["target"], "kplates")
         self.assertEqual(
             [device["key"] for device in snapshot["devices"]],
-            ["kplates", "kpush", "kpull", "kmove"],
+            ["kplates", "kpush", "kpull", "kmove", "anr_m40"],
         )
         kplates = snapshot["devices"][0]
         self.assertTrue(kplates["connected"])
@@ -111,6 +115,29 @@ class DevicesApiTest(unittest.TestCase):
             )
 
         disconnect_kpush.assert_called_once_with()
+
+    @unittest.skipUnless(
+        importlib.util.find_spec("fastapi"),
+        "FastAPI est installé dans l'environnement serveur.",
+    )
+    def test_connect_device_supports_anr_m40(self):
+        import api.routes.devices as devices_module
+
+        with mock.patch.object(
+            devices_module.anr_m40_service,
+            "connect",
+            return_value={"phase": "ready"},
+        ) as connect_anr, mock.patch.object(
+            devices_module,
+            "devices_snapshot",
+            return_value={"devices": []},
+        ):
+            self.assertEqual(
+                devices_module.connect_device("anr_m40"),
+                {"devices": []},
+            )
+
+        connect_anr.assert_called_once_with()
 
 
 if __name__ == "__main__":

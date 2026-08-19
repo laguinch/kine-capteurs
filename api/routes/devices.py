@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
-from ble.common.devices import KMOVE, KPLATE_LEFT, KPLATE_RIGHT, KPULL, KPUSH
+from ble.anr.acquisition_service import anr_m40_service
+from ble.common.devices import ANR_M40, KMOVE, KPLATE_LEFT, KPLATE_RIGHT, KPULL, KPUSH
 from ble.kinvent.bluetooth_manager import manager_state, request_sensor
 from ble.kinvent.kmove.acquisition_service import kmove_service
 from ble.kinvent.kplates.acquisition_service import dual_plate_service
@@ -62,6 +63,7 @@ def devices_snapshot():
     kpush = kpush_service.status()
     kpull = kpull_service.status()
     kmove = kmove_service.status()
+    anr_m40 = anr_m40_service.status()
 
     return {
         "manager": {
@@ -122,6 +124,17 @@ def devices_snapshot():
                 target,
                 "/kmove",
             ),
+            _device(
+                "anr_m40",
+                "ANR M40",
+                "EMG",
+                [{"address": ANR_M40}],
+                anr_m40,
+                anr_m40.get("connected"),
+                anr_m40.get("phase"),
+                target,
+                "/anr-m40",
+            ),
         ],
     }
 
@@ -148,6 +161,8 @@ def connect_device(device_key: str):
             kpull_service.connect()
         elif device_key == "kmove":
             kmove_service.connect()
+        elif device_key == "anr_m40":
+            anr_m40_service.connect()
         else:
             raise HTTPException(status_code=404, detail="Appareil inconnu.")
     except RuntimeError as exc:
@@ -166,6 +181,8 @@ def disconnect_device(device_key: str):
             kpull_service.disconnect()
         elif device_key == "kmove":
             kmove_service.disconnect()
+        elif device_key == "anr_m40":
+            anr_m40_service.disconnect()
         else:
             raise HTTPException(status_code=404, detail="Appareil inconnu.")
     except RuntimeError as exc:

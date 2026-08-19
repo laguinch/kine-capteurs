@@ -51,7 +51,7 @@ const selectedJointTitle = document.getElementById("selectedJointTitle");
 let selectedJoint = params.get("articulation") || null;
 let selectedSide = params.get("cote") || null;
 
-document.querySelectorAll(".sensor-nav a[href^='/kforceplates'], .sensor-nav a[href^='/kpush'], .sensor-nav a[href^='/kpull'], .sensor-nav a[href^='/kmove']").forEach((link) => {
+document.querySelectorAll(".sensor-nav a[href^='/kforceplates'], .sensor-nav a[href^='/kpush'], .sensor-nav a[href^='/kpull'], .sensor-nav a[href^='/kmove'], .sensor-nav a[href^='/anr-m40']").forEach((link) => {
   const target = new URL(link.getAttribute("href"), window.location.origin);
   if (type === "training" && target.pathname === "/kforceplates") {
     target.pathname = "/kforceplates/jeux";

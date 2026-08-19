@@ -80,6 +80,19 @@ TARGETS = {
             "--csv", str(RAW_DIR / "kmove_live.csv"),
         ],
     },
+    "anr_m40": {
+        "script": "anr_m40_raw_hci.py",
+        "control": "anr_m40_worker_control.json",
+        "log": "anr_m40_worker.log",
+        "args": [
+            "--address", "68:23:B0:B6:AF:F3",
+            "--duration", "0",
+            "--skip-mtu",
+            "--device-id", "1",
+            "--control-file", str(RAW_DIR / "anr_m40_worker_control.json"),
+            "--csv", str(RAW_DIR / "anr_m40_live.csv"),
+        ],
+    },
 }
 
 KPLATES_BACKEND_HCI = "hci-direct"
@@ -233,7 +246,15 @@ class KinventBluetoothManager:
     def launch(self, target):
         config = TARGETS[target]
         log_path = RAW_DIR / config["log"]
-        if target == "kplates" and self.kplates_backend == KPLATES_BACKEND_HCI:
+        if target == "anr_m40":
+            command = [
+                sys.executable,
+                "-u",
+                str(BASE_DIR / "scripts" / config["script"]),
+                "--adapter", hci_adapter_from_environment(),
+                *config["args"],
+            ]
+        elif target == "kplates" and self.kplates_backend == KPLATES_BACKEND_HCI:
             command = [
                 sys.executable,
                 "-u",
