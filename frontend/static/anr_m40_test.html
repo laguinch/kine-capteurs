@@ -32,9 +32,28 @@
         </div>
       </header>
 
+      <section id="flowBanner" class="flow-banner">
+        <span id="flowMode">Évaluation anonyme</span>
+        <strong id="flowSave">Résultats anonymes, exportables sans dossier patient.</strong>
+      </section>
+
       <section class="control-panel">
+        <label>
+          Durée
+          <select id="duration">
+            <option value="15">15 secondes</option>
+            <option value="30" selected>30 secondes</option>
+            <option value="60">60 secondes</option>
+          </select>
+        </label>
+        <label>
+          Nom du test
+          <input id="filename" placeholder="Créé automatiquement">
+        </label>
         <button id="startButton" class="primary">Démarrer</button>
         <button id="stopButton" class="secondary" disabled>Arrêter</button>
+        <button id="connectButton" class="secondary">Connecter l’ANR M40</button>
+        <button id="disconnectButton" class="secondary" disabled>Déconnecter</button>
         <a id="downloadButton" class="download disabled" href="/api/anr-m40/download">Télécharger</a>
         <div class="timer">
           <span>Temps</span>
@@ -77,6 +96,8 @@
         </div>
       </section>
     </main>
-    <script src="/static/anr_m40.js?v=7"></script>
+    <script src="/static/patient_save.js?v=3"></script>
+    <script src="/static/anr_m40.js?v=8"></script>
+    <script src="/static/flow.js?v=5"></script>
   </body>
 </html>

@@ -81,13 +81,14 @@ TARGETS = {
         ],
     },
     "anr_m40": {
-        "script": "anr_m40_bumble.py",
+        "script": "anr_m40_raw_hci.py",
         "control": "anr_m40_worker_control.json",
         "log": "anr_m40_worker.log",
         "args": [
             "--address", "68:23:B0:B6:AF:F3",
             "--duration", "0",
             "--device-id", "1",
+            "--skip-mtu",
             "--print-interval", "2",
             "--control-file", str(RAW_DIR / "anr_m40_worker_control.json"),
             "--csv", str(RAW_DIR / "anr_m40_live.csv"),
@@ -257,6 +258,14 @@ class KinventBluetoothManager:
                 "--sync-tolerance-ms", "20",
                 "--control-file", str(RAW_DIR / "kplates_worker_control.json"),
                 "--state-file", str(RAW_DIR / "kplates_worker_state.json"),
+            ]
+        elif target == "anr_m40":
+            command = [
+                sys.executable,
+                "-u",
+                str(BASE_DIR / "scripts" / config["script"]),
+                "--adapter", hci_adapter_from_environment(),
+                *config["args"],
             ]
         else:
             if target == "kplates" and self.kplates_backend != KPLATES_BACKEND_BUMBLE:

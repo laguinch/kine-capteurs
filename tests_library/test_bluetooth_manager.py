@@ -167,10 +167,10 @@ class BluetoothManagerTest(unittest.TestCase):
         self.assertIn("kinvent_dual_hci.py", command[2])
         self.assertEqual(command[command.index("--adapter") + 1], "hci1")
 
-    def test_anr_m40_launch_uses_bumble_transport(self):
+    def test_anr_m40_launch_uses_direct_hci_with_skip_mtu(self):
         with tempfile.TemporaryDirectory() as directory, mock.patch.dict(
             "os.environ",
-            {"KINE_BUMBLE_TRANSPORT": "usb:0"},
+            {"KINE_HCI_ADAPTER": "hci0"},
             clear=False,
         ):
             raw_dir = Path(directory) / "raw"
@@ -193,13 +193,13 @@ class BluetoothManagerTest(unittest.TestCase):
                 bluetooth.launch("anr_m40")
 
         command = popen.call_args.args[0]
-        self.assertIn("anr_m40_bumble.py", command[2])
-        self.assertIn("--transport", command)
-        self.assertEqual(command[command.index("--transport") + 1], "usb:0")
+        self.assertIn("anr_m40_raw_hci.py", command[2])
+        self.assertIn("--adapter", command)
+        self.assertEqual(command[command.index("--adapter") + 1], "hci0")
         self.assertIn("--control-file", command)
         self.assertEqual(command[command.index("--print-interval") + 1], "2")
-        self.assertNotIn("--adapter", command)
-        self.assertNotIn("--skip-mtu", command)
+        self.assertIn("--skip-mtu", command)
+        self.assertNotIn("--transport", command)
 
     def test_kplates_bumble_backend_remains_available_for_diagnostics(self):
         with tempfile.TemporaryDirectory() as directory, mock.patch.dict(
