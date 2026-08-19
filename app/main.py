@@ -140,7 +140,7 @@ def kmove_test():
 
 @app.get("/anr-m40")
 def anr_m40():
-    return frontend_page("anr_m40.html")
+    return frontend_page("anr_m40_test.html")
 
 
 @app.get("/anr-m40/test")
