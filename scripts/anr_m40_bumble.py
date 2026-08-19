@@ -345,6 +345,11 @@ class ANRM40BumbleClient:
 
             while deadline is None or time.monotonic() < deadline:
                 await asyncio.sleep(0.05)
+                if self.disconnect_reason is not None:
+                    raise RuntimeError(
+                        "ANR M40 déconnecté pendant le flux: "
+                        f"{format_hci_reason(self.disconnect_reason)}."
+                    )
                 if control_requests_disconnect(self.control_file):
                     print(
                         "Déconnexion ANR M40 demandée par le gestionnaire.",

@@ -1,6 +1,7 @@
 import csv
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest import mock
 
@@ -26,11 +27,12 @@ class ANRM40ApiTest(unittest.TestCase):
         return service
 
     def write_live_rows(self, path):
+        timestamp = datetime.now(timezone.utc).isoformat()
         with path.open("w", newline="", encoding="utf-8") as target:
             writer = csv.writer(target)
             writer.writerow(FIELDS)
-            writer.writerow(["2026-08-19T15:00:01+00:00", 1.0, 18])
-            writer.writerow(["2026-08-19T15:00:02+00:00", 2.0, 42])
+            writer.writerow([timestamp, 1.0, 18])
+            writer.writerow([timestamp, 2.0, 42])
 
     def test_connect_requests_anr_m40_from_unique_manager(self):
         service = ANRM40AcquisitionService()
@@ -57,7 +59,7 @@ class ANRM40ApiTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             service = self.make_ready_service(directory)
             self.write_live_rows(service._live_path)
-            service._started_at = "2026-08-19T15:00:00+00:00"
+            service._started_at = "2000-01-01T00:00:00+00:00"
             service._recording = True
             service._duration = 1_000_000_000
             service._csv_path = Path(directory) / "test.csv"
@@ -72,11 +74,12 @@ class ANRM40ApiTest(unittest.TestCase):
     def test_latest_ignores_partial_live_csv_line(self):
         with tempfile.TemporaryDirectory() as directory:
             service = self.make_ready_service(directory)
+            timestamp = datetime.now(timezone.utc).isoformat()
             service._live_path.write_text(
                 (
                     "timestamp_utc,elapsed_seconds,emg_raw\n"
-                    "2026-08-19T15:00:01+00:00,1.0,18\n"
-                    "2026-08-19T15:00:02+00:00,"
+                    f"{timestamp},1.0,18\n"
+                    f"{timestamp},"
                 ),
                 encoding="utf-8",
             )
@@ -88,6 +91,37 @@ class ANRM40ApiTest(unittest.TestCase):
             latest = service.latest()
 
         self.assertEqual(latest["measurement"]["emg_raw"], 18)
+
+    def test_latest_ignores_stale_live_measurement(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = self.make_ready_service(directory)
+            service._live_path.write_text(
+                (
+                    "timestamp_utc,elapsed_seconds,emg_raw\n"
+                    "2000-01-01T00:00:00+00:00,1.0,18\n"
+                ),
+                encoding="utf-8",
+            )
+
+            latest = service.latest()
+
+        self.assertEqual(latest["phase"], "error")
+        self.assertIsNone(latest["measurement"])
+        self.assertIn("Flux ANR M40 interrompu", latest["last_error"])
+
+    def test_start_refuses_stale_live_measurement(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = self.make_ready_service(directory)
+            service._live_path.write_text(
+                (
+                    "timestamp_utc,elapsed_seconds,emg_raw\n"
+                    "2000-01-01T00:00:00+00:00,1.0,18\n"
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "Flux ANR M40 interrompu"):
+                service.start()
 
     def test_status_reports_battery_before_recording(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -149,7 +183,7 @@ class ANRM40ApiTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             service = self.make_ready_service(directory)
             self.write_live_rows(service._live_path)
-            service._started_at = "2026-08-19T15:00:00+00:00"
+            service._started_at = "2000-01-01T00:00:00+00:00"
             service._recording = True
             service._duration = 30
             service._csv_path = Path(directory) / "test.csv"

@@ -14,6 +14,7 @@ from ble.kinvent.bluetooth_manager import (
 
 
 FIELDS = ["timestamp_utc", "elapsed_seconds", "emg_raw"]
+LIVE_STALE_SECONDS = 5.0
 
 
 def now_iso():
@@ -86,8 +87,12 @@ class ANRM40AcquisitionService:
             self._refresh()
             if self._process is None:
                 raise RuntimeError("Connectez l'ANR M40 avant de démarrer.")
-            if self._connection_phase() != "ready":
+            phase = self._connection_phase()
+            if phase != "ready":
+                if self._last_error:
+                    raise RuntimeError(self._last_error)
                 raise RuntimeError("Attendez la fin de la connexion ANR M40.")
+            self._require_live_stream_fresh()
             if self._recording or self._armed:
                 raise RuntimeError("Une acquisition ANR M40 est déjà en cours.")
             if filename is None:
@@ -157,7 +162,11 @@ class ANRM40AcquisitionService:
             status = self.status()
             row = self._read_latest_row(self._live_path)
             measurement = None
-            if row and status["phase"] in {"ready", "active"}:
+            if (
+                row
+                and status["phase"] in {"ready", "active"}
+                and not self._live_row_is_stale(row)
+            ):
                 emg_raw = int(float(row["emg_raw"]))
                 if self._recording:
                     self._recording_max_emg = max(
@@ -186,11 +195,21 @@ class ANRM40AcquisitionService:
         if self._process is None:
             return "error" if self._last_error else "disconnected"
         if self._sensor_ready:
+            if self._live_stream_is_stale():
+                self._last_error = (
+                    "Flux ANR M40 interrompu. Reconnectez l'ANR M40."
+                )
+                return "error"
             return "ready"
         text = self._read_log()
         if "ANR M40 prêt; liaison Bluetooth conservée." in text:
             self._update_battery_from_text(text)
             self._sensor_ready = True
+            if self._live_stream_is_stale():
+                self._last_error = (
+                    "Flux ANR M40 interrompu. Reconnectez l'ANR M40."
+                )
+                return "error"
             return "ready"
         return "connecting"
 
@@ -206,6 +225,31 @@ class ANRM40AcquisitionService:
             else start
         )
         return max(0.0, (end - start).total_seconds())
+
+    def _require_live_stream_fresh(self):
+        if self._live_stream_is_stale():
+            self._last_error = (
+                "Flux ANR M40 interrompu. Reconnectez l'ANR M40."
+            )
+            raise RuntimeError(self._last_error)
+
+    def _live_stream_is_stale(self):
+        row = self._read_latest_row(self._live_path)
+        return row is not None and self._live_row_is_stale(row)
+
+    @staticmethod
+    def _live_row_is_stale(row):
+        timestamp = row.get("timestamp_utc")
+        if not timestamp:
+            return False
+        try:
+            updated = datetime.fromisoformat(timestamp)
+        except (TypeError, ValueError):
+            return True
+        if updated.tzinfo is None:
+            updated = updated.replace(tzinfo=timezone.utc)
+        age = (datetime.now(timezone.utc) - updated).total_seconds()
+        return age > LIVE_STALE_SECONDS
 
     def _refresh(self):
         state = manager_state()
