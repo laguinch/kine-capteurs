@@ -78,6 +78,21 @@ class ANRM40ApiTest(unittest.TestCase):
         self.assertEqual(status["phase"], "ready")
         self.assertEqual(status["battery_pct"], 30)
 
+    def test_status_keeps_battery_when_log_tail_moves_past_it(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = self.make_ready_service(directory)
+            service._log_path.write_text(
+                "Batterie M40: 29 %\n"
+                "ANR M40 prêt; liaison Bluetooth conservée.\n"
+                + "\n".join(f"{index:04d} | EMG=  18 / 1023" for index in range(200)),
+                encoding="utf-8",
+            )
+
+            status = service.status()
+
+        self.assertEqual(status["phase"], "ready")
+        self.assertEqual(status["battery_pct"], 29)
+
     def test_latest_appends_recording_rows_once(self):
         with tempfile.TemporaryDirectory() as directory:
             service = self.make_ready_service(directory)

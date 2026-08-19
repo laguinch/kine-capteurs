@@ -197,6 +197,7 @@ class BluetoothManagerTest(unittest.TestCase):
         self.assertIn("--transport", command)
         self.assertEqual(command[command.index("--transport") + 1], "usb:0")
         self.assertIn("--control-file", command)
+        self.assertEqual(command[command.index("--print-interval") + 1], "2")
         self.assertNotIn("--adapter", command)
         self.assertNotIn("--skip-mtu", command)
 

@@ -88,6 +88,7 @@ TARGETS = {
             "--address", "68:23:B0:B6:AF:F3",
             "--duration", "0",
             "--device-id", "1",
+            "--print-interval", "2",
             "--control-file", str(RAW_DIR / "anr_m40_worker_control.json"),
             "--csv", str(RAW_DIR / "anr_m40_live.csv"),
         ],

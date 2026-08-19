@@ -14,6 +14,10 @@ const format = (value, digits = 0) =>
       })
     : "—";
 
+function hasNumber(value) {
+  return value !== null && value !== undefined && value !== "" && Number.isFinite(Number(value));
+}
+
 function message(text, error = false, ready = false) {
   $("message").textContent = text || "";
   $("message").classList.toggle("hidden", !text);
@@ -93,14 +97,14 @@ function update(data) {
   }
   maybeSave(data);
 
-  if (Number.isFinite(Number(data.battery_pct))) {
+  if (hasNumber(data.battery_pct)) {
     $("batteryBadge").textContent = `Batterie ${Number(data.battery_pct)} %`;
   }
 
   const m = data.measurement;
   if (!m || m.timestamp_utc === state.lastTimestamp) return;
   state.lastTimestamp = m.timestamp_utc;
-  if (Number.isFinite(Number(m.battery_pct))) {
+  if (hasNumber(m.battery_pct)) {
     $("batteryBadge").textContent = `Batterie ${Number(m.battery_pct)} %`;
   }
   state.maxEmgRaw = Math.max(state.maxEmgRaw, Number(m.max_emg_raw) || 0);

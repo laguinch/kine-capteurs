@@ -43,6 +43,7 @@ class ANRM40AcquisitionService:
         self._recording_max_emg = 0
         self._recording_live_position = 0
         self._recording_pending_fragment = ""
+        self._battery_pct = None
 
     def connect(self):
         with self._lock:
@@ -65,6 +66,7 @@ class ANRM40AcquisitionService:
             self._last_error = None
             self._stop_requested = False
             self._sensor_ready = False
+            self._battery_pct = None
             return self.status()
 
     def disconnect(self):
@@ -183,6 +185,7 @@ class ANRM40AcquisitionService:
             return "ready"
         text = self._read_log()
         if "ANR M40 prêt; liaison Bluetooth conservée." in text:
+            self._update_battery_from_text(text)
             self._sensor_ready = True
             return "ready"
         return "connecting"
@@ -373,22 +376,49 @@ class ANRM40AcquisitionService:
         return maximum
 
     def _read_battery_from_log(self):
+        if self._battery_pct is not None:
+            return self._battery_pct
         for line in reversed(self._read_log_tail(max_lines=80)):
             marker = "Batterie M40:"
             if marker not in line or "%" not in line:
                 continue
             try:
-                return int(line.split(marker, 1)[1].split("%", 1)[0].strip())
+                self._battery_pct = int(
+                    line.split(marker, 1)[1].split("%", 1)[0].strip()
+                )
+                return self._battery_pct
             except (IndexError, ValueError):
                 continue
         return None
+
+    def _update_battery_from_text(self, text):
+        marker = "Batterie M40:"
+        for line in reversed(text.splitlines()):
+            if marker not in line or "%" not in line:
+                continue
+            try:
+                self._battery_pct = int(
+                    line.split(marker, 1)[1].split("%", 1)[0].strip()
+                )
+                return
+            except (IndexError, ValueError):
+                continue
 
     def _read_log_tail(self, max_lines=12):
         if not self._log_path.exists():
             return []
         try:
-            return self._log_path.read_text(
-                encoding="utf-8",
+            with self._log_path.open("rb") as source:
+                source.seek(0, 2)
+                position = source.tell()
+                buffer = bytearray()
+                while position > 0 and buffer.count(b"\n") <= max_lines:
+                    read_size = min(8192, position)
+                    position -= read_size
+                    source.seek(position)
+                    buffer[:0] = source.read(read_size)
+            return buffer.decode(
+                "utf-8",
                 errors="replace",
             ).splitlines()[-max_lines:]
         except OSError:
