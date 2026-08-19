@@ -355,6 +355,21 @@ sudo .venv/bin/python -u scripts/anr_m40_bumble.py \
 
 Si l'adresse du M40 est connue, l'ajouter avec `--address "ADRESSE"`.
 
+Si la couche GATT Bumble coupe juste après connexion, utiliser le diagnostic
+ATT/HCI brut :
+
+```bash
+cd /opt/kine-capteurs-staging
+source .venv/bin/activate
+
+sudo .venv/bin/python -u scripts/anr_m40_raw_hci.py \
+  --adapter hci1 \
+  --address "68:23:B0:B6:AF:F3" \
+  --duration 30 \
+  --device-id 1 \
+  --csv storage/raw_data/anr_m40_raw_hci_test.csv
+```
+
 ## Diagnostic K-Pull
 
 Le K-Pull capturé est `KFORCELink02287`
