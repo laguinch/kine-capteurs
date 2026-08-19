@@ -69,6 +69,26 @@ class ANRM40ApiTest(unittest.TestCase):
         self.assertEqual(latest["measurement"]["max_emg_raw"], 42)
         self.assertEqual(latest["measurement"]["battery_pct"], 30)
 
+    def test_latest_ignores_partial_live_csv_line(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = self.make_ready_service(directory)
+            service._live_path.write_text(
+                (
+                    "timestamp_utc,elapsed_seconds,emg_raw\n"
+                    "2026-08-19T15:00:01+00:00,1.0,18\n"
+                    "2026-08-19T15:00:02+00:00,"
+                ),
+                encoding="utf-8",
+            )
+            service._started_at = "2026-08-19T15:00:00+00:00"
+            service._recording = True
+            service._duration = 1_000_000_000
+            service._csv_path = Path(directory) / "test.csv"
+
+            latest = service.latest()
+
+        self.assertEqual(latest["measurement"]["emg_raw"], 18)
+
     def test_status_reports_battery_before_recording(self):
         with tempfile.TemporaryDirectory() as directory:
             service = self.make_ready_service(directory)

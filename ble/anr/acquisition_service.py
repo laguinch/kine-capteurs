@@ -328,19 +328,34 @@ class ANRM40AcquisitionService:
                 if position == 0:
                     return None
                 buffer = bytearray()
-                while position > 0 and buffer.count(b"\n") < 2:
+                while position > 0 and buffer.count(b"\n") < 8:
                     read_size = min(4096, position)
                     position -= read_size
                     source.seek(position)
                     buffer[:0] = source.read(read_size)
             lines = buffer.decode("utf-8", errors="replace").splitlines()
-            if len(lines) < 2:
-                return None
-            line = lines[-1] if lines[-1].strip() else lines[-2]
-            if line.startswith("timestamp_utc,"):
-                return None
-            row = next(csv.DictReader(["timestamp_utc,elapsed_seconds,emg_raw", line]))
-            return row
+            for line in reversed(lines):
+                if not line.strip() or line.startswith("timestamp_utc,"):
+                    continue
+                try:
+                    row = next(
+                        csv.DictReader(
+                            ["timestamp_utc,elapsed_seconds,emg_raw", line]
+                        )
+                    )
+                    float(row["elapsed_seconds"])
+                    int(float(row["emg_raw"]))
+                    return row
+                except (
+                    csv.Error,
+                    IndexError,
+                    KeyError,
+                    StopIteration,
+                    TypeError,
+                    ValueError,
+                ):
+                    continue
+            return None
         except (OSError, csv.Error, StopIteration, ValueError):
             return None
 
