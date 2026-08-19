@@ -339,6 +339,22 @@ sudo scripts/run_anr_m40_diagnostic.sh \
 
 Le service permanent des plateformes est restauré automatiquement à la fin.
 
+Pour tester le M40 sans BlueZ, utiliser le diagnostic Bumble/HCI direct sur le
+dongle nRF52840 :
+
+```bash
+cd /opt/kine-capteurs-staging
+source .venv/bin/activate
+
+sudo .venv/bin/python -u scripts/anr_m40_bumble.py \
+  --transport usb:0 \
+  --duration 30 \
+  --device-id 1 \
+  --csv storage/raw_data/anr_m40_bumble_test.csv
+```
+
+Si l'adresse du M40 est connue, l'ajouter avec `--address "ADRESSE"`.
+
 ## Diagnostic K-Pull
 
 Le K-Pull capturé est `KFORCELink02287`

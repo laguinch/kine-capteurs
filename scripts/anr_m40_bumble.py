@@ -1,0 +1,341 @@
+"""Diagnostic ANR M40 via Bumble et controleur HCI USB.
+
+Le M40 expose un profil GATT standard. Ce script evite BlueZ/Bleak et utilise
+Bumble directement sur le dongle HCI USB, puis reutilise le decodeur ANR deja
+present dans le projet.
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import csv
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from ble.anr.protocol import (  # noqa: E402
+    ANALOG_CHAR,
+    BATTERY_LEVEL_CHAR,
+    DIGITAL_CHAR,
+    FIRMWARE_REVISION_CHAR,
+    HARDWARE_REVISION_CHAR,
+    MODEL_NUMBER_CHAR,
+    SERIAL_NUMBER_CHAR,
+    SOFTWARE_REVISION_CHAR,
+    decode_battery,
+    decode_emg,
+    encode_device_id,
+)
+from ble.kinvent.bumble_backend import (  # noqa: E402
+    DEFAULT_BUMBLE_TRANSPORT,
+    BumbleBackendError,
+    require_bumble,
+)
+from scripts.kinvent_kpush_bumble import make_remote_address  # noqa: E402
+
+
+IDENTITY_FIELDS = {
+    "model": MODEL_NUMBER_CHAR,
+    "serial": SERIAL_NUMBER_CHAR,
+    "firmware": FIRMWARE_REVISION_CHAR,
+    "hardware": HARDWARE_REVISION_CHAR,
+    "software": SOFTWARE_REVISION_CHAR,
+}
+
+
+def now_iso():
+    return datetime.now(timezone.utc).isoformat()
+
+
+def decode_text(value):
+    return bytes(value).decode("utf-8", errors="replace").strip("\x00")
+
+
+async def discover_characteristics(client):
+    await client.discover_services()
+    for service in client.services:
+        await service.discover_characteristics()
+        for characteristic in service.characteristics:
+            await characteristic.discover_descriptors()
+
+
+def characteristic_by_uuid(client, uuid):
+    matches = client.get_characteristics_by_uuid(uuid)
+    return matches[0] if matches else None
+
+
+async def read_optional(client, uuid):
+    characteristic = characteristic_by_uuid(client, uuid)
+    if characteristic is None:
+        return None
+    try:
+        return await client.read_value(characteristic)
+    except Exception:
+        return None
+
+
+def advertisement_address(args):
+    if not args:
+        return None
+    first = args[0]
+    if hasattr(first, "address"):
+        return first.address
+    return first
+
+
+def advertisement_text(args):
+    parts = []
+    for item in args:
+        for attr in ("name", "local_name", "complete_name"):
+            value = getattr(item, attr, None)
+            if value:
+                parts.append(str(value))
+        for attr in ("data", "advertising_data"):
+            value = getattr(item, attr, None)
+            if value:
+                parts.append(str(value))
+    return " ".join(parts)
+
+
+def normalize_address(value):
+    if value is None:
+        return ""
+    return str(value).split("/")[0].upper()
+
+
+def looks_like_m40(args):
+    text = advertisement_text(args).upper()
+    # Le scan Bumble n'expose pas toujours les manufacturer data sous la meme
+    # forme selon la version. On privilegie les noms visibles et le Company ID
+    # ANR en little endian quand il apparait dans la representation texte.
+    return (
+        "M40" in text
+        or "ANR" in text
+        or "05DA" in text
+        or "DA 05" in text
+        or "0X05DA" in text
+    )
+
+
+async def discover_m40(device, timeout):
+    from bumble.hci import HCI_LE_1M_PHY
+
+    loop = asyncio.get_running_loop()
+    found = []
+    seen = set()
+
+    def on_advertisement(*args):
+        address = normalize_address(advertisement_address(args))
+        if not address or address in seen or not looks_like_m40(args):
+            return
+        seen.add(address)
+        text = advertisement_text(args)
+        print(f"M40 possible: {address} {text}".strip(), flush=True)
+        found.append((address, text))
+
+    handler = device.on("advertisement", on_advertisement)
+    try:
+        await device.start_scanning(
+            legacy=True,
+            active=True,
+            scan_interval=10,
+            scan_window=10,
+            filter_duplicates=False,
+            scanning_phys=(HCI_LE_1M_PHY,),
+        )
+        await asyncio.sleep(timeout)
+    finally:
+        if handler is not None:
+            device.remove_listener("advertisement", handler)
+        await device.stop_scanning()
+    return found
+
+
+class ANRM40BumbleClient:
+    def __init__(
+        self,
+        transport,
+        address,
+        address_type,
+        csv_path=None,
+        device_id=1,
+        print_interval=0.1,
+    ):
+        self.transport = transport
+        self.address = address
+        self.address_type = address_type
+        self.device_id = device_id
+        self.print_interval = print_interval
+        self.notification_count = 0
+        self.latest_emg = None
+        self.started_at = None
+        self.last_print = 0.0
+        self.csv_path = Path(csv_path) if csv_path else None
+        self.csv_file = None
+        self.csv_writer = None
+
+        if self.csv_path:
+            self.csv_path.parent.mkdir(parents=True, exist_ok=True)
+            self.csv_file = self.csv_path.open("w", newline="", encoding="utf-8")
+            self.csv_writer = csv.writer(self.csv_file)
+            self.csv_writer.writerow(["timestamp_utc", "elapsed_seconds", "emg_raw"])
+            self.csv_file.flush()
+
+    def close(self):
+        if self.csv_file:
+            self.csv_file.close()
+            self.csv_file = None
+
+    def handle_emg(self, value):
+        self.notification_count += 1
+        try:
+            emg = decode_emg(bytes(value))
+        except ValueError as exc:
+            print(f"Trame EMG rejetee: {bytes(value).hex(' ')} ({exc})", flush=True)
+            return
+
+        self.latest_emg = emg
+        elapsed = time.monotonic() - self.started_at
+        timestamp = now_iso()
+
+        if self.csv_writer:
+            self.csv_writer.writerow([timestamp, round(elapsed, 6), emg])
+            self.csv_file.flush()
+
+        if time.monotonic() - self.last_print >= self.print_interval:
+            print(f"{elapsed:6.2f} s | EMG={emg:4d} / 1023", flush=True)
+            self.last_print = time.monotonic()
+
+    async def run(self, duration, scan_timeout=10.0, connect_timeout=15.0):
+        require_bumble()
+        from bumble.device import Device
+        from bumble.hci import Address
+        from bumble.transport import open_transport
+
+        async with await open_transport(self.transport) as hci_transport:
+            device = Device.with_hci(
+                "Kine Capteurs Bumble",
+                Address("F0:F1:F2:F3:F4:F5"),
+                hci_transport.source,
+                hci_transport.sink,
+            )
+            await device.power_on()
+
+            address = self.address
+            if not address:
+                print(f"Recherche des ANR M40 pendant {scan_timeout:.1f} s...")
+                found = await discover_m40(device, scan_timeout)
+                if not found:
+                    raise RuntimeError("Aucun ANR M40 detecte via Bumble.")
+                address = found[0][0]
+                print(f"Utilisation automatique de {address}.")
+
+            remote_address = make_remote_address(address, self.address_type, Address)
+            print(
+                f"Connexion ANR M40 Bumble a {remote_address} "
+                f"via {self.transport}...",
+                flush=True,
+            )
+            connection = await asyncio.wait_for(
+                device.connect(remote_address),
+                timeout=connect_timeout,
+            )
+            print("Connexion BLE etablie.", flush=True)
+            client = connection.gatt_client
+
+            await asyncio.wait_for(discover_characteristics(client), timeout=15.0)
+
+            identity = {}
+            for name, uuid in IDENTITY_FIELDS.items():
+                value = await read_optional(client, uuid)
+                identity[name] = decode_text(value) if value is not None else None
+            print(
+                "Identite: "
+                + " | ".join(
+                    f"{key}={value or 'indisponible'}"
+                    for key, value in identity.items()
+                ),
+                flush=True,
+            )
+
+            battery_value = await read_optional(client, BATTERY_LEVEL_CHAR)
+            if battery_value is None:
+                print("Batterie: non disponible.", flush=True)
+            else:
+                print(f"Batterie: {decode_battery(bytes(battery_value))} %", flush=True)
+
+            digital = characteristic_by_uuid(client, DIGITAL_CHAR)
+            if digital is None:
+                print("Caracteristique couleur/device-id indisponible.", flush=True)
+            else:
+                await client.write_value(
+                    digital,
+                    encode_device_id(self.device_id),
+                    with_response=True,
+                )
+                print(f"Couleur/Device ID regle sur {self.device_id}.", flush=True)
+
+            analog = characteristic_by_uuid(client, ANALOG_CHAR)
+            if analog is None:
+                raise RuntimeError("Caracteristique EMG analogique 0x2A58 introuvable.")
+
+            self.started_at = time.monotonic()
+            await analog.subscribe(self.handle_emg)
+            print(f"Notifications EMG pendant {duration:.1f} s...", flush=True)
+            await asyncio.sleep(duration)
+            await analog.unsubscribe()
+            await connection.disconnect()
+
+
+def build_parser():
+    parser = argparse.ArgumentParser(description="Diagnostic ANR M40 via Bumble.")
+    parser.add_argument("--transport", default=DEFAULT_BUMBLE_TRANSPORT)
+    parser.add_argument("--address")
+    parser.add_argument(
+        "--address-type",
+        choices=["public", "random"],
+        default="public",
+    )
+    parser.add_argument("--scan-timeout", type=float, default=10.0)
+    parser.add_argument("--connect-timeout", type=float, default=15.0)
+    parser.add_argument("--duration", type=float, default=30.0)
+    parser.add_argument("--device-id", type=int, default=1)
+    parser.add_argument("--print-interval", type=float, default=0.1)
+    parser.add_argument("--csv")
+    return parser
+
+
+def main():
+    args = build_parser().parse_args()
+    client = ANRM40BumbleClient(
+        transport=args.transport,
+        address=args.address,
+        address_type=args.address_type,
+        csv_path=args.csv,
+        device_id=args.device_id,
+        print_interval=args.print_interval,
+    )
+    try:
+        asyncio.run(
+            client.run(
+                args.duration,
+                scan_timeout=args.scan_timeout,
+                connect_timeout=args.connect_timeout,
+            )
+        )
+    except BumbleBackendError as exc:
+        raise SystemExit(str(exc)) from exc
+    finally:
+        client.close()
+    print(f"Notifications recues: {client.notification_count}", flush=True)
+
+
+if __name__ == "__main__":
+    main()
