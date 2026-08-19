@@ -4,6 +4,7 @@ const state = {
   lastTimestamp: null,
   maxEmgRaw: 0,
   pollInFlight: false,
+  commandInFlight: false,
 };
 const format = (value, digits = 0) =>
   Number.isFinite(value)
@@ -50,6 +51,7 @@ function draw() {
 }
 
 function update(data) {
+  if (!data || typeof data !== "object") return;
   const phase = data.phase || "disconnected";
   const active = phase === "active";
   const ready = phase === "ready";
@@ -64,10 +66,10 @@ function update(data) {
     error: "Erreur",
   };
   $("statusText").textContent = labels[phase] || "Prêt";
-  $("connectButton").disabled = data.connected || busy;
-  $("disconnectButton").disabled = !data.connected || active;
-  $("startButton").disabled = !ready;
-  $("stopButton").disabled = !active;
+  $("connectButton").disabled = state.commandInFlight || data.connected || busy;
+  $("disconnectButton").disabled = state.commandInFlight || !data.connected || active;
+  $("startButton").disabled = state.commandInFlight || !ready;
+  $("stopButton").disabled = state.commandInFlight || !active;
   $("downloadButton").classList.toggle("disabled", !data.csv_path);
   $("fileLabel").textContent = data.csv_path
     ? data.csv_path.split("/").pop()
@@ -90,6 +92,10 @@ function update(data) {
     message("Cliquez sur « Connecter l’ANR M40 ».");
   }
   maybeSave(data);
+
+  if (Number.isFinite(Number(data.battery_pct))) {
+    $("batteryBadge").textContent = `Batterie ${Number(data.battery_pct)} %`;
+  }
 
   const m = data.measurement;
   if (!m || m.timestamp_utc === state.lastTimestamp) return;
@@ -125,10 +131,19 @@ async function maybeSave(data) {
 }
 
 async function request(path, options = {}) {
-  const response = await fetch(path, options);
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.detail || "Commande impossible");
-  update(data);
+  if (state.commandInFlight) return;
+  state.commandInFlight = true;
+  try {
+    const response = await fetch(path, options);
+    const contentType = response.headers.get("content-type") || "";
+    const data = contentType.includes("application/json")
+      ? await response.json()
+      : { detail: await response.text() };
+    if (!response.ok) throw new Error(data.detail || "Commande impossible");
+    update(data);
+  } finally {
+    state.commandInFlight = false;
+  }
 }
 
 async function connect() {
@@ -148,6 +163,7 @@ async function disconnect() {
 }
 
 async function start() {
+  $("startButton").disabled = true;
   state.history = [];
   state.lastTimestamp = null;
   state.maxEmgRaw = 0;
@@ -163,6 +179,7 @@ async function start() {
     });
   } catch (error) {
     message(error.message, true);
+    $("startButton").disabled = false;
   }
 }
 
@@ -196,5 +213,8 @@ $("disconnectButton").addEventListener("click", disconnect);
 $("startButton").addEventListener("click", start);
 $("stopButton").addEventListener("click", stopTest);
 window.addEventListener("resize", draw);
+window.addEventListener("error", (event) => {
+  message(`Erreur écran ANR M40: ${event.message}`, true);
+});
 poll();
 setInterval(poll, 300);

@@ -69,6 +69,15 @@ class ANRM40ApiTest(unittest.TestCase):
         self.assertEqual(latest["measurement"]["max_emg_raw"], 42)
         self.assertEqual(latest["measurement"]["battery_pct"], 30)
 
+    def test_status_reports_battery_before_recording(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = self.make_ready_service(directory)
+
+            status = service.status()
+
+        self.assertEqual(status["phase"], "ready")
+        self.assertEqual(status["battery_pct"], 30)
+
     def test_latest_appends_recording_rows_once(self):
         with tempfile.TemporaryDirectory() as directory:
             service = self.make_ready_service(directory)

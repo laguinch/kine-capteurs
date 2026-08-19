@@ -147,6 +147,7 @@ class ANRM40AcquisitionService:
                 "csv_path": str(self._csv_path) if self._csv_path else None,
                 "log_path": str(self._log_path),
                 "last_error": self._last_error,
+                "battery_pct": self._read_battery_from_log(),
             }
 
     def latest(self):
@@ -167,7 +168,7 @@ class ANRM40AcquisitionService:
                     "elapsed_seconds": float(row["elapsed_seconds"]),
                     "emg_raw": int(float(row["emg_raw"])),
                     "max_emg_raw": maximum,
-                    "battery_pct": self._read_battery_from_log(),
+                    "battery_pct": status.get("battery_pct"),
                 }
             return {
                 **status,
