@@ -115,7 +115,6 @@ class ANRM40AcquisitionService:
             self._recording_live_position = self._live_file_size()
             self._recording_pending_fragment = ""
             self._initialize_recording_csv()
-            self._write_control("start", self._test_generation)
             return {
                 "running": True,
                 "connected": True,
@@ -140,10 +139,9 @@ class ANRM40AcquisitionService:
                 self._finished_at = None
                 self._write_control("stop", self._test_generation)
             elif self._recording:
-                self._append_recording_rows()
+                self._write_recording_csv()
                 self._recording = False
                 self._finished_at = now_iso()
-                self._write_control("stop", self._test_generation)
             return self.status()
 
     def status(self):
@@ -151,10 +149,6 @@ class ANRM40AcquisitionService:
             self._refresh()
             phase = self._connection_phase()
             elapsed = self._recording_elapsed()
-            if self._recording and self._duration and elapsed >= self._duration:
-                self.stop()
-                elapsed = self._recording_elapsed()
-                phase = self._connection_phase()
             return {
                 "running": self._recording,
                 "connected": self._process is not None,
@@ -174,8 +168,6 @@ class ANRM40AcquisitionService:
     def latest(self):
         with self._lock:
             status = self.status()
-            if self._recording:
-                self._append_recording_rows()
             row = self._read_latest_row(self._live_path)
             measurement = None
             if (
@@ -192,7 +184,7 @@ class ANRM40AcquisitionService:
                 maximum = (
                     self._recording_max_emg
                     if self._recording
-                    else self._read_max_emg()
+                    else self._recording_max_emg
                 )
                 measurement = {
                     "timestamp_utc": row["timestamp_utc"],
