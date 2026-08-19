@@ -49,15 +49,6 @@ button, input, select { font: inherit; }
 .kpush-metrics { grid-template-columns: repeat(2, 1fr); margin-top: 18px; }
 .kpush-chart-panel { margin-top: 16px; }
 .kpush-history { height: 300px; }
-.anr-history {
-  height: 300px;
-  overflow: hidden;
-}
-#emgChart {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
 .game-shell {
   width: min(1320px, calc(100% - 32px));
   min-height: 100svh;

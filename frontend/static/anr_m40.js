@@ -23,20 +23,9 @@ function message(text, error = false, ready = false) {
 
 function draw() {
   const canvas = $("emgChart");
-  const rect = canvas.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  const cssWidth = Math.max(1, rect.width);
-  const cssHeight = Math.max(1, rect.height);
-  const pixelWidth = Math.round(cssWidth * dpr);
-  const pixelHeight = Math.round(cssHeight * dpr);
-  if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
-    canvas.width = pixelWidth;
-    canvas.height = pixelHeight;
-  }
   const ctx = canvas.getContext("2d");
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const width = cssWidth;
-  const height = cssHeight;
+  const width = canvas.width;
+  const height = canvas.height;
   ctx.clearRect(0, 0, width, height);
 
   ctx.strokeStyle = "#dce5e1";
@@ -202,7 +191,6 @@ $("startButton").addEventListener("click", () => {
   });
 });
 $("stopButton").addEventListener("click", () => command("/api/anr-m40/stop"));
-window.addEventListener("resize", draw);
 
 draw();
 poll();
