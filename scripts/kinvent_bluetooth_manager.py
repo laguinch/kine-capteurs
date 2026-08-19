@@ -47,7 +47,7 @@ TARGETS = {
         ],
     },
     "kpush": {
-        "script": "kinvent_kpush_bumble.py",
+        "script": "kinvent_kpush_hci.py",
         "control": "kpush_worker_control.json",
         "log": "kpush_worker.log",
         "args": [
@@ -58,7 +58,7 @@ TARGETS = {
         ],
     },
     "kpull": {
-        "script": "kinvent_kpull_bumble.py",
+        "script": "kinvent_kpull_hci.py",
         "control": "kpull_worker_control.json",
         "log": "kpull_worker.log",
         "args": [
@@ -259,7 +259,7 @@ class KinventBluetoothManager:
                 "--control-file", str(RAW_DIR / "kplates_worker_control.json"),
                 "--state-file", str(RAW_DIR / "kplates_worker_state.json"),
             ]
-        elif target == "anr_m40":
+        elif target in {"anr_m40", "kpush", "kpull"}:
             command = [
                 sys.executable,
                 "-u",
