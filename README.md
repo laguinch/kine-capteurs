@@ -339,8 +339,10 @@ sudo scripts/run_anr_m40_diagnostic.sh \
 
 Le service permanent des plateformes est restauré automatiquement à la fin.
 
-Pour tester le M40 sans BlueZ, utiliser le diagnostic Bumble/HCI direct sur le
-dongle nRF52840 :
+Pour tester le M40 sans BlueZ, utiliser le diagnostic Bumble sur le dongle
+nRF52840. Le script ne lance pas de découverte GATT complète : il utilise les
+handles validés sur le serveur pour éviter la déconnexion initiale observée
+avec Bumble discovery.
 
 ```bash
 cd /opt/kine-capteurs-staging
@@ -355,8 +357,8 @@ sudo .venv/bin/python -u scripts/anr_m40_bumble.py \
 
 Si l'adresse du M40 est connue, l'ajouter avec `--address "ADRESSE"`.
 
-Si la couche GATT Bumble coupe juste après connexion, utiliser le diagnostic
-ATT/HCI brut :
+Le diagnostic ATT/HCI brut reste disponible uniquement pour redécouvrir les
+handles ou isoler un problème bas niveau :
 
 ```bash
 cd /opt/kine-capteurs-staging
@@ -376,8 +378,8 @@ Si le M40 coupe la liaison pendant l'échange MTU, ajouter `--skip-mtu`.
 
 Dans l'application, l'ANR M40 est exposé comme un capteur à part entière :
 `/anr-m40`, `/anr-m40/test` et API `/api/anr-m40/*`. Le gestionnaire Bluetooth
-unique le lance en HCI direct avec `KINE_HCI_ADAPTER` et conserve BlueZ hors du
-chemin critique.
+unique le lance avec Bumble/nRF52840, comme les capteurs Kinvent, et conserve
+BlueZ hors du chemin critique.
 
 ## Diagnostic K-Pull
 

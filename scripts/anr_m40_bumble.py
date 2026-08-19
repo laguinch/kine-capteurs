@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import csv
+import json
 import sys
 import time
 from datetime import datetime, timezone
@@ -21,14 +22,6 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from ble.anr.protocol import (  # noqa: E402
-    ANALOG_CHAR,
-    BATTERY_LEVEL_CHAR,
-    DIGITAL_CHAR,
-    FIRMWARE_REVISION_CHAR,
-    HARDWARE_REVISION_CHAR,
-    MODEL_NUMBER_CHAR,
-    SERIAL_NUMBER_CHAR,
-    SOFTWARE_REVISION_CHAR,
     decode_battery,
     decode_emg,
     encode_device_id,
@@ -41,18 +34,13 @@ from ble.kinvent.bumble_backend import (  # noqa: E402
 from scripts.kinvent_kpush_bumble import make_remote_address  # noqa: E402
 
 
-IDENTITY_FIELDS = {
-    "model": MODEL_NUMBER_CHAR,
-    "serial": SERIAL_NUMBER_CHAR,
-    "firmware": FIRMWARE_REVISION_CHAR,
-    "hardware": HARDWARE_REVISION_CHAR,
-    "software": SOFTWARE_REVISION_CHAR,
-}
-
-
 NRF52840_STABLE_RANDOM_OWN_ADDRESS_TYPE = 1
 CONNECT_SCAN_INTERVAL_MS = 10
 CONNECT_SCAN_WINDOW_MS = 10
+ANR_ANALOG_VALUE_HANDLE = 0x001E
+ANR_ANALOG_CCCD_HANDLE = 0x001F
+ANR_DEVICE_ID_VALUE_HANDLE = 0x0021
+ANR_BATTERY_VALUE_HANDLE = 0x0025
 HCI_REASON_LABELS = {
     0x08: "supervision timeout",
     0x13: "remote user terminated",
@@ -70,27 +58,14 @@ def decode_text(value):
     return bytes(value).decode("utf-8", errors="replace").strip("\x00")
 
 
-async def discover_characteristics(client):
-    await client.discover_services()
-    for service in client.services:
-        await service.discover_characteristics()
-        for characteristic in service.characteristics:
-            await characteristic.discover_descriptors()
-
-
-def characteristic_by_uuid(client, uuid):
-    matches = client.get_characteristics_by_uuid(uuid)
-    return matches[0] if matches else None
-
-
-async def read_optional(client, uuid):
-    characteristic = characteristic_by_uuid(client, uuid)
-    if characteristic is None:
-        return None
+def control_requests_disconnect(control_file):
+    if not control_file:
+        return False
     try:
-        return await client.read_value(characteristic)
-    except Exception:
-        return None
+        payload = json.loads(Path(control_file).read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError):
+        return False
+    return payload.get("action") == "disconnect"
 
 
 def advertisement_address(args):
@@ -191,12 +166,14 @@ class ANRM40BumbleClient:
         csv_path=None,
         device_id=1,
         print_interval=0.1,
+        control_file=None,
     ):
         self.transport = transport
         self.address = address
         self.address_type = address_type
         self.device_id = device_id
         self.print_interval = print_interval
+        self.control_file = control_file
         self.notification_count = 0
         self.latest_emg = None
         self.started_at = None
@@ -227,7 +204,7 @@ class ANRM40BumbleClient:
             return
 
         self.latest_emg = emg
-        elapsed = time.monotonic() - self.started_at
+        elapsed = 0.0 if self.started_at is None else time.monotonic() - self.started_at
         timestamp = now_iso()
 
         if self.csv_writer:
@@ -254,6 +231,44 @@ class ANRM40BumbleClient:
                 on_event(event_name, log_disconnection)
             except Exception:
                 continue
+
+    async def configure_fixed_handles(self, client):
+        client.notification_subscribers.setdefault(
+            ANR_ANALOG_VALUE_HANDLE,
+            set(),
+        ).add(self.handle_emg)
+
+        print(
+            f"Device ID M40: écriture handle=0x{ANR_DEVICE_ID_VALUE_HANDLE:04x} "
+            f"{self.device_id:02x}",
+            flush=True,
+        )
+        await client.write_value(
+            ANR_DEVICE_ID_VALUE_HANDLE,
+            encode_device_id(self.device_id),
+            with_response=True,
+        )
+
+        print(
+            f"Batterie M40: lecture handle=0x{ANR_BATTERY_VALUE_HANDLE:04x}",
+            flush=True,
+        )
+        try:
+            battery_value = await client.read_value(ANR_BATTERY_VALUE_HANDLE)
+            print(f"Batterie M40: {decode_battery(bytes(battery_value))} %", flush=True)
+        except Exception as exc:
+            print(f"Batterie M40: non disponible ({type(exc).__name__}).", flush=True)
+
+        print(
+            f"Activation notifications EMG: écriture handle=0x{ANR_ANALOG_CCCD_HANDLE:04x} "
+            "01 00",
+            flush=True,
+        )
+        await client.write_value(
+            ANR_ANALOG_CCCD_HANDLE,
+            b"\x01\x00",
+            with_response=True,
+        )
 
     async def run(self, duration, scan_timeout=10.0, connect_timeout=15.0):
         require_bumble()
@@ -317,58 +332,33 @@ class ANRM40BumbleClient:
             self.register_disconnect_logger(connection)
             client = connection.gatt_client
 
-            try:
-                await asyncio.wait_for(discover_characteristics(client), timeout=15.0)
-            except asyncio.CancelledError as exc:
-                detail = (
-                    f" Déconnexion: {format_hci_reason(self.disconnect_reason)}."
-                    if self.disconnect_reason is not None
-                    else ""
-                )
-                raise RuntimeError(
-                    "Découverte GATT interrompue juste après connexion ANR M40."
-                    + detail
-                ) from exc
-
-            identity = {}
-            for name, uuid in IDENTITY_FIELDS.items():
-                value = await read_optional(client, uuid)
-                identity[name] = decode_text(value) if value is not None else None
-            print(
-                "Identite: "
-                + " | ".join(
-                    f"{key}={value or 'indisponible'}"
-                    for key, value in identity.items()
-                ),
-                flush=True,
-            )
-
-            battery_value = await read_optional(client, BATTERY_LEVEL_CHAR)
-            if battery_value is None:
-                print("Batterie: non disponible.", flush=True)
-            else:
-                print(f"Batterie: {decode_battery(bytes(battery_value))} %", flush=True)
-
-            digital = characteristic_by_uuid(client, DIGITAL_CHAR)
-            if digital is None:
-                print("Caracteristique couleur/device-id indisponible.", flush=True)
-            else:
-                await client.write_value(
-                    digital,
-                    encode_device_id(self.device_id),
-                    with_response=True,
-                )
-                print(f"Couleur/Device ID regle sur {self.device_id}.", flush=True)
-
-            analog = characteristic_by_uuid(client, ANALOG_CHAR)
-            if analog is None:
-                raise RuntimeError("Caracteristique EMG analogique 0x2A58 introuvable.")
-
+            await self.configure_fixed_handles(client)
             self.started_at = time.monotonic()
-            await analog.subscribe(self.handle_emg)
-            print(f"Notifications EMG pendant {duration:.1f} s...", flush=True)
-            await asyncio.sleep(duration)
-            await analog.unsubscribe()
+            print("ANR M40 prêt; liaison Bluetooth conservée.", flush=True)
+            if duration > 0:
+                print(f"Notifications EMG pendant {duration:.1f} s...", flush=True)
+            else:
+                print("Flux ANR M40 actif.", flush=True)
+            start = time.monotonic()
+            deadline = None if duration <= 0 else start + duration
+            next_progress = start
+
+            while deadline is None or time.monotonic() < deadline:
+                await asyncio.sleep(0.05)
+                if control_requests_disconnect(self.control_file):
+                    print(
+                        "Déconnexion ANR M40 demandée par le gestionnaire.",
+                        flush=True,
+                    )
+                    break
+                now = time.monotonic()
+                if deadline is not None and now >= next_progress:
+                    remaining = max(0.0, deadline - now)
+                    print(f"Temps restant: {remaining:4.1f} s", flush=True)
+                    next_progress = now + 5.0
+
+            if deadline is None:
+                print("Flux ANR M40 conservé au repos.", flush=True)
             await connection.disconnect()
 
 
@@ -387,6 +377,7 @@ def build_parser():
     parser.add_argument("--device-id", type=int, default=1)
     parser.add_argument("--print-interval", type=float, default=0.1)
     parser.add_argument("--csv")
+    parser.add_argument("--control-file")
     return parser
 
 
@@ -399,6 +390,7 @@ def main():
         csv_path=args.csv,
         device_id=args.device_id,
         print_interval=args.print_interval,
+        control_file=args.control_file,
     )
     try:
         asyncio.run(
