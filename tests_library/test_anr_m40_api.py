@@ -72,12 +72,26 @@ class ANRM40ApiTest(unittest.TestCase):
     def test_latest_appends_recording_rows_once(self):
         with tempfile.TemporaryDirectory() as directory:
             service = self.make_ready_service(directory)
-            self.write_live_rows(service._live_path)
+            service._live_path.write_text(
+                "timestamp_utc,elapsed_seconds,emg_raw\n",
+                encoding="utf-8",
+            )
             service._started_at = "2026-08-19T15:00:00+00:00"
             service._recording = True
             service._duration = 1_000_000_000
             service._csv_path = Path(directory) / "test.csv"
             service._initialize_recording_csv()
+            service._live_path.write_text(
+                (
+                    "timestamp_utc,elapsed_seconds,emg_raw\n"
+                    "2026-08-19T15:00:01+00:00,1.0,18\n"
+                    "2026-08-19T15:00:02+00:00,2.0,42\n"
+                ),
+                encoding="utf-8",
+            )
+            service._recording_live_position = len(
+                "timestamp_utc,elapsed_seconds,emg_raw\n"
+            )
 
             service.latest()
             service.latest()

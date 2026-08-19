@@ -41,6 +41,8 @@ class ANRM40AcquisitionService:
         self._test_generation = None
         self._recording_last_timestamp = None
         self._recording_max_emg = 0
+        self._recording_live_position = 0
+        self._recording_pending_fragment = ""
 
     def connect(self):
         with self._lock:
@@ -103,6 +105,8 @@ class ANRM40AcquisitionService:
             self._test_generation = uuid.uuid4().hex
             self._recording_last_timestamp = None
             self._recording_max_emg = 0
+            self._recording_live_position = self._live_file_size()
+            self._recording_pending_fragment = ""
             self._write_control("start", self._test_generation)
             self._initialize_recording_csv()
             return self.status()
@@ -269,7 +273,7 @@ class ANRM40AcquisitionService:
     def _append_recording_rows(self):
         if self._csv_path is None:
             return
-        rows = self._recording_rows(self._recording_last_timestamp)
+        rows = self._read_new_recording_rows()
         if not rows:
             return
         self._csv_path.parent.mkdir(parents=True, exist_ok=True)
@@ -291,11 +295,64 @@ class ANRM40AcquisitionService:
         if path is None or not path.exists():
             return None
         try:
-            with path.open(encoding="utf-8", newline="") as source:
-                rows = list(csv.DictReader(source))
-            return rows[-1] if rows else None
-        except (OSError, csv.Error, ValueError):
+            with path.open("rb") as source:
+                source.seek(0, 2)
+                position = source.tell()
+                if position == 0:
+                    return None
+                buffer = bytearray()
+                while position > 0 and buffer.count(b"\n") < 2:
+                    read_size = min(4096, position)
+                    position -= read_size
+                    source.seek(position)
+                    buffer[:0] = source.read(read_size)
+            lines = buffer.decode("utf-8", errors="replace").splitlines()
+            if len(lines) < 2:
+                return None
+            line = lines[-1] if lines[-1].strip() else lines[-2]
+            if line.startswith("timestamp_utc,"):
+                return None
+            row = next(csv.DictReader(["timestamp_utc,elapsed_seconds,emg_raw", line]))
+            return row
+        except (OSError, csv.Error, StopIteration, ValueError):
             return None
+
+    def _live_file_size(self):
+        try:
+            return self._live_path.stat().st_size
+        except OSError:
+            return 0
+
+    def _read_new_recording_rows(self):
+        if not self._started_at or not self._live_path.exists():
+            return []
+        try:
+            with self._live_path.open("rb") as source:
+                source.seek(self._recording_live_position)
+                chunk = source.read()
+                self._recording_live_position = source.tell()
+            if not chunk:
+                return []
+            text = self._recording_pending_fragment + chunk.decode(
+                "utf-8",
+                errors="replace",
+            )
+            lines = text.splitlines()
+            if text and not text.endswith(("\n", "\r")):
+                self._recording_pending_fragment = lines.pop() if lines else text
+            else:
+                self._recording_pending_fragment = ""
+            rows = csv.DictReader(["timestamp_utc,elapsed_seconds,emg_raw", *lines])
+            return [
+                row for row in rows
+                if row.get("timestamp_utc", "") >= self._started_at
+                and (
+                    self._recording_last_timestamp is None
+                    or row.get("timestamp_utc", "") > self._recording_last_timestamp
+                )
+            ]
+        except (OSError, csv.Error, ValueError):
+            return []
 
     def _read_max_emg(self):
         maximum = 0

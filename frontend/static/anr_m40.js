@@ -1,5 +1,10 @@
 const $ = (id) => document.getElementById(id);
-const state = { history: [], lastTimestamp: null, maxEmgRaw: 0 };
+const state = {
+  history: [],
+  lastTimestamp: null,
+  maxEmgRaw: 0,
+  pollInFlight: false,
+};
 const format = (value, digits = 0) =>
   Number.isFinite(value)
     ? value.toLocaleString("fr-FR", {
@@ -174,11 +179,15 @@ async function stopTest() {
 }
 
 async function poll() {
+  if (state.pollInFlight) return;
+  state.pollInFlight = true;
   try {
     const response = await fetch("/api/anr-m40/latest", { cache: "no-store" });
     update(await response.json());
   } catch (error) {
     message("Serveur indisponible", true);
+  } finally {
+    state.pollInFlight = false;
   }
 }
 
@@ -188,4 +197,4 @@ $("startButton").addEventListener("click", start);
 $("stopButton").addEventListener("click", stopTest);
 window.addEventListener("resize", draw);
 poll();
-setInterval(poll, 150);
+setInterval(poll, 300);
