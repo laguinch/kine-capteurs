@@ -5,6 +5,8 @@ const state = {
   maxEmgRaw: 0,
   pollInFlight: false,
   commandInFlight: false,
+  drawScheduled: false,
+  lastDrawAt: 0,
 };
 const format = (value, digits = 0) =>
   Number.isFinite(value)
@@ -26,6 +28,8 @@ function message(text, error = false, ready = false) {
 }
 
 function draw() {
+  state.drawScheduled = false;
+  state.lastDrawAt = performance.now();
   const canvas = $("emgChart");
   const rect = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
@@ -52,6 +56,14 @@ function draw() {
     index ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
   });
   ctx.stroke();
+}
+
+function scheduleDraw() {
+  const now = performance.now();
+  if (state.drawScheduled) return;
+  const delay = Math.max(0, 100 - (now - state.lastDrawAt));
+  state.drawScheduled = true;
+  window.setTimeout(() => window.requestAnimationFrame(draw), delay);
 }
 
 function update(data) {
@@ -113,6 +125,7 @@ function update(data) {
   if (active) {
     state.history.push(Math.max(0, Number(m.emg_raw) || 0));
     if (state.history.length > 300) state.history.shift();
+    scheduleDraw();
   }
 }
 
