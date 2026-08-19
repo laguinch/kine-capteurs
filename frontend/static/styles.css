@@ -824,6 +824,14 @@ button:disabled { opacity: .45; cursor: default; }
 .balance-center { position: absolute; left: 50%; top: 0; width: 2px; height: 100%; background: rgba(255,255,255,.85); }
 .history-wrap { margin-top: 24px; height: 190px; }
 #historyChart { width: 100%; height: 100%; }
+.anr-history {
+  height: 320px;
+  overflow: hidden;
+}
+.anr-history #emgChart {
+  display: block;
+  max-width: 100%;
+}
 
 .cop-stage {
   width: min(100%, 310px);
