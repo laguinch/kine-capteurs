@@ -186,8 +186,8 @@ $("startButton").addEventListener("click", () => {
   $("maxEmgRaw").textContent = "0";
   draw();
   command("/api/anr-m40/start", {
-    duration: Number($("duration").value) || 30,
-    filename: $("filename").value.trim() || null,
+    duration: 30,
+    filename: null,
   });
 });
 $("stopButton").addEventListener("click", () => command("/api/anr-m40/stop"));
