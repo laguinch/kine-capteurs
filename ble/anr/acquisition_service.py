@@ -114,9 +114,23 @@ class ANRM40AcquisitionService:
             self._recording_max_emg = 0
             self._recording_live_position = self._live_file_size()
             self._recording_pending_fragment = ""
-            self._write_control("start", self._test_generation)
             self._initialize_recording_csv()
-            return self.status()
+            self._write_control("start", self._test_generation)
+            return {
+                "running": True,
+                "connected": True,
+                "phase": "active",
+                "pid": self._process.pid if self._process is not None else None,
+                "connected_at": self._connected_at,
+                "started_at": self._started_at,
+                "finished_at": None,
+                "elapsed_seconds": 0.0,
+                "duration": self._duration,
+                "csv_path": str(self._csv_path) if self._csv_path else None,
+                "log_path": str(self._log_path),
+                "last_error": None,
+                "battery_pct": self._battery_pct,
+            }
 
     def stop(self):
         with self._lock:
@@ -126,7 +140,7 @@ class ANRM40AcquisitionService:
                 self._finished_at = None
                 self._write_control("stop", self._test_generation)
             elif self._recording:
-                self._write_recording_csv()
+                self._append_recording_rows()
                 self._recording = False
                 self._finished_at = now_iso()
                 self._write_control("stop", self._test_generation)
@@ -160,6 +174,8 @@ class ANRM40AcquisitionService:
     def latest(self):
         with self._lock:
             status = self.status()
+            if self._recording:
+                self._append_recording_rows()
             row = self._read_latest_row(self._live_path)
             measurement = None
             if (
