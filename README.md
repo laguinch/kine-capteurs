@@ -372,6 +372,7 @@ sudo .venv/bin/python -u scripts/anr_m40_raw_hci.py \
 
 Ce diagnostic découvre aussi la batterie standard `0x2A19` quand le firmware du
 M40 l'expose.
+Si le M40 coupe la liaison pendant l'échange MTU, ajouter `--skip-mtu`.
 
 ## Diagnostic K-Pull
 

@@ -281,8 +281,11 @@ class RawANRM40Client(RawKinventClient):
         if response[0] == ATT_OP_ERROR_RESPONSE:
             raise RuntimeError(f"{label}: écriture refusée {response.hex(' ')}")
 
-    def configure_m40(self):
-        self.exchange_mtu()
+    def configure_m40(self, skip_mtu=False):
+        if skip_mtu:
+            print("Échange MTU ignoré: utilisation du MTU ATT par défaut.")
+        else:
+            self.exchange_mtu()
         declarations = self.discover_characteristics()
 
         digital = self.characteristics.get(UUID_DIGITAL)
@@ -304,19 +307,23 @@ class RawANRM40Client(RawKinventClient):
         self.notification_handle = self.characteristics[UUID_ANALOG]["value_handle"]
         self.write_request(cccd, b"\x01\x00", "Activation notifications EMG")
 
-    def run(self, scan_timeout, connect_timeout, duration):
+    def run(self, scan_timeout, connect_timeout, duration, skip_mtu=False):
         self.open()
         try:
             self.reset()
             self.wait_for_advertisement(scan_timeout)
             self.connect(connect_timeout)
-            self.configure_m40()
+            self.configure_m40(skip_mtu=skip_mtu)
             self.started_at = time.monotonic()
             print(f"Notifications EMG pendant {duration:.1f} s...")
             self.pump(duration, show_progress=True)
             print("Acquisition terminée.")
             print(f"Notifications reçues: {self.notifications}")
         finally:
+            try:
+                self.disconnect_link()
+            except Exception:
+                pass
             self.close()
 
 
@@ -335,6 +342,11 @@ def build_parser():
     parser.add_argument("--connect-timeout", type=float, default=15.0)
     parser.add_argument("--duration", type=float, default=30.0)
     parser.add_argument("--device-id", type=int, default=1)
+    parser.add_argument(
+        "--skip-mtu",
+        action="store_true",
+        help="Contourne l'échange MTU si le M40 coupe la liaison à cette étape.",
+    )
     parser.add_argument(
         "--print-interval",
         type=float,
@@ -359,6 +371,7 @@ def main():
         scan_timeout=args.scan_timeout,
         connect_timeout=args.connect_timeout,
         duration=args.duration,
+        skip_mtu=args.skip_mtu,
     )
 
 
