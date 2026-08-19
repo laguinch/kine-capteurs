@@ -188,7 +188,6 @@ class ANRM40AcquisitionService:
             return {
                 **status,
                 "measurement": measurement,
-                "log_tail": self._read_log_tail(),
             }
 
     def _connection_phase(self):

@@ -107,8 +107,6 @@ function update(data) {
   } else if (phase === "disconnected") {
     message("Cliquez sur « Connecter l’ANR M40 ».");
   }
-  maybeSave(data);
-
   if (hasNumber(data.battery_pct)) {
     $("batteryBadge").textContent = `Batterie ${Number(data.battery_pct)} %`;
   }
@@ -126,23 +124,6 @@ function update(data) {
     state.history.push(Math.max(0, Number(m.emg_raw) || 0));
     if (state.history.length > 300) state.history.shift();
     scheduleDraw();
-  }
-}
-
-async function maybeSave(data) {
-  if (!window.KinePatientSave) return;
-  const selection = window.KinePatientSave.selection();
-  const label = [selection.articulation, selection.cote, selection.mouvement].filter(Boolean).join(" · ");
-  try {
-    const saved = await window.KinePatientSave.saveEvaluation(data, {
-      sensor: "ANR M40",
-      test_name: selection.mouvement || "EMG",
-      display_name: label || "EMG",
-      summary: `EMG max ${format(state.maxEmgRaw, 0)} / 1023`,
-    });
-    if (saved) message("✓ Test terminé et enregistré dans le dossier patient.", false, true);
-  } catch (error) {
-    message(`${error.message}. Le fichier CSV reste disponible.`, true);
   }
 }
 
