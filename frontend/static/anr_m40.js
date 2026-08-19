@@ -169,7 +169,7 @@ async function poll() {
   if (state.polling) return;
   state.polling = true;
   try {
-    update(await jsonFetch("/api/anr-m40/latest", { timeout: 1500 }));
+    update(await jsonFetch("/api/anr-m40/latest", { timeout: 900 }));
   } catch (error) {
     if (error.name !== "AbortError") message("Serveur indisponible", true);
   } finally {
@@ -194,4 +194,4 @@ $("stopButton").addEventListener("click", () => command("/api/anr-m40/stop"));
 
 draw();
 poll();
-window.setInterval(poll, 250);
+window.setInterval(poll, 100);
