@@ -39,6 +39,8 @@ class ANRM40AcquisitionService:
         self._stop_requested = False
         self._sensor_ready = False
         self._test_generation = None
+        self._recording_last_timestamp = None
+        self._recording_max_emg = 0
 
     def connect(self):
         with self._lock:
@@ -99,8 +101,10 @@ class ANRM40AcquisitionService:
             self._recording = True
             self._armed = False
             self._test_generation = uuid.uuid4().hex
+            self._recording_last_timestamp = None
+            self._recording_max_emg = 0
             self._write_control("start", self._test_generation)
-            self._write_recording_csv()
+            self._initialize_recording_csv()
             return self.status()
 
     def stop(self):
@@ -111,10 +115,10 @@ class ANRM40AcquisitionService:
                 self._finished_at = None
                 self._write_control("stop", self._test_generation)
             elif self._recording:
+                self._append_recording_rows()
                 self._recording = False
                 self._finished_at = now_iso()
                 self._write_control("stop", self._test_generation)
-                self._write_recording_csv()
             return self.status()
 
     def status(self):
@@ -146,10 +150,14 @@ class ANRM40AcquisitionService:
             status = self.status()
             row = self._read_latest_row(self._live_path)
             if self._recording:
-                self._write_recording_csv()
+                self._append_recording_rows()
             measurement = None
             if row and status["phase"] in {"ready", "active"}:
-                maximum = self._read_max_emg()
+                maximum = (
+                    self._recording_max_emg
+                    if self._recording
+                    else self._read_max_emg()
+                )
                 measurement = {
                     "timestamp_utc": row["timestamp_utc"],
                     "elapsed_seconds": float(row["elapsed_seconds"]),
@@ -233,7 +241,7 @@ class ANRM40AcquisitionService:
         )
         temporary.replace(self._control_path)
 
-    def _recording_rows(self):
+    def _recording_rows(self, since_timestamp=None):
         if not self._started_at or not self._live_path.exists():
             return []
         try:
@@ -242,19 +250,41 @@ class ANRM40AcquisitionService:
             return [
                 row for row in rows
                 if row.get("timestamp_utc", "") >= self._started_at
+                and (
+                    since_timestamp is None
+                    or row.get("timestamp_utc", "") > since_timestamp
+                )
             ]
         except (OSError, csv.Error):
             return []
 
-    def _write_recording_csv(self):
+    def _initialize_recording_csv(self):
         if self._csv_path is None:
             return
-        rows = self._recording_rows()
         self._csv_path.parent.mkdir(parents=True, exist_ok=True)
         with self._csv_path.open("w", newline="", encoding="utf-8") as target:
             writer = csv.DictWriter(target, fieldnames=FIELDS)
             writer.writeheader()
+
+    def _append_recording_rows(self):
+        if self._csv_path is None:
+            return
+        rows = self._recording_rows(self._recording_last_timestamp)
+        if not rows:
+            return
+        self._csv_path.parent.mkdir(parents=True, exist_ok=True)
+        with self._csv_path.open("a", newline="", encoding="utf-8") as target:
+            writer = csv.DictWriter(target, fieldnames=FIELDS)
             writer.writerows(rows)
+        self._recording_last_timestamp = rows[-1].get("timestamp_utc")
+        for row in rows:
+            try:
+                self._recording_max_emg = max(
+                    self._recording_max_emg,
+                    int(float(row["emg_raw"])),
+                )
+            except (KeyError, TypeError, ValueError):
+                continue
 
     @staticmethod
     def _read_latest_row(path):
@@ -269,7 +299,15 @@ class ANRM40AcquisitionService:
 
     def _read_max_emg(self):
         maximum = 0
-        for row in self._recording_rows():
+        if self._csv_path and self._csv_path.exists():
+            try:
+                with self._csv_path.open(encoding="utf-8", newline="") as source:
+                    rows = list(csv.DictReader(source))
+            except (OSError, csv.Error):
+                rows = []
+        else:
+            rows = self._recording_rows()
+        for row in rows:
             try:
                 maximum = max(maximum, int(float(row["emg_raw"])))
             except (KeyError, TypeError, ValueError):

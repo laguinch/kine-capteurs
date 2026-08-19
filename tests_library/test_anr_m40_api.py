@@ -69,6 +69,24 @@ class ANRM40ApiTest(unittest.TestCase):
         self.assertEqual(latest["measurement"]["max_emg_raw"], 42)
         self.assertEqual(latest["measurement"]["battery_pct"], 30)
 
+    def test_latest_appends_recording_rows_once(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = self.make_ready_service(directory)
+            self.write_live_rows(service._live_path)
+            service._started_at = "2026-08-19T15:00:00+00:00"
+            service._recording = True
+            service._duration = 1_000_000_000
+            service._csv_path = Path(directory) / "test.csv"
+            service._initialize_recording_csv()
+
+            service.latest()
+            service.latest()
+
+            with service._csv_path.open(encoding="utf-8", newline="") as source:
+                rows = list(csv.DictReader(source))
+
+        self.assertEqual([row["emg_raw"] for row in rows], ["18", "42"])
+
     def test_stop_keeps_anr_connected_and_ready(self):
         with tempfile.TemporaryDirectory() as directory:
             service = self.make_ready_service(directory)
