@@ -186,7 +186,6 @@ $("startButton").addEventListener("click", () => {
   $("maxEmgRaw").textContent = "0";
   draw();
   command("/api/anr-m40/start", {
-    duration: 30,
     filename: null,
   });
 });
