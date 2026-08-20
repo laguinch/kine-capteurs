@@ -1,5 +1,10 @@
 const $ = (id) => document.getElementById(id);
 const state = { history: [], lastTimestamp: null, maxForceKg: 0, maxForceN: 0 };
+const hasBattery = (value) =>
+  value !== null &&
+  value !== undefined &&
+  value !== "" &&
+  Number.isFinite(Number(value));
 const format = (value, digits = 1) =>
   Number.isFinite(value)
     ? value.toLocaleString("fr-FR", {
@@ -108,7 +113,7 @@ function update(data) {
     message("Cliquez sur « Connecter le K‑Pull ».");
   }
   maybeSave(data);
-  $("batteryBadge").textContent = Number.isFinite(Number(data.battery_pct))
+  $("batteryBadge").textContent = hasBattery(data.battery_pct)
     ? `Batterie ${Number(data.battery_pct)} %`
     : data.connected
       ? "Batterie non disponible"

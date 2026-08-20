@@ -55,6 +55,7 @@ TARGETS = {
             "--tare-duration", "2",
             "--control-file", str(RAW_DIR / "kpush_worker_control.json"),
             "--csv", str(RAW_DIR / "kpush_live.csv"),
+            "--connect-attempts", "2",
         ],
     },
     "kpull": {
@@ -67,6 +68,7 @@ TARGETS = {
             "--counts-per-kg", "9722.166667",
             "--control-file", str(RAW_DIR / "kpull_worker_control.json"),
             "--csv", str(RAW_DIR / "kpull_live.csv"),
+            "--connect-attempts", "2",
         ],
     },
     "kmove": {

@@ -793,6 +793,8 @@ class RawKinventClient:
         connect_timeout,
         write_delay,
         control_file,
+        connect_attempts=1,
+        retry_delay=2.0,
     ):
         """Conserve la liaison et reproduit les transitions de Kinvent."""
         shared_controller = self.sock is not None
@@ -801,11 +803,32 @@ class RawKinventClient:
         try:
             if not shared_controller:
                 self.reset()
-            self.wait_for_advertisement(scan_timeout)
-            self.connect(connect_timeout)
-            self.service_initial_handshake()
-            self.start_stream(write_delay)
-            self.prepare_session()
+            for attempt in range(1, connect_attempts + 1):
+                try:
+                    self.wait_for_advertisement(scan_timeout)
+                    self.connect(connect_timeout)
+                    self.service_initial_handshake()
+                    self.start_stream(write_delay)
+                    self.prepare_session()
+                    break
+                except (ConnectionError, RuntimeError, TimeoutError) as exc:
+                    if attempt >= connect_attempts:
+                        raise
+                    print(
+                        "Accroche initiale interrompue "
+                        f"({exc}); nouvelle tentative {attempt + 1}/"
+                        f"{connect_attempts}.",
+                        flush=True,
+                    )
+                    try:
+                        self.disconnect_link(timeout=1.0)
+                    except Exception:
+                        pass
+                    self.connection_handle = None
+                    self.acl_fragments.clear()
+                    if not shared_controller:
+                        self.reset()
+                    time.sleep(retry_delay)
 
             ready_deadline = time.monotonic() + 30.0
             while not self.session_ready():

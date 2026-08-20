@@ -197,6 +197,8 @@ def build_parser():
     parser.add_argument("--csv")
     parser.add_argument("--control-file")
     parser.add_argument("--hci-fd", type=int)
+    parser.add_argument("--connect-attempts", type=int, default=1)
+    parser.add_argument("--retry-delay", type=float, default=2.0)
     return parser
 
 
@@ -217,6 +219,8 @@ def main():
             connect_timeout=args.connect_timeout,
             write_delay=args.write_delay,
             control_file=args.control_file,
+            connect_attempts=max(1, args.connect_attempts),
+            retry_delay=args.retry_delay,
         )
     else:
         client.run(

@@ -231,6 +231,7 @@ class BluetoothManagerTest(unittest.TestCase):
         self.assertEqual(command[command.index("--adapter") + 1], "hci0")
         self.assertIn("--control-file", command)
         self.assertIn("--csv", command)
+        self.assertEqual(command[command.index("--connect-attempts") + 1], "2")
         self.assertNotIn("--transport", command)
 
     def test_kpull_launch_uses_direct_hci(self):
@@ -264,6 +265,7 @@ class BluetoothManagerTest(unittest.TestCase):
         self.assertIn("--counts-per-kg", command)
         self.assertIn("--control-file", command)
         self.assertIn("--csv", command)
+        self.assertEqual(command[command.index("--connect-attempts") + 1], "2")
         self.assertNotIn("--transport", command)
 
     def test_kplates_bumble_backend_remains_available_for_diagnostics(self):
