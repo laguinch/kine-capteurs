@@ -161,25 +161,25 @@ python scripts/kinvent_bumble_probe.py \
 Pour le K-Move, utiliser `--profile kmove`. Pour une découverte GATT sans
 commande Kinvent, utiliser `--profile none`.
 
-Le K-Push peut être testé directement avec son pilote Bumble :
+Le K-Push peut être testé directement avec son pilote HCI direct :
 
 ```bash
 cd /opt/kine-capteurs-staging
-sudo .venv/bin/python -u scripts/kinvent_kpush_bumble.py \
-  --transport usb:0 \
+sudo .venv/bin/python -u scripts/kinvent_kpush_hci.py \
+  --adapter hci0 \
   --address "60:8A:10:30:9B:FA" \
   --duration 30 \
   --tare-duration 2 \
   --csv storage/raw_data/kpush_bumble_test.csv
 ```
 
-Le K-Pull dispose du même pilote Bumble. Avec le coefficient provisoire issu du
+Le K-Pull dispose du même pilote HCI direct. Avec le coefficient provisoire issu du
 test à 12 kg :
 
 ```bash
 cd /opt/kine-capteurs-staging
-sudo .venv/bin/python -u scripts/kinvent_kpull_bumble.py \
-  --transport usb:0 \
+sudo .venv/bin/python -u scripts/kinvent_kpull_hci.py \
+  --adapter hci0 \
   --address "E8:EB:1B:61:11:AF" \
   --duration 30 \
   --tare-duration 2 \
@@ -192,8 +192,8 @@ maintenir le capteur immobile :
 
 ```bash
 cd /opt/kine-capteurs-staging
-sudo .venv/bin/python -u scripts/kinvent_kmove_bumble.py \
-  --transport usb:0 \
+sudo .venv/bin/python -u scripts/kinvent_kmove_hci.py \
+  --adapter hci0 \
   --address "60:8A:10:4F:BD:12" \
   --duration 30 \
   --reference-duration 2 \

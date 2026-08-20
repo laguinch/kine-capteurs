@@ -72,7 +72,7 @@ TARGETS = {
         ],
     },
     "kmove": {
-        "script": "kinvent_kmove_bumble.py",
+        "script": "kinvent_kmove_hci.py",
         "control": "kmove_worker_control.json",
         "log": "kmove_worker.log",
         "args": [
@@ -261,7 +261,7 @@ class KinventBluetoothManager:
                 "--control-file", str(RAW_DIR / "kplates_worker_control.json"),
                 "--state-file", str(RAW_DIR / "kplates_worker_state.json"),
             ]
-        elif target in {"anr_m40", "kpush", "kpull"}:
+        elif target in {"anr_m40", "kpush", "kpull", "kmove"}:
             command = [
                 sys.executable,
                 "-u",

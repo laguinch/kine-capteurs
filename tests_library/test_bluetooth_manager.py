@@ -268,6 +268,39 @@ class BluetoothManagerTest(unittest.TestCase):
         self.assertEqual(command[command.index("--connect-attempts") + 1], "2")
         self.assertNotIn("--transport", command)
 
+    def test_kmove_launch_uses_direct_hci(self):
+        with tempfile.TemporaryDirectory() as directory, mock.patch.dict(
+            "os.environ",
+            {"KINE_HCI_ADAPTER": "hci0"},
+            clear=False,
+        ):
+            raw_dir = Path(directory) / "raw"
+            base_dir = Path(directory) / "project"
+            raw_dir.mkdir()
+            base_dir.mkdir()
+            bluetooth = KinventBluetoothManager()
+            bluetooth.state = mock.Mock()
+
+            with mock.patch(
+                "scripts.kinvent_bluetooth_manager.RAW_DIR",
+                raw_dir,
+            ), mock.patch(
+                "scripts.kinvent_bluetooth_manager.BASE_DIR",
+                base_dir,
+            ), mock.patch(
+                "scripts.kinvent_bluetooth_manager.subprocess.Popen"
+            ) as popen:
+                popen.return_value.pid = 4321
+                bluetooth.launch("kmove")
+
+        command = popen.call_args.args[0]
+        self.assertIn("kinvent_kmove_hci.py", command[2])
+        self.assertEqual(command[command.index("--adapter") + 1], "hci0")
+        self.assertIn("--reference-duration", command)
+        self.assertIn("--control-file", command)
+        self.assertIn("--csv", command)
+        self.assertNotIn("--transport", command)
+
     def test_kplates_bumble_backend_remains_available_for_diagnostics(self):
         with tempfile.TemporaryDirectory() as directory, mock.patch.dict(
             "os.environ",
