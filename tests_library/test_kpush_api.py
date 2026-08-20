@@ -119,6 +119,8 @@ class KPushApiTest(unittest.TestCase):
             latest = service.latest()
 
         self.assertEqual(latest["phase"], "active")
+        self.assertIsNone(latest["battery_pct"])
+        self.assertIsNone(latest["measurement"]["battery_pct"])
         self.assertEqual(latest["measurement"]["force_n"], 196.2)
         self.assertEqual(latest["measurement"]["max_force_n"], 196.2)
         self.assertAlmostEqual(latest["measurement"]["max_force_kg"], 20.0)
