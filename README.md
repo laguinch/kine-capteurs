@@ -128,7 +128,7 @@ La configuration permanente est :
 
 - `KINE_BLUETOOTH_BACKEND=bumble`
 - `KINE_BUMBLE_TRANSPORT=usb:0`
-- `KINE_KPLATES_BACKEND=bumble`
+- `KINE_KPLATES_BACKEND=hci-direct`
 - `KINE_HCI_ADAPTER=hci0`
 
 Pour vérifier Bumble sur les plateformes avec la séquence utile, utiliser le
