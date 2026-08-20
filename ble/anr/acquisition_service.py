@@ -139,7 +139,7 @@ class ANRM40AcquisitionService:
                 self._finished_at = None
                 self._write_control("stop", self._test_generation)
             elif self._recording:
-                self._write_recording_csv()
+                self._append_recording_rows()
                 self._recording = False
                 self._finished_at = now_iso()
             return self.status()
@@ -168,6 +168,8 @@ class ANRM40AcquisitionService:
     def latest(self):
         with self._lock:
             status = self.status()
+            if self._recording:
+                self._append_recording_rows()
             row = self._read_latest_row(self._live_path)
             measurement = None
             if (
@@ -438,7 +440,9 @@ class ANRM40AcquisitionService:
             rows = csv.DictReader(["timestamp_utc,elapsed_seconds,emg_raw", *lines])
             return [
                 row for row in rows
-                if row.get("timestamp_utc", "") >= self._started_at
+                if row.get("timestamp_utc") != "timestamp_utc"
+                and row.get("emg_raw") != "emg_raw"
+                and row.get("timestamp_utc", "") >= self._started_at
                 and (
                     self._recording_last_timestamp is None
                     or row.get("timestamp_utc", "") > self._recording_last_timestamp
