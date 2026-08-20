@@ -2,7 +2,6 @@ import unittest
 from unittest import mock
 
 from ble.kinvent.kpush.protocol import calibrate_sample, parse_raw_frame
-from scripts.kinvent_kpush_bumble import KPushBumbleClient
 from scripts.kinvent_kpush_hci import KPushHciClient
 
 
@@ -76,39 +75,6 @@ class KPushProtocolTest(unittest.TestCase):
             client.pump(0.005)
 
         self.assertIn(b"\xff", sent)
-
-    def test_bumble_client_decodes_and_tares_like_hci_client(self):
-        client = KPushBumbleClient(
-            transport="usb:0",
-            address="60:8A:10:30:9B:FA",
-            address_type="public",
-            csv_path=None,
-            tare_duration=0,
-            print_interval=999,
-        )
-        client.handle_payload(
-            bytes.fromhex(
-                "ff ff fe 7b de 00 72 e7 00 0f 51 00 0f 51 00 0f 52"
-            )
-        )
-
-        self.assertIsNotNone(client.tare_offset)
-        self.assertIsNotNone(client.latest)
-        self.assertEqual(client.latest["raw_force"], 0x72E7)
-
-    def test_bumble_client_ignores_non_measurement_payload(self):
-        client = KPushBumbleClient(
-            transport="usb:0",
-            address="60:8A:10:30:9B:FA",
-            address_type="public",
-            csv_path=None,
-            tare_duration=0,
-        )
-
-        client.handle_payload(b"KINVENT FW 2.64S")
-
-        self.assertIsNone(client.latest)
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -46,21 +46,9 @@ if [[ ! -f .env ]]; then
   echo "Configuration .env créée."
 fi
 
-if grep -q '^KINE_BLUETOOTH_BACKEND=' .env; then
-  sed -i 's/^KINE_BLUETOOTH_BACKEND=.*/KINE_BLUETOOTH_BACKEND=bumble/' .env
-else
-  echo "KINE_BLUETOOTH_BACKEND=bumble" >> .env
-fi
-
-if ! grep -q '^KINE_BUMBLE_TRANSPORT=' .env; then
-  echo "KINE_BUMBLE_TRANSPORT=usb:0" >> .env
-fi
-
-if grep -q '^KINE_KPLATES_BACKEND=' .env; then
-  sed -i 's/^KINE_KPLATES_BACKEND=.*/KINE_KPLATES_BACKEND=hci-direct/' .env
-else
-  echo "KINE_KPLATES_BACKEND=hci-direct" >> .env
-fi
+sed -i '/^KINE_BLUETOOTH_BACKEND=/d' .env
+sed -i '/^KINE_BUMBLE_TRANSPORT=/d' .env
+sed -i '/^KINE_KPLATES_BACKEND=/d' .env
 
 if grep -q '^KINE_HCI_ADAPTER=' .env; then
   sed -i 's/^KINE_HCI_ADAPTER=.*/KINE_HCI_ADAPTER=hci0/' .env
@@ -68,7 +56,7 @@ else
   echo "KINE_HCI_ADAPTER=hci0" >> .env
 fi
 
-echo "Bluetooth permanent configuré: plateformes en HCI direct, Bumble conservé pour les autres capteurs."
+echo "Bluetooth permanent configuré: tous les capteurs en HCI direct."
 
 echo "Vérification du projet..."
 "$PYTHON_BIN" -m unittest discover -s tests_library -p 'test*.py'

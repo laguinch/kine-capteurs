@@ -6,14 +6,8 @@ from pathlib import Path
 from unittest import mock
 
 import ble.kinvent.bluetooth_manager as manager
-from ble.kinvent.bumble_backend import (
-    BUMBLE_BACKEND,
-    BumbleBackendError,
-    normalize_backend,
-)
 from scripts.kinvent_bluetooth_manager import (
-    KPLATES_BACKEND_BUMBLE,
-    KPLATES_BACKEND_HCI,
+    BLUETOOTH_BACKEND_HCI,
     KinventBluetoothManager,
 )
 
@@ -33,40 +27,33 @@ class BluetoothManagerTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             manager.request_sensor("inconnu")
 
-    def test_manager_starts_bumble_without_raw_hci_controller(self):
+    def test_manager_starts_direct_hci_backend(self):
         bluetooth = KinventBluetoothManager()
         bluetooth.state = mock.Mock()
-        with mock.patch(
-            "scripts.kinvent_bluetooth_manager.require_bumble"
-        ) as require_bumble:
-            bluetooth.start()
 
-        require_bumble.assert_called_once_with()
+        bluetooth.start()
+
         bluetooth.state.assert_called_once()
         self.assertEqual(bluetooth.state.call_args.args[0], "idle")
         self.assertEqual(
             bluetooth.state.call_args.kwargs["backend"],
-            BUMBLE_BACKEND,
-        )
-        self.assertEqual(
-            bluetooth.state.call_args.kwargs["kplates_backend"],
-            KPLATES_BACKEND_HCI,
+            BLUETOOTH_BACKEND_HCI,
         )
         self.assertEqual(
             bluetooth.state.call_args.kwargs["hci_adapter"],
             "hci0",
         )
 
-    def test_default_backend_is_bumble(self):
+    def test_default_backend_is_direct_hci(self):
         bluetooth = KinventBluetoothManager()
 
-        self.assertEqual(bluetooth.backend, BUMBLE_BACKEND)
+        self.assertEqual(bluetooth.backend, BLUETOOTH_BACKEND_HCI)
 
     def test_rejects_unknown_bluetooth_backend(self):
-        with self.assertRaises(BumbleBackendError):
-            normalize_backend("fantaisie")
+        with self.assertRaises(ValueError):
+            KinventBluetoothManager(backend="fantaisie")
 
-    def test_failed_bumble_child_requires_manual_reconnection(self):
+    def test_failed_child_requires_manual_reconnection(self):
         bluetooth = KinventBluetoothManager()
         bluetooth.state = mock.Mock()
 
@@ -84,7 +71,7 @@ class BluetoothManagerTest(unittest.TestCase):
             bluetooth.state.call_args.kwargs["error"],
         )
 
-    def test_failed_bumble_child_reports_worker_error(self):
+    def test_failed_child_reports_worker_error(self):
         bluetooth = KinventBluetoothManager()
         bluetooth.state = mock.Mock()
 
@@ -96,7 +83,7 @@ class BluetoothManagerTest(unittest.TestCase):
             state.write_text(
                 (
                     '{"phase":"error",'
-                    '"error":"Dongle Bumble indisponible: device not found"}'
+                    '"error":"Capteur déconnecté, raison HCI 0x08"}'
                 ),
                 encoding="utf-8",
             )
@@ -107,7 +94,7 @@ class BluetoothManagerTest(unittest.TestCase):
         self.assertEqual(bluetooth.state.call_args.args[0], "error")
         self.assertEqual(
             bluetooth.state.call_args.kwargs["error"],
-            "Dongle Bumble indisponible: device not found",
+            "Capteur déconnecté, raison HCI 0x08",
         )
 
     def test_kplates_default_launch_uses_direct_hci_on_nrf(self):
@@ -138,10 +125,10 @@ class BluetoothManagerTest(unittest.TestCase):
         self.assertNotIn("--transport", command)
         bluetooth.state.assert_called_once_with("active")
 
-    def test_kplates_hci_backend_can_still_be_selected_explicitly(self):
+    def test_hci_adapter_can_be_selected_explicitly_for_kplates(self):
         with tempfile.TemporaryDirectory() as directory, mock.patch.dict(
             "os.environ",
-            {"KINE_KPLATES_BACKEND": KPLATES_BACKEND_HCI, "KINE_HCI_ADAPTER": "hci1"},
+            {"KINE_HCI_ADAPTER": "hci1"},
             clear=False,
         ):
             raw_dir = Path(directory) / "raw"
@@ -300,39 +287,6 @@ class BluetoothManagerTest(unittest.TestCase):
         self.assertIn("--control-file", command)
         self.assertIn("--csv", command)
         self.assertNotIn("--transport", command)
-
-    def test_kplates_bumble_backend_remains_available_for_diagnostics(self):
-        with tempfile.TemporaryDirectory() as directory, mock.patch.dict(
-            "os.environ",
-            {
-                "KINE_KPLATES_BACKEND": KPLATES_BACKEND_BUMBLE,
-                "KINE_BUMBLE_TRANSPORT": "usb:0",
-            },
-            clear=False,
-        ):
-            raw_dir = Path(directory) / "raw"
-            base_dir = Path(directory) / "project"
-            raw_dir.mkdir()
-            base_dir.mkdir()
-            bluetooth = KinventBluetoothManager()
-            bluetooth.state = mock.Mock()
-
-            with mock.patch(
-                "scripts.kinvent_bluetooth_manager.RAW_DIR",
-                raw_dir,
-            ), mock.patch(
-                "scripts.kinvent_bluetooth_manager.BASE_DIR",
-                base_dir,
-            ), mock.patch(
-                "scripts.kinvent_bluetooth_manager.subprocess.Popen"
-            ) as popen:
-                popen.return_value.pid = 4321
-                bluetooth.launch("kplates")
-
-        command = popen.call_args.args[0]
-        self.assertIn("kinvent_kplates_bumble.py", command[2])
-        self.assertIn("--transport", command)
-        self.assertEqual(command[command.index("--transport") + 1], "usb:0")
 
     def test_recovered_child_failure_returns_manager_to_idle(self):
         self.assertEqual(

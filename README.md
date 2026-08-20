@@ -107,59 +107,22 @@ Ce gestionnaire reste le point d'entrée unique pour les K-Force Plates, K-Push,
 K-Pull et K-Move. Changer de capteur déconnecte proprement le capteur actuel,
 puis connecte le suivant sans réinitialisation intermédiaire.
 
-La configuration stable actuelle conserve les K-Force Plates en HCI direct sur
-le dongle nRF52840 Zephyr, car c'est le dernier chemin validé par plusieurs
-tests terrain. Bumble reste disponible pour les autres capteurs et pour le
-diagnostic approfondi des plateformes, mais il ne doit pas remplacer le HCI
-direct en production tant que la double connexion plateformes n'est pas
-validée.
+La configuration stable actuelle utilise HCI direct pour tous les capteurs :
+K-Force Plates, K-Push, K-Pull, K-Move et ANR M40. BlueZ reste hors du chemin
+clinique afin que le gestionnaire garde seul la propriété du dongle.
 
 Le bouton « Déconnecter » ferme uniquement la liaison avec le capteur actif
 afin de préserver sa batterie. Le gestionnaire système reste disponible pour
 sélectionner immédiatement un autre capteur.
 
-### Backend Bumble/nRF52840
+### Bluetooth HCI direct
 
-Bumble remplace la plomberie Bluetooth de l'ancien dongle. Il ne change pas le
-protocole Kinvent : les commandes envoyées aux capteurs restent strictement
-celles observées dans les captures officielles du dossier `bug_report/`.
+Les commandes envoyées aux capteurs restent strictement celles observées dans
+les captures officielles du dossier `bug_report/`.
 
 La configuration permanente est :
 
-- `KINE_BLUETOOTH_BACKEND=bumble`
-- `KINE_BUMBLE_TRANSPORT=usb:0`
-- `KINE_KPLATES_BACKEND=hci-direct`
 - `KINE_HCI_ADAPTER=hci0`
-
-Pour vérifier Bumble sur les plateformes avec la séquence utile, utiliser le
-diagnostic dédié. Il lance le double flux officiel, avec capture USB et log
-centralisé :
-
-```bash
-cd /opt/kine-capteurs-staging
-bash scripts/run_kplates_bumble_diagnostic.sh
-```
-
-Les fichiers générés sont dans `/tmp/` :
-
-- `/tmp/kplates-bumble-diagnostic-*.log`
-- `/tmp/kplates-bumble-diagnostic-*.pcap`
-
-Un diagnostic Bumble ponctuel peut valider un capteur :
-
-```bash
-cd /opt/kine-capteurs-staging
-source .venv/bin/activate
-python scripts/kinvent_bumble_probe.py \
-  --transport usb:0 \
-  --address "ADRESSE_DU_CAPTEUR" \
-  --profile force \
-  --duration 30 \
-  --csv storage/raw_data/bumble_probe.csv
-```
-
-Pour le K-Move, utiliser `--profile kmove`. Pour une découverte GATT sans
-commande Kinvent, utiliser `--profile none`.
 
 Le K-Push peut être testé directement avec son pilote HCI direct :
 
@@ -170,7 +133,7 @@ sudo .venv/bin/python -u scripts/kinvent_kpush_hci.py \
   --address "60:8A:10:30:9B:FA" \
   --duration 30 \
   --tare-duration 2 \
-  --csv storage/raw_data/kpush_bumble_test.csv
+  --csv storage/raw_data/kpush_hci_test.csv
 ```
 
 Le K-Pull dispose du même pilote HCI direct. Avec le coefficient provisoire issu du
@@ -184,7 +147,7 @@ sudo .venv/bin/python -u scripts/kinvent_kpull_hci.py \
   --duration 30 \
   --tare-duration 2 \
   --counts-per-kg 9722.166667 \
-  --csv storage/raw_data/kpull_bumble_test.csv
+  --csv storage/raw_data/kpull_hci_test.csv
 ```
 
 Le K-Move peut ensuite être validé de la même façon. Pendant la référence,
@@ -197,27 +160,22 @@ sudo .venv/bin/python -u scripts/kinvent_kmove_hci.py \
   --address "60:8A:10:4F:BD:12" \
   --duration 30 \
   --reference-duration 2 \
-  --csv storage/raw_data/kmove_bumble_test.csv
+  --csv storage/raw_data/kmove_hci_test.csv
 ```
 
-Les K-Force Plates peuvent être validées en double connexion Bumble avec la
-même séquence officielle :
+Les K-Force Plates peuvent être validées en double connexion HCI directe :
 
 ```bash
 cd /opt/kine-capteurs-staging
-sudo .venv/bin/python -u scripts/kinvent_kplates_bumble.py \
-  --transport usb:0 \
+sudo .venv/bin/python -u scripts/kinvent_dual_hci.py \
+  --adapter hci0 \
   --duration 30 \
   --tare-duration 2 \
   --calibration-file storage/raw_data/kplates_calibration.json \
-  --csv storage/raw_data/kplates_bumble_test.csv
+  --csv storage/raw_data/kplates_hci_test.csv
 ```
 
-Les anciens scripts HCI directs restent dans le dépôt uniquement comme
-référence technique et support de tests de protocole. Le service permanent ne
-les lance plus.
-
-### Firmware nRF52840 pour Bumble
+### Firmware nRF52840 HCI USB
 
 Le K-Push, le K-Pull et le K-Move utilisent une seule connexion BLE. Les
 K-Force Plates en nécessitent deux simultanées ; le firmware HCI USB du
@@ -339,26 +297,7 @@ sudo scripts/run_anr_m40_diagnostic.sh \
 
 Le service permanent des plateformes est restauré automatiquement à la fin.
 
-Pour tester le M40 sans BlueZ, utiliser le diagnostic Bumble sur le dongle
-nRF52840. Le script ne lance pas de découverte GATT complète : il utilise les
-handles validés sur le serveur pour éviter la déconnexion initiale observée
-avec Bumble discovery.
-
-```bash
-cd /opt/kine-capteurs-staging
-source .venv/bin/activate
-
-sudo .venv/bin/python -u scripts/anr_m40_bumble.py \
-  --transport usb:0 \
-  --duration 30 \
-  --device-id 1 \
-  --csv storage/raw_data/anr_m40_bumble_test.csv
-```
-
-Si l'adresse du M40 est connue, l'ajouter avec `--address "ADRESSE"`.
-
-Le diagnostic ATT/HCI brut reste disponible uniquement pour redécouvrir les
-handles ou isoler un problème bas niveau :
+Pour tester le M40 sans BlueZ, utiliser le diagnostic HCI direct :
 
 ```bash
 cd /opt/kine-capteurs-staging
@@ -378,8 +317,8 @@ Si le M40 coupe la liaison pendant l'échange MTU, ajouter `--skip-mtu`.
 
 Dans l'application, l'ANR M40 est exposé comme un capteur à part entière :
 `/anr-m40`, `/anr-m40/test` et API `/api/anr-m40/*`. Le gestionnaire Bluetooth
-unique le lance avec Bumble/nRF52840, comme les capteurs Kinvent, et conserve
-BlueZ hors du chemin critique.
+unique le lance en HCI direct, comme les capteurs Kinvent, et conserve BlueZ
+hors du chemin critique.
 
 ## Diagnostic K-Pull
 

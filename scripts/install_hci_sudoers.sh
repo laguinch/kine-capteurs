@@ -10,4 +10,4 @@ else
   echo "Aucune autorisation HCI ancienne à supprimer."
 fi
 
-echo "Le service Bluetooth utilise uniquement Bumble/nRF52840."
+echo "Le service Bluetooth utilise uniquement HCI direct."

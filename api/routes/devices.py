@@ -71,8 +71,6 @@ def devices_snapshot():
             "phase_label": _phase_label(manager.get("phase")),
             "target": target,
             "backend": manager.get("backend"),
-            "transport": manager.get("transport"),
-            "kplates_backend": manager.get("kplates_backend"),
             "hci_adapter": manager.get("hci_adapter"),
             "error": manager.get("error"),
         },

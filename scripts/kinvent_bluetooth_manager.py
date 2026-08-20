@@ -19,14 +19,6 @@ from ble.kinvent.bluetooth_manager import (  # noqa: E402
     CONTROL_PATH,
     STATE_PATH,
 )
-from ble.kinvent.bumble_backend import (  # noqa: E402
-    BUMBLE_BACKEND,
-    backend_from_environment,
-    bumble_config_from_environment,
-    manager_backend_notice,
-    normalize_backend,
-    require_bumble,
-)
 
 
 RAW_DIR = BASE_DIR / "storage" / "raw_data"
@@ -34,7 +26,7 @@ WORKER_IDLE_STALE_SECONDS = 30.0
 
 TARGETS = {
     "kplates": {
-        "script": "kinvent_kplates_bumble.py",
+        "script": "kinvent_dual_hci.py",
         "control": "kplates_worker_control.json",
         "state": "kplates_worker_state.json",
         "log": "kplates_worker.log",
@@ -98,17 +90,7 @@ TARGETS = {
     },
 }
 
-KPLATES_BACKEND_HCI = "hci-direct"
-KPLATES_BACKEND_BUMBLE = "bumble"
-
-
-def kplates_backend_from_environment():
-    return (
-        os.environ.get("KINE_KPLATES_BACKEND", KPLATES_BACKEND_HCI)
-        .strip()
-        .lower()
-        .replace("_", "-")
-    )
+BLUETOOTH_BACKEND_HCI = "hci-direct"
 
 
 def hci_adapter_from_environment():
@@ -139,9 +121,12 @@ def describe_command(command):
 
 class KinventBluetoothManager:
     def __init__(self, backend=None):
-        self.backend = normalize_backend(backend or backend_from_environment())
-        self.bumble_config = bumble_config_from_environment()
-        self.kplates_backend = kplates_backend_from_environment()
+        self.backend = (backend or BLUETOOTH_BACKEND_HCI).strip().lower()
+        if self.backend != BLUETOOTH_BACKEND_HCI:
+            raise ValueError(
+                "Backend Bluetooth inconnu: "
+                f"{backend!r}. Le serveur utilise uniquement HCI direct."
+            )
         self.child = None
         self.target = None
         self.generation = None
@@ -161,16 +146,10 @@ class KinventBluetoothManager:
 
     def start(self):
         RAW_DIR.mkdir(parents=True, exist_ok=True)
-        print(
-            manager_backend_notice(self.backend, self.bumble_config),
-            flush=True,
-        )
-        require_bumble()
+        print("Backend Bluetooth: HCI direct.", flush=True)
         self.state(
             "idle",
             backend=self.backend,
-            transport=self.bumble_config.transport,
-            kplates_backend=self.kplates_backend,
             hci_adapter=hci_adapter_from_environment(),
         )
 
@@ -249,39 +228,13 @@ class KinventBluetoothManager:
     def launch(self, target):
         config = TARGETS[target]
         log_path = RAW_DIR / config["log"]
-        if target == "kplates" and self.kplates_backend == KPLATES_BACKEND_HCI:
-            command = [
-                sys.executable,
-                "-u",
-                str(BASE_DIR / "scripts" / "kinvent_dual_hci.py"),
-                "--adapter", hci_adapter_from_environment(),
-                "--tare-duration", "2",
-                "--calibration-file", str(RAW_DIR / "kplates_calibration.json"),
-                "--sync-tolerance-ms", "20",
-                "--control-file", str(RAW_DIR / "kplates_worker_control.json"),
-                "--state-file", str(RAW_DIR / "kplates_worker_state.json"),
-            ]
-        elif target in {"anr_m40", "kpush", "kpull", "kmove"}:
-            command = [
-                sys.executable,
-                "-u",
-                str(BASE_DIR / "scripts" / config["script"]),
-                "--adapter", hci_adapter_from_environment(),
-                *config["args"],
-            ]
-        else:
-            if target == "kplates" and self.kplates_backend != KPLATES_BACKEND_BUMBLE:
-                raise ValueError(
-                    "Backend K-Force Plates inconnu: "
-                    f"{self.kplates_backend!r}."
-                )
-            command = [
-                sys.executable,
-                "-u",
-                str(BASE_DIR / "scripts" / config["script"]),
-                "--transport", self.bumble_config.transport,
-                *config["args"],
-            ]
+        command = [
+            sys.executable,
+            "-u",
+            str(BASE_DIR / "scripts" / config["script"]),
+            "--adapter", hci_adapter_from_environment(),
+            *config["args"],
+        ]
         log_file = log_path.open("a", encoding="utf-8")
         try:
             self.child = subprocess.Popen(
@@ -447,10 +400,10 @@ class KinventBluetoothManager:
                         recovered = True
                         if return_code:
                             # Une sortie anormale du pilote constitue la panne
-                            # réelle. Avec Bumble/nRF52840, le gestionnaire
-                            # unique ne doit pas se relancer lui-même et
-                            # rejouer une ancienne commande: il repasse en
-                            # erreur propre et attend une nouvelle demande.
+                            # réelle: le gestionnaire unique ne doit pas se
+                            # relancer lui-même et rejouer une ancienne
+                            # commande. Il repasse en erreur propre et attend
+                            # une nouvelle demande.
                             recovered = self.recover_controller_after_failure(
                                 failed_target,
                                 return_code,
@@ -475,11 +428,9 @@ def main():
     parser.add_argument("--adapter", help=argparse.SUPPRESS)
     parser.add_argument(
         "--backend",
-        choices=[BUMBLE_BACKEND],
+        choices=[BLUETOOTH_BACKEND_HCI],
         default=None,
-        help=(
-            "Backend Bluetooth. Le serveur utilise uniquement Bumble/nRF52840."
-        ),
+        help="Backend Bluetooth. Le serveur utilise uniquement HCI direct.",
     )
     args = parser.parse_args()
     KinventBluetoothManager(backend=args.backend).run()

@@ -62,8 +62,6 @@ function render(data) {
   $("managerDetails").textContent = [
     manager.phase_label,
     manager.backend ? `backend ${manager.backend}` : null,
-    manager.transport,
-    manager.kplates_backend ? `plateformes ${manager.kplates_backend}` : null,
     manager.hci_adapter,
     manager.error,
   ].filter(Boolean).join(" · ");

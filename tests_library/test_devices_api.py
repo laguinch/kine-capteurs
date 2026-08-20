@@ -17,8 +17,8 @@ class DevicesApiTest(unittest.TestCase):
             return_value={
                 "phase": "active",
                 "target": "kplates",
-                "backend": "bumble",
-                "transport": "usb:0",
+                "backend": "hci-direct",
+                "hci_adapter": "hci0",
             },
         ), mock.patch.object(
             devices_module.dual_plate_service,

@@ -1,4 +1,4 @@
-"""Diagnostic ANR M40 par HCI/ATT direct, sans BlueZ ni GATT Bumble."""
+"""Diagnostic ANR M40 par HCI/ATT direct, sans BlueZ."""
 
 from __future__ import annotations
 
