@@ -142,7 +142,6 @@ class KPullAcquisitionService:
                 "csv_path": str(self._csv_path) if self._csv_path else None,
                 "log_path": str(self._log_path),
                 "last_error": self._last_error,
-                "battery_pct": None,
             }
 
     def latest(self):
@@ -161,7 +160,6 @@ class KPullAcquisitionService:
                     "sensor_time": float(row["sensor_time"]),
                     "force_kg": float(row["force_kg"]),
                     "force_n": float(row["force_n"]),
-                    "battery_pct": status.get("battery_pct"),
                 }
                 maximum = self._read_max_force()
                 measurement["max_force_n"] = maximum
