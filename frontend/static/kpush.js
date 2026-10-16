@@ -182,7 +182,7 @@ async function start() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        duration: Number($("duration").value),
+        duration: 10,
         tare_duration: 2,
         filename: $("filename").value.trim() || null,
       }),

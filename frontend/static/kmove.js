@@ -560,7 +560,7 @@ async function start() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        duration: isGlobalProtocol ? null : Number($("duration").value),
+        duration: isGlobalProtocol ? null : 20,
         filename: $("filename").value.trim() || null,
       }),
     });
