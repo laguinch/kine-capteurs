@@ -44,7 +44,7 @@
 .force-page .metric-card b { font-size: 2rem; }
 .force-page .panel { padding: 14px 18px; }
 .force-page .kpush-chart-panel, .force-page .footer-panel { margin-top: 12px; }
-.force-page .kpush-history { height: 260px; }
+.force-page .kpush-history { height: 180px; margin-top: 12px; }
 @media (max-width: 400px) { .force-page .metrics-grid { grid-template-columns: 1fr; } }
 @media (pointer: coarse) {
   .force-page button, .force-page .sensor-nav a, .force-page summary, .force-page .measurement-selection label { min-height: 44px; }
