@@ -48,7 +48,7 @@ async function loadPatients() {
     empty.innerHTML = `
       <p class="eyebrow">Aucun patient</p>
       <h2>Aucun dossier ne correspond à la recherche</h2>
-      <p>Vous pouvez créer un nouveau patient ou continuer en test anonyme.</p>
+      <p>Vous pouvez créer un nouveau patient ou continuer en test express.</p>
     `;
     patientList.appendChild(empty);
     return;

@@ -22,9 +22,17 @@
     link.href = `${target.pathname}${target.search}`;
   });
 
+  document.querySelectorAll("[data-test-setup]").forEach((link) => {
+    const target = new URL(link.getAttribute("href"), window.location.origin);
+    target.search = params.toString();
+    link.href = `${target.pathname}${target.search}`;
+  });
+
   if (!mode || !save) return;
 
-  mode.textContent = `${isTraining ? "Entraînement" : "Évaluation"} ${isPatient ? "patient" : "anonyme"}`;
+  mode.textContent = !isPatient && !isTraining
+    ? "Test express"
+    : `${isTraining ? "Entraînement" : "Évaluation"} ${isPatient ? "patient" : "anonyme"}`;
   save.textContent = isPatient
     ? "À la fin, les résultats seront enregistrés dans le dossier patient."
     : "Résultats anonymes, exportables sans dossier patient.";

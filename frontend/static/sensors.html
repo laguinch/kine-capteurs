@@ -10,14 +10,14 @@
     <main class="shell home-shell">
       <nav class="sensor-nav">
         <a href="/">Accueil</a>
-        <a href="/session/anonyme?context=anonymous">Type de séance</a>
+        <a id="sessionBackLink" href="/nouvelle-seance">Nouvelle séance</a>
         <a href="/appareils">Appareils</a>
       </nav>
       <header class="hero">
         <p id="flowContext" class="eyebrow">Choix du capteur</p>
         <h1>Quel capteur utiliser ?</h1>
         <p id="flowSubtitle" class="subtitle">
-          Sélectionnez le capteur, puis choisissez le test ou le jeu disponible.
+          Sélectionnez le capteur pour accéder directement à la prise de mesure.
         </p>
       </header>
 
@@ -55,11 +55,17 @@
       const type = params.get("type") || "evaluation";
       const typeLabel = type === "training" ? "Entraînement" : "Évaluation";
       const contextLabel = context.startsWith("patient:") ? "patient" : "anonyme";
-      document.getElementById("flowContext").textContent = `${typeLabel} ${contextLabel}`;
+      const isExpress = context === "anonymous" && type === "evaluation";
+      document.getElementById("flowContext").textContent = isExpress ? "Test express" : `${typeLabel} ${contextLabel}`;
+      if (context.startsWith("patient:")) {
+        const back = document.getElementById("sessionBackLink");
+        back.href = `/session/patient/${encodeURIComponent(context.split(":")[1])}?context=patient`;
+        back.textContent = "Type de séance";
+      }
       document.getElementById("flowSubtitle").textContent =
         context.startsWith("patient:")
-          ? "Après le test, les résultats seront enregistrés dans le dossier patient."
-          : "Les résultats resteront anonymes et exportables.";
+          ? "Accédez directement à la mesure. Les résultats pourront être enregistrés dans le dossier patient."
+          : "Accédez directement à la mesure. Les résultats resteront anonymes et exportables.";
       document.querySelectorAll(".sensor-link").forEach((link) => {
         const target =
           type === "training" && link.dataset.sensor === "/kforceplates"

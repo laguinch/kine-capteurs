@@ -73,6 +73,11 @@ def patient_session(patient_id: str):
     return frontend_page("session.html")
 
 
+@app.get("/test-express")
+def express_test():
+    return frontend_page("sensors.html")
+
+
 @app.get("/capteurs")
 def sensors():
     return frontend_page("sensors.html")
@@ -110,6 +115,11 @@ def kforceplates_brick_game():
 
 @app.get("/kpush")
 def kpush():
+    return frontend_page("kpush_test.html")
+
+
+@app.get("/kpush/preparation")
+def kpush_preparation():
     return frontend_page("kpush.html")
 
 
@@ -120,6 +130,11 @@ def kpush_test():
 
 @app.get("/kpull")
 def kpull():
+    return frontend_page("kpull_test.html")
+
+
+@app.get("/kpull/preparation")
+def kpull_preparation():
     return frontend_page("kpull.html")
 
 
@@ -130,6 +145,11 @@ def kpull_test():
 
 @app.get("/kmove")
 def kmove():
+    return frontend_page("kmove_test.html")
+
+
+@app.get("/kmove/preparation")
+def kmove_preparation():
     return frontend_page("kmove.html")
 
 
