@@ -24,3 +24,11 @@
   .force-page .measure-controls label { flex-basis: 100%; max-width: none; }
   .force-page .measure-controls button { flex: 1; }
 }
+
+.force-page .measurement-selection { display: grid; grid-template-columns: .65fr 1.2fr 1.15fr; gap: 18px; margin-top: 18px; }
+.force-page .measurement-selection fieldset { min-width: 0; margin: 0; padding: 15px; border: 1px solid var(--line); border-radius: 12px; }
+.force-page .measurement-selection legend { padding: 0 6px; color: var(--ink); font-weight: 800; }
+.force-page .measurement-selection label { display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: .9rem; color: var(--ink); cursor: pointer; }
+.force-page .measurement-selection input { width: 18px; height: 18px; min-width: 18px; margin: 0; padding: 0; accent-color: var(--teal); }
+.force-page .selection-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+@media (max-width: 600px) { .force-page .measurement-selection { grid-template-columns: 1fr; } }

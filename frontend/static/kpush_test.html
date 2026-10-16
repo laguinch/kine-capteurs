@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>K‑Push — Kine Capteurs</title>
     <link rel="stylesheet" href="/static/styles.css?v=12">
-    <link rel="stylesheet" href="/static/force_layout.css?v=1">
+    <link rel="stylesheet" href="/static/force_layout.css?v=2">
   </head>
   <body>
     <main class="shell force-page">
@@ -61,7 +61,11 @@
         </div>
         <details class="measure-details">
           <summary>Articulation et mouvement · facultatif</summary>
-          <a class="download" data-test-setup href="/kpush/preparation">Préciser l’articulation et le mouvement</a>
+          <div id="measurementSelection" class="measurement-selection"></div>
+          <div class="selection-footer">
+            <span id="selectionSummary" aria-live="polite">Aucune précision sélectionnée</span>
+            <button id="clearSelection" type="button" class="secondary">Effacer la sélection</button>
+          </div>
         </details>
       </section>
 
@@ -100,9 +104,9 @@
       </section>
     </main>
     <script src="/static/patient_save.js?v=3"></script>
-    <script src="/static/kpush.js?v=15"></script>
+    <script src="/static/kpush.js?v=16"></script>
     <script src="/static/flow.js?v=7"></script>
-    <script src="/static/force_layout.js?v=1"></script>
+    <script src="/static/force_layout.js?v=2"></script>
     <script src="/static/bluetooth_reset.js?v=2"></script>
   </body>
 </html>

@@ -130,7 +130,7 @@ function update(data) {
 
 async function maybeSave(data) {
   if (!window.KinePatientSave) return;
-  const selection = window.KinePatientSave.selection();
+  const selection = window.KineForceSelection?.measurementSelection() || window.KinePatientSave.selection();
   const label = [selection.articulation, selection.cote, selection.mouvement].filter(Boolean).join(" · ");
   try {
     const saved = await window.KinePatientSave.saveEvaluation(data, {
@@ -175,6 +175,7 @@ async function disconnect() {
 }
 
 async function start() {
+  window.KineForceSelection?.capture();
   state.history = [];
   state.lastTimestamp = null;
   state.maxForceKg = 0;
