@@ -5,9 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>K‑Pull — Kine Capteurs</title>
     <link rel="stylesheet" href="/static/styles.css?v=12">
+    <link rel="stylesheet" href="/static/force_layout.css?v=1">
   </head>
   <body>
-    <main class="shell">
+    <main class="shell force-page">
       <nav class="sensor-nav">
         <a href="/">Accueil</a>
         <a href="/appareils">Appareils</a>
@@ -20,41 +21,49 @@
       <header class="topbar">
         <div>
           <p class="eyebrow">K‑Pull</p>
-          <h1>Force de traction</h1>
-          <p class="subtitle">Force instantanée et maximale en temps réel</p>
-        </div>
-        <div class="connection">
-          <span id="statusDot" class="status-dot"></span>
-          <span class="connection-text">
-            <span id="statusText">Prêt</span>
-          </span>
+          <h1><span id="flowMode">Test express</span> · Force musculaire</h1>
         </div>
       </header>
-
-      <section id="flowBanner" class="flow-banner">
-        <span id="flowMode">Évaluation anonyme</span>
-        <strong id="flowSave">Résultats anonymes, exportables sans dossier patient.</strong>
+      <section id="flowBanner" class="flow-banner" hidden>
+        <strong id="flowSave"></strong>
       </section>
 
-      <section class="control-panel">
-        <a class="download" data-test-setup href="/kpull/preparation">Préciser l’articulation et le mouvement (facultatif)</a>
-        <span id="durationControl" class="badge neutral">Durée du test : 10 secondes</span>
-        <label>
-          Nom du test
-          <input id="filename" placeholder="Créé automatiquement">
-        </label>
-        <button id="startButton" class="primary">Démarrer</button>
-        <button id="stopButton" class="secondary" disabled>Arrêter</button>
-        <button id="connectButton" class="secondary">Connecter le K‑Pull</button>
-        <button id="disconnectButton" class="secondary" disabled>Déconnecter</button>
-        <a id="downloadButton" class="download disabled" href="/api/kpull/download">Télécharger</a>
-        <div class="timer">
-          <span>Temps</span>
-          <strong id="timer">00:00</strong>
+      <section class="sensor-panel" aria-labelledby="sensorTitle">
+        <div class="sensor-panel-top">
+          <div>
+            <h2 id="sensorTitle">Capteur K‑Pull</h2>
+            <div class="sensor-status" role="status">
+              <span id="statusDot" class="status-dot"></span>
+              <span id="statusText">K‑Pull déconnecté</span>
+            </div>
+          </div>
+          <div class="sensor-actions">
+            <button id="connectButton" class="primary">Connecter le K‑Pull</button>
+            <button id="disconnectButton" class="secondary" disabled hidden>Déconnecter</button>
+          </div>
         </div>
+        <div id="message" class="message hidden" role="status" aria-live="polite"></div>
       </section>
 
-      <div id="message" class="message hidden"></div>
+      <section class="control-panel measure-panel" aria-labelledby="measureTitle">
+        <h2 id="measureTitle">Prise de mesure sur 10 secondes</h2>
+        <div class="measure-controls">
+          <label>
+            Nom du test
+            <input id="filename" placeholder="Créé automatiquement">
+          </label>
+          <button id="startButton" class="primary" disabled>Démarrer</button>
+          <button id="stopButton" class="secondary" disabled>Arrêter</button>
+          <div class="timer">
+            <span>Temps</span>
+            <strong id="timer">00:00</strong>
+          </div>
+        </div>
+        <details class="measure-details">
+          <summary>Articulation et mouvement · facultatif</summary>
+          <a class="download" data-test-setup href="/kpull/preparation">Préciser l’articulation et le mouvement</a>
+        </details>
+      </section>
 
       <section class="metrics-grid kpush-metrics">
         <article class="metric-card total-card">
@@ -87,11 +96,13 @@
           <p class="eyebrow">Acquisition</p>
           <h2 id="fileLabel">Aucun fichier en cours</h2>
         </div>
+        <a id="downloadButton" class="download disabled" href="/api/kpull/download">Télécharger</a>
       </section>
     </main>
     <script src="/static/patient_save.js?v=3"></script>
-    <script src="/static/kpull.js?v=11"></script>
+    <script src="/static/kpull.js?v=12"></script>
     <script src="/static/flow.js?v=7"></script>
+    <script src="/static/force_layout.js?v=1"></script>
     <script src="/static/bluetooth_reset.js?v=2"></script>
   </body>
 </html>
