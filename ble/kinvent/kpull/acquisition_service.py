@@ -1,3 +1,4 @@
+from ble.kinvent.bluetooth_manager import ensure_no_reset
 import csv
 import json
 import os
@@ -78,6 +79,7 @@ class KPullAcquisitionService:
 
     def start(self, duration=30.0, filename=None):
         with self._lock:
+            ensure_no_reset()
             self._refresh()
             if self._process is None:
                 raise RuntimeError("Connectez le K-Pull avant de démarrer.")

@@ -109,7 +109,33 @@ EOF
 sudo install -o root -g root -m 0644 "$TEMP_UNIT" "$UNIT_FILE"
 sudo install -o root -g root -m 0644 \
   "$TEMP_BLUETOOTH_UNIT" "$BLUETOOTH_UNIT_FILE"
+# Local-time calendar handles daylight saving changes in Europe/Paris.
+sudo tee /etc/systemd/system/kine-capteurs-bluetooth-reset.service >/dev/null <<EOF
+[Unit]
+Description=Kine Capteurs - maintenance Bluetooth quotidienne
+After=$SERVICE_NAME.service $BLUETOOTH_SERVICE_NAME.service
+
+[Service]
+Type=oneshot
+User=$SERVICE_USER
+WorkingDirectory=$PROJECT_DIR
+ExecStart=$PYTHON_BIN $PROJECT_DIR/scripts/bluetooth_daily_reset.py
+TimeoutStartSec=90
+EOF
+sudo tee /etc/systemd/system/kine-capteurs-bluetooth-reset.timer >/dev/null <<EOF
+[Unit]
+Description=Reset Bluetooth quotidien à 04 h (Paris), uniquement si libre
+
+[Timer]
+OnCalendar=*-*-* 04:00:00 Europe/Paris
+Persistent=false
+Unit=kine-capteurs-bluetooth-reset.service
+
+[Install]
+WantedBy=timers.target
+EOF
 sudo systemctl daemon-reload
+sudo systemctl enable --now kine-capteurs-bluetooth-reset.timer
 sudo KINE_SERVICE_USER="$SERVICE_USER" bash scripts/install_hci_sudoers.sh
 
 if [[ "$SKIP_SERVICE_RESTART" == "1" ]]; then

@@ -11,6 +11,7 @@ from app.config import BASE_DIR
 RAW_DIR = BASE_DIR / "storage" / "raw_data"
 CONTROL_PATH = RAW_DIR / "kinvent_bluetooth_control.json"
 STATE_PATH = RAW_DIR / "kinvent_bluetooth_state.json"
+RESET_PATH = RAW_DIR / "kinvent_bluetooth_reset.json"
 
 
 def _read_json(path):
@@ -25,6 +26,7 @@ def manager_state():
 
 
 def request_sensor(target):
+    ensure_no_reset()
     if target not in {None, "kplates", "kpush", "kpull", "kmove", "anr_m40"}:
         raise ValueError(f"Capteur inconnu: {target}")
     RAW_DIR.mkdir(parents=True, exist_ok=True)
@@ -81,3 +83,42 @@ class ManagedSensorProcess:
         }:
             return None
         return state.get("return_code", 0)
+
+
+def reset_state():
+    return _read_json(RESET_PATH)
+
+
+def request_reset(idle_only=False):
+    """Queue a maintenance request for the sole controller owner."""
+    ensure_no_reset()
+    state = manager_state()
+    pid = state.get("pid")
+    if not isinstance(pid, int) or pid <= 0:
+        raise RuntimeError("Le gestionnaire Bluetooth est arrêté.")
+    try:
+        os.kill(pid, 0)
+    except PermissionError:
+        pass  # The root-owned manager exists.
+    except OSError as exc:
+        raise RuntimeError("Le gestionnaire Bluetooth est arrêté.") from exc
+    command = {
+        "action": "reset",
+        "target": None,
+        "idle_only": bool(idle_only),
+        "generation": uuid.uuid4().hex,
+    }
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
+    temporary = CONTROL_PATH.with_name(f"{CONTROL_PATH.name}.{command['generation']}.tmp")
+    temporary.write_text(json.dumps(command), encoding="utf-8")
+    temporary.replace(CONTROL_PATH)
+    return command
+
+
+def ensure_no_reset():
+    command = _read_json(CONTROL_PATH)
+    if command.get("action") != "reset":
+        return
+    result = reset_state()
+    if result.get("generation") != command.get("generation") or result.get("status") not in {"done", "error", "rejected", "skipped"}:
+        raise RuntimeError("Une réinitialisation Bluetooth est en cours. Attendez sa fin.")

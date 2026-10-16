@@ -18,6 +18,7 @@ from app.config import BASE_DIR  # noqa: E402
 from ble.kinvent.bluetooth_manager import (  # noqa: E402
     CONTROL_PATH,
     STATE_PATH,
+    RESET_PATH,
 )
 
 
@@ -153,6 +154,48 @@ class KinventBluetoothManager:
             hci_adapter=hci_adapter_from_environment(),
         )
 
+    def reset_controller(self):
+        # Maintenance of the local controller only: no sensor command or reconnect.
+        from scripts.kinvent_raw_hci import (
+            RawKinventClient, parse_adapter, OGF_HOST_CTL, OCF_RESET,
+        )
+        client = RawKinventClient(
+            parse_adapter(hci_adapter_from_environment()),
+            "00:00:00:00:00:00", "public",
+        )
+        try:
+            client.open()
+            opcode = client.send_command(OGF_HOST_CTL, OCF_RESET)
+            client.wait_for_command(opcode, 3.0)
+        finally:
+            client.close()
+
+    def handle_reset(self, command):
+        generation = command["generation"]
+        def result(status, message):
+            write_json(RESET_PATH, {
+                "generation": generation, "status": status, "message": message,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            })
+        # Automatic maintenance must never disconnect even an idle sensor.
+        if command.get("idle_only") and (self.child is not None or self.target):
+            result("skipped", "Reset ignoré : un capteur est utilisé ou connecté.")
+            return
+        result("running", "Réinitialisation du Bluetooth en cours…")
+        self.state("resetting")
+        if not self.stop_child():
+            result("error", "Le pilote ne s’arrête pas. Le reset n’a pas été effectué.")
+            return
+        try:
+            self.reset_controller()
+        except (Exception, SystemExit) as exc:
+            message = f"Échec du reset Bluetooth : {exc}"
+            self.state("error", error=message)
+            result("error", message)
+            return
+        self.state("idle", backend=self.backend, hci_adapter=hci_adapter_from_environment())
+        result("done", "Bluetooth réinitialisé. Vous pouvez reconnecter le capteur.")
+
     def recover_controller_after_failure(self, failed_target, return_code):
         self.state(
             "error",
@@ -256,7 +299,7 @@ class KinventBluetoothManager:
 
     @staticmethod
     def is_manager_command(command):
-        return command.get("action") in {"select", "disconnect"}
+        return command.get("action") in {"select", "disconnect", "reset"}
 
     def current_target_is_active(self, requested):
         if requested != self.target or self.child is None:
@@ -363,6 +406,10 @@ class KinventBluetoothManager:
                             flush=True,
                         )
                         time.sleep(0.2)
+                        continue
+                    if action == "reset":
+                        self.handle_reset(command)
+                        self.generation = generation
                         continue
                     self.generation = generation
                     requested = command.get("target")

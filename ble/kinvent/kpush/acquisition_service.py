@@ -1,3 +1,4 @@
+from ble.kinvent.bluetooth_manager import ensure_no_reset
 import csv
 import json
 import os
@@ -79,6 +80,7 @@ class KPushAcquisitionService:
     def start(self, duration=30.0, filename=None, tare_duration=2.0):
         del tare_duration
         with self._lock:
+            ensure_no_reset()
             self._refresh()
             if self._process is None:
                 raise RuntimeError("Connectez le K-Push avant de démarrer.")

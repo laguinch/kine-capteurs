@@ -337,3 +337,37 @@ sudo scripts/run_kpull_diagnostic.sh \
 Laisser le câble sans tension pendant les deux premières secondes, puis
 appliquer ou suspendre exactement la charge indiquée. Le script affiche alors
 le coefficient en comptes/kg.
+
+
+## Reset Bluetooth de maintenance
+
+Le bouton « Reset Bluetooth » est présent dans la navigation de toutes les
+pages. Il demande confirmation, refuse une mesure active ou armée, ferme le
+pilote courant puis envoie un HCI Reset au contrôleur local. Il ne reconnecte
+aucun capteur et ne rejoue aucune séquence Kinvent. Le gestionnaire existant
+reste le seul propriétaire du dongle. Un échec est affiché, jamais présenté
+comme un reset réussi. Si le gestionnaire est arrêté ou le dongle bloqué dans
+le noyau, une intervention sur le serveur peut rester nécessaire.
+
+La commande HCI Reset (0x0c03) apparaît dans les deux captures plateformes
+`bug_report/bugreport-plate-kinvent/FS/data/log/bt/btsnoop_hci.log` et
+`bug_report/bugreport-plate-kinvent-D-G/FS/data/log/bt/btsnoop_hci.log`.
+La maintenance manuelle et quotidienne est une demande explicite du projet ;
+elle ne fait pas partie de la séquence normale d’une mesure.
+
+`scripts/update.sh` installe le timer `kine-capteurs-bluetooth-reset.timer` :
+chaque jour à **04:00 Europe/Paris**, avec adaptation heure d’été/hiver.
+Le reset quotidien est ignoré si un capteur est connecté, un test actif ou
+armé, ou une opération Bluetooth en cours. Il ne se rattrape pas au démarrage
+si le serveur était éteint à 04 h. Les résultats sont dans le journal système.
+Le script appelle uniquement l’API locale ; il ne possède aucun droit HCI.
+
+```bash
+systemctl list-timers kine-capteurs-bluetooth-reset.timer
+journalctl -u kine-capteurs-bluetooth-reset.service
+# Désactiver la maintenance quotidienne :
+sudo systemctl disable --now kine-capteurs-bluetooth-reset.timer
+```
+
+Une nouvelle exécution de `scripts/update.sh` réactive ce timer. Le bouton
+manuel reste utilisable même si le timer est désactivé.

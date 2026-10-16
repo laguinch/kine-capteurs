@@ -1,8 +1,11 @@
+from contextlib import ExitStack
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from typing import Literal
 
 from ble.anr.acquisition_service import anr_m40_service
 from ble.common.devices import ANR_M40, KMOVE, KPLATE_LEFT, KPLATE_RIGHT, KPULL, KPUSH
-from ble.kinvent.bluetooth_manager import manager_state, request_sensor
+from ble.kinvent.bluetooth_manager import manager_state, request_sensor, request_reset, reset_state
 from ble.kinvent.kmove.acquisition_service import kmove_service
 from ble.kinvent.kplates.acquisition_service import dual_plate_service
 from ble.kinvent.kpull.acquisition_service import kpull_service
@@ -186,3 +189,34 @@ def disconnect_device(device_key: str):
     except RuntimeError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return devices_snapshot()
+
+
+class BluetoothResetRequest(BaseModel):
+    confirmed: Literal[True]
+    idle_only: bool = False
+
+
+@router.post("/bluetooth/reset", status_code=202)
+def reset_bluetooth(request: BluetoothResetRequest):
+    # Serialize against acquisition starts in the single API process.
+    with ExitStack() as stack:
+        for service in (dual_plate_service, kpush_service, kpull_service, kmove_service, anr_m40_service):
+            stack.enter_context(service._lock)
+        snapshot = devices_snapshot()
+        if any((device["running"] or device["phase"] in {"armed", "active"}) for device in snapshot["devices"]):
+            raise HTTPException(status_code=409, detail="Arrêtez le test avant de réinitialiser le Bluetooth.")
+        if request.idle_only and any(device["connected"] for device in snapshot["devices"]):
+            raise HTTPException(status_code=409, detail="Reset ignoré : un capteur est connecté.")
+        if snapshot["manager"]["phase"] in {"switching", "resetting"}:
+            raise HTTPException(status_code=409, detail="Une opération Bluetooth est déjà en cours.")
+        try:
+            command = request_reset(idle_only=request.idle_only)
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        return {"generation": command["generation"], "status": "queued"}
+
+
+
+@router.get("/bluetooth/reset")
+def bluetooth_reset_status():
+    return reset_state()

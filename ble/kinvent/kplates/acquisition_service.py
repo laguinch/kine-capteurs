@@ -1,3 +1,4 @@
+from ble.kinvent.bluetooth_manager import ensure_no_reset
 import csv
 import json
 import os
@@ -45,6 +46,7 @@ class DualPlateAcquisitionService:
     ):
         del adapter, tare_duration, sync_tolerance_ms
         with self._lock:
+            ensure_no_reset()
             if mode == "cmj":
                 duration = 10.0
             worker = self._read_worker_state()
