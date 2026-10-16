@@ -38,7 +38,12 @@
       while (Date.now() - job.startedAt < 60000) {
         const state = await request('/api/devices/bluetooth/reset');
         if (state.generation === job.generation && ['done', 'error', 'rejected', 'skipped'].includes(state.status)) {
-          show(state.message);
+          if (state.status === 'done') {
+            notice.textContent = '';
+            notice.classList.add('hidden');
+          } else {
+            show(state.message);
+          }
           return;
         }
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -52,7 +57,7 @@
     }
   }
   button.addEventListener('click', async () => {
-    if (!window.confirm('Réinitialiser le Bluetooth ?\n\nLe capteur sera déconnecté. Vous devrez le reconnecter après le reset. Un test en cours doit d’abord être arrêté.')) return;
+    if (!window.confirm('Réinitialiser le Bluetooth ?\n\nLe capteur sera déconnecté. Vous devrez le reconnecter après le reset.')) return;
     button.disabled = true;
     show('Demande de réinitialisation…');
     try {
