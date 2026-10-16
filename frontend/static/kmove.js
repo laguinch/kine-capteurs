@@ -412,6 +412,9 @@ function update(data) {
   $("statusText").textContent = labels[phase] || "Prêt";
   $("connectButton").disabled = data.connected || busy;
   $("disconnectButton").disabled = !data.connected || active || armed;
+  $("connectButton").hidden = Boolean(data.connected && !busy);
+  $("disconnectButton").hidden = !data.connected || busy;
+  $("message").classList.toggle("sensor-preparing", busy);
   $("startButton").disabled = !ready;
   $("stopButton").disabled = !(active || armed);
   const downloadable = Boolean(data.csv_path && data.finished_at && !active && !armed);

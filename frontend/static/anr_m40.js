@@ -77,6 +77,9 @@ function setButtons(data) {
   const connecting = data.phase === "connecting";
   $("connectButton").disabled = state.busy || connected || connecting;
   $("disconnectButton").disabled = state.busy || !connected || running;
+  $("connectButton").hidden = connected && !connecting;
+  $("disconnectButton").hidden = !connected || connecting;
+  $("message").classList.toggle("sensor-preparing", connecting);
   $("startButton").disabled = state.busy || !connected || running || connecting;
   $("stopButton").disabled = state.busy || !running;
   $("downloadButton").classList.toggle("disabled", !data.csv_path);

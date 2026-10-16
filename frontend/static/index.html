@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Kine Capteurs</title>
     <link rel="stylesheet" href="/static/styles.css?v=12">
+    <link rel="stylesheet" href="/static/sensor_panel.css?v=1">
   </head>
   <body>
     <script>
@@ -27,19 +28,32 @@
       </nav>
       <header class="topbar">
         <div>
-          <p class="eyebrow">K-Force Plates</p>
           <h1>Analyse bipodale</h1>
           <p class="subtitle">Force, asymétrie et centre de pression en temps réel</p>
-        </div>
-        <div class="connection">
-          <span id="statusDot" class="status-dot"></span>
-          <span id="statusText">Prêt</span>
         </div>
       </header>
 
       <section id="flowBanner" class="flow-banner">
         <span id="flowMode">Évaluation anonyme</span>
         <strong id="flowSave">Résultats anonymes, exportables sans dossier patient.</strong>
+      </section>
+
+      <section class="sensor-panel" aria-labelledby="sensorTitle">
+        <div class="sensor-panel-top">
+          <div>
+            <h2 id="sensorTitle">Capteurs K‑Force Plates</h2>
+            <div class="sensor-status" role="status">
+              <span id="statusDot" class="status-dot"></span>
+              <span id="statusText">Déconnecté</span>
+
+            </div>
+          </div>
+          <div class="sensor-actions">
+            <button id="connectButton" class="primary">Connecter les capteurs</button>
+            <button id="disconnectButton" class="secondary" disabled hidden>Déconnecter</button>
+          </div>
+        </div>
+        <div id="message" class="message hidden" role="status" aria-live="polite"></div>
       </section>
 
       <section class="control-panel">
@@ -70,8 +84,6 @@
         </label>
         <button id="startButton" class="primary">Démarrer</button>
         <button id="stopButton" class="secondary" disabled>Arrêter</button>
-        <button id="connectButton" class="secondary">Connecter les capteurs</button>
-        <button id="disconnectButton" class="secondary">Déconnecter les capteurs</button>
         <a id="downloadButton" class="download disabled" href="/api/kplates/dual/download">Télécharger</a>
         <div class="timer">
           <span>Temps</span>
@@ -79,7 +91,6 @@
         </div>
       </section>
 
-      <div id="message" class="message hidden"></div>
 
       <section id="cmjResults" class="metrics-grid hidden">
         <article class="metric-card total-card">
@@ -196,7 +207,7 @@
         </div>
       </section>
     </main>
-    <script src="/static/app.js?v=13"></script>
+    <script src="/static/app.js?v=14"></script>
     <script src="/static/flow.js?v=7"></script>
     <script src="/static/bluetooth_reset.js?v=2"></script>
   </body>

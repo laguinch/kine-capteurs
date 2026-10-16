@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ANR M40 — Kine Capteurs</title>
     <link rel="stylesheet" href="/static/styles.css?v=13">
+    <link rel="stylesheet" href="/static/sensor_panel.css?v=1">
   </head>
   <body>
     <main class="shell">
@@ -19,16 +20,8 @@
       </nav>
       <header class="topbar">
         <div>
-          <p class="eyebrow">ANR M40</p>
           <h1>Activité EMG</h1>
           <p class="subtitle">Signal musculaire instantané et maximum en temps réel</p>
-        </div>
-        <div class="connection">
-          <span id="statusDot" class="status-dot"></span>
-          <span class="connection-text">
-            <span id="statusText">Prêt</span>
-            <small id="batteryBadge">Batterie —</small>
-          </span>
         </div>
       </header>
 
@@ -37,11 +30,27 @@
         <strong id="flowSave">Résultats anonymes, exportables sans dossier patient.</strong>
       </section>
 
+      <section class="sensor-panel" aria-labelledby="sensorTitle">
+        <div class="sensor-panel-top">
+          <div>
+            <h2 id="sensorTitle">Capteur ANR M40</h2>
+            <div class="sensor-status" role="status">
+              <span id="statusDot" class="status-dot"></span>
+              <span id="statusText">Déconnecté</span>
+              <small id="batteryBadge">Batterie —</small>
+            </div>
+          </div>
+          <div class="sensor-actions">
+            <button id="connectButton" class="primary">Connecter l’ANR M40</button>
+            <button id="disconnectButton" class="secondary" disabled hidden>Déconnecter</button>
+          </div>
+        </div>
+        <div id="message" class="message hidden" role="status" aria-live="polite"></div>
+      </section>
+
       <section class="control-panel">
         <button id="startButton" class="primary">Démarrer</button>
         <button id="stopButton" class="secondary" disabled>Arrêter</button>
-        <button id="connectButton" class="secondary">Connecter l’ANR M40</button>
-        <button id="disconnectButton" class="secondary" disabled>Déconnecter</button>
         <a id="downloadButton" class="download disabled" href="/api/anr-m40/download">Télécharger</a>
         <div class="timer">
           <span>Temps</span>
@@ -49,7 +58,6 @@
         </div>
       </section>
 
-      <div id="message" class="message hidden"></div>
 
       <section class="metrics-grid kpush-metrics">
         <article class="metric-card total-card">
@@ -81,7 +89,7 @@
         </div>
       </section>
     </main>
-    <script src="/static/anr_m40.js?v=15"></script>
+    <script src="/static/anr_m40.js?v=16"></script>
     <script src="/static/bluetooth_reset.js?v=2"></script>
   </body>
 </html>

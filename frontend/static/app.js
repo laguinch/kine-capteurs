@@ -95,6 +95,9 @@ function updateStatus(data) {
   $("stopButton").disabled = !running;
   $("connectButton").disabled = running || connecting || ready;
   $("disconnectButton").disabled = running || connecting || (!data.bluetooth_connected && !degraded);
+  $("connectButton").hidden = (ready || running) && !connecting;
+  $("disconnectButton").hidden = connecting || (!data.bluetooth_connected && !degraded);
+  $("message").classList.toggle("sensor-preparing", connecting || validating);
   $("fileLabel").textContent = data.csv_path ? data.csv_path.split("/").pop() : "Aucun fichier en cours";
   $("downloadButton").classList.toggle("disabled", !data.csv_path);
   $("balanceMetrics").classList.toggle("hidden", cmjMode);
