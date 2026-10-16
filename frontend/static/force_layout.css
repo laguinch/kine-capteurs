@@ -1,21 +1,23 @@
-.force-page .topbar { margin-bottom: 24px; }
-.force-page h1 { font-size: clamp(1.7rem, 3.6vw, 3rem); }
+.force-page.shell { padding-top: 18px; padding-bottom: 24px; }
+.force-page .sensor-nav { margin-bottom: 12px; align-items: center; }
+.force-page .topbar { margin-bottom: 12px; }
+.force-page h1 { font-size: clamp(1.5rem, 2.8vw, 2.2rem); }
 .force-page #flowMode { font: inherit; }
 .force-page [hidden] { display: none !important; }
-.force-page .sensor-panel { padding: 22px; margin: 22px 0; background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--teal); border-radius: 18px; box-shadow: var(--shadow); }
+.force-page .sensor-panel { padding: 14px 18px; margin: 12px 0; background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--teal); border-radius: 18px; box-shadow: var(--shadow); }
 .force-page .sensor-panel-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px; }
-.force-page .sensor-panel h2, .force-page .measure-panel h2 { margin: 0; font-size: 1.2rem; }
-.force-page .sensor-status { display: flex; align-items: center; gap: 9px; margin-top: 6px; color: var(--muted); }
+.force-page .sensor-panel h2, .force-page .measure-panel h2 { margin: 0; font-size: 1.05rem; }
+.force-page .sensor-status { display: flex; align-items: center; gap: 8px; margin-top: 3px; color: var(--muted); }
 .force-page .sensor-actions { display: flex; flex-wrap: wrap; gap: 10px; }
-.force-page .sensor-panel .message { margin: 18px 0 0; padding: 14px 0 0; border-top: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--muted); }
-.force-page .sensor-panel .message.sensor-preparing { padding: 12px 15px; border: 0; border-radius: 12px; background: #fff3d7; color: #785916; }
+.force-page .sensor-panel .message { margin: 10px 0 0; padding: 9px 0 0; border-top: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--muted); }
+.force-page .sensor-panel .message.sensor-preparing { padding: 9px 12px; border: 0; border-radius: 12px; background: #fff3d7; color: #785916; }
 .force-page .sensor-panel .message.ready { color: #12663f; }
-.force-page .sensor-panel .message.error { padding: 12px 15px; border: 0; border-radius: 12px; background: #fde7e5; color: #8d2c28; }
-.force-page .measure-panel { display: block; padding: 22px; margin-top: 0; }
-.force-page .measure-controls { display: flex; align-items: end; flex-wrap: wrap; gap: 16px; margin-top: 20px; }
+.force-page .sensor-panel .message.error { padding: 9px 12px; border: 0; border-radius: 12px; background: #fde7e5; color: #8d2c28; }
+.force-page .measure-panel { display: block; padding: 14px 18px; margin: 0 0 12px; }
+.force-page .measure-controls { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
 .force-page .measure-controls label { flex: 1 1 220px; max-width: 380px; }
 .force-page .measure-controls input { width: 100%; min-width: 0; }
-.force-page .measure-details { margin-top: 18px; color: var(--muted); }
+.force-page .measure-details { margin-top: 10px; color: var(--muted); }
 .force-page .measure-details summary { cursor: pointer; }
 .force-page .measure-details .download { display: inline-block; margin-top: 12px; }
 .force-page .footer-panel { flex-wrap: wrap; }
@@ -25,10 +27,27 @@
   .force-page .measure-controls button { flex: 1; }
 }
 
-.force-page .measurement-selection { display: grid; grid-template-columns: .65fr 1.2fr 1.15fr; gap: 18px; margin-top: 18px; }
-.force-page .measurement-selection fieldset { min-width: 0; margin: 0; padding: 15px; border: 1px solid var(--line); border-radius: 12px; }
+.force-page .measurement-selection { display: grid; grid-template-columns: .65fr 1.2fr 1.15fr; gap: 12px; margin-top: 12px; }
+.force-page .measurement-selection fieldset { min-width: 0; margin: 0; padding: 10px; border: 1px solid var(--line); border-radius: 12px; }
 .force-page .measurement-selection legend { padding: 0 6px; color: var(--ink); font-weight: 800; }
-.force-page .measurement-selection label { display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: .9rem; color: var(--ink); cursor: pointer; }
+.force-page .measurement-selection label { display: flex; align-items: center; gap: 10px; min-height: 32px; font-size: .88rem; color: var(--ink); cursor: pointer; }
 .force-page .measurement-selection input { width: 18px; height: 18px; min-width: 18px; margin: 0; padding: 0; accent-color: var(--teal); }
-.force-page .selection-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+.force-page .selection-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
 @media (max-width: 600px) { .force-page .measurement-selection { grid-template-columns: 1fr; } }
+
+.force-page .eyebrow { margin-bottom: 4px; }
+.force-page .sensor-status, .force-page .message, .force-page .measure-details { font-size: .9rem; }
+.force-page .sensor-nav button, .force-page .sensor-actions button, .force-page .measure-controls button, .force-page .selection-footer button, .force-page .download { padding: 9px 14px; font-size: .9rem; }
+.force-page .measure-controls input { padding: 8px 10px; }
+.force-page .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.force-page .metric-card { padding: 14px 18px; gap: 4px; }
+.force-page .metric-card b { font-size: 2rem; }
+.force-page .panel { padding: 14px 18px; }
+.force-page .kpush-chart-panel, .force-page .footer-panel { margin-top: 12px; }
+.force-page .kpush-history { height: 260px; }
+@media (max-width: 400px) { .force-page .metrics-grid { grid-template-columns: 1fr; } }
+@media (pointer: coarse) {
+  .force-page button, .force-page .sensor-nav a, .force-page summary, .force-page .measurement-selection label { min-height: 44px; }
+  .force-page summary { display: list-item; padding-top: 10px; }
+  .force-page .measure-controls input { font-size: 16px; }
+}
