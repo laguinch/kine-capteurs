@@ -45,3 +45,58 @@ CCCD `0x0053`, puis écrit la séquence sur la valeur `0x0052`.
 Cette approche permet de conserver un autre contrôleur sous BlueZ pour l'ANRM40.
 Le contrôleur Kinvent doit être hors tension dans BlueZ avant l'ouverture du
 canal utilisateur et le script doit être exécuté avec les droits root.
+
+## Initialisation double plate V2 2.34
+
+Le pilote HCI double utilise désormais une progression indépendante par plate
+pour les réponses de contrôle identifiées. La source est la capture existante
+`bug_report/bugreport-plate-kinvent-D-G/FS/data/log/bt/btsnoop_hci.log`, fenêtre
+du 15 juin 2026 de 14:48:30 à 14:48:34 UTC. Son SHA-256 est
+`badaf4c7eb8496b52235b8cce01da811fc552c06fe3cde8be7adfd34a2ff2130`.
+
+| Commande | Réponse nécessaire avant la suite |
+| --- | --- |
+| `09` | `KINVENT FW 2.34V` |
+| `66` | `46 3d 32 35 48 7a 00 00` (`F=25Hz`) |
+| `56` | `46 3d 32 35 48 7a 00 00` (`F=25Hz`) |
+| `ac 00 54 f8` | `ac 00 54 aa 52` (rollover déjà activé) |
+| `ac 01 04 a9` | `ac 01 04 cc 65` (variante de ces plates) |
+
+Ces réponses doivent arriver sur la valeur UART `0x0052` de la bonne connexion.
+Elles peuvent être fragmentées ; le tampon est vidé à chaque nouvelle instruction.
+Une plate qui répond n'attend pas la réponse de l'autre. Par exemple, dans la
+capture la réponse à `66` arrive après 1,656612 s à gauche et 1,654078 s à droite :
+ce sont des latences constatées, pas des temporisations fixes de 1,67 s à rejouer.
+
+Le recoupement provient du bundle Hermes de KINVENT 2.26.1 (versionCode 135),
+XAPK SHA-256 `a8d96bf27b34a8ee6e03a25c801b8cc99b046f55807c349f3a30192639c4a371`.
+Fonctions identifiées : `startNextInstruction` #34224,
+`onInstructionCompleted` #34226, `ReadFirmwareInstruction` #34608/#34609,
+`ChangeFrequencyInstruction` #34573/#34574, `MeasurementWithTimeProtocolInstruction`
+#34565/#34566, `RolloverTimerInstruction` #34631/#34632 et
+`ReadPlateVariantInstruction` #34641. Les numéros sont propres à ce bundle.
+La décompilation Hermes 98 est partielle : les réponses ci-dessus sont également
+confirmées dans la capture, et non déduites du seul pseudo-code.
+
+Le délai de deux secondes des instructions de lecture/fréquence du bundle sert
+de borne locale d'échec pour ces attentes (y compris la lecture du rollover).
+Il ne retarde pas une réponse déjà reçue et ne déclenche aucune commande,
+reconnexion ou réinitialisation automatique. Une réponse absente ou différente
+arrête cette initialisation avec un diagnostic. Les autres firmwares, variantes
+EEPROM et le rollover désactivé ne sont pas implémentés par extrapolation.
+
+La séquence de commandes, le préambule CCCD/radio et les délais des étapes sans
+réponse validée, notamment autour de la batterie (`76`), sont conservés.
+Ce correctif ne reconstitue donc pas encore toute la logique de l'application.
+
+`tests_library/fixtures/kplates_init_234.json` contient uniquement les commandes,
+réponses de contrôle et horaires extraits de cette capture. Les tests rejouent
+leurs latences par instruction et vérifient la séparation gauche/droite, les
+réponses fragmentées, les réponses incorrectes et l'arrêt sans relance :
+
+```sh
+python3 -m unittest tests_library.test_kplate_initialization tests_library.test_kplate_dual tests_library.test_kplate_protocol
+```
+
+Une validation sur les plates du serveur reste nécessaire. Aucune nouvelle
+capture Bluetooth n'est requise pour exécuter ces tests hors ligne.

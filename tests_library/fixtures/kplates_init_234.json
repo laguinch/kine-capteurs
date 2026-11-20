@@ -1,0 +1,134 @@
+{
+  "source": "bug_report/bugreport-plate-kinvent-D-G/FS/data/log/bt/btsnoop_hci.log",
+  "sha256": "badaf4c7eb8496b52235b8cce01da811fc552c06fe3cde8be7adfd34a2ff2130",
+  "plates": {
+    "gauche": [
+      {
+        "command": "10",
+        "timestamp_utc": "2026-06-15T14:48:30.712661+00:00"
+      },
+      {
+        "command": "10",
+        "timestamp_utc": "2026-06-15T14:48:30.782899+00:00"
+      },
+      {
+        "command": "09",
+        "timestamp_utc": "2026-06-15T14:48:31.098812+00:00",
+        "response": "4b 49 4e 56 45 4e 54 20 46 57 20 32 2e 33 34 56",
+        "response_delay": 0.034891
+      },
+      {
+        "command": "76",
+        "timestamp_utc": "2026-06-15T14:48:31.148246+00:00"
+      },
+      {
+        "command": "11",
+        "timestamp_utc": "2026-06-15T14:48:31.417465+00:00"
+      },
+      {
+        "command": "10",
+        "timestamp_utc": "2026-06-15T14:48:31.572035+00:00"
+      },
+      {
+        "command": "10",
+        "timestamp_utc": "2026-06-15T14:48:31.579704+00:00"
+      },
+      {
+        "command": "60 00 19 00 4b 0d 0a",
+        "timestamp_utc": "2026-06-15T14:48:31.985320+00:00"
+      },
+      {
+        "command": "66",
+        "timestamp_utc": "2026-06-15T14:48:31.997685+00:00",
+        "response": "46 3d 32 35 48 7a 00 00",
+        "response_delay": 1.656612
+      },
+      {
+        "command": "56",
+        "timestamp_utc": "2026-06-15T14:48:33.672318+00:00",
+        "response": "46 3d 32 35 48 7a 00 00",
+        "response_delay": 0.04203
+      },
+      {
+        "command": "ac 00 54 f8",
+        "timestamp_utc": "2026-06-15T14:48:33.728458+00:00",
+        "response": "ac 00 54 aa 52",
+        "response_delay": 0.045625
+      },
+      {
+        "command": "ac 01 04 a9",
+        "timestamp_utc": "2026-06-15T14:48:33.788671+00:00",
+        "response": "ac 01 04 cc 65",
+        "response_delay": 0.04541
+      },
+      {
+        "command": "11",
+        "timestamp_utc": "2026-06-15T14:48:33.849683+00:00"
+      }
+    ],
+    "droite": [
+      {
+        "command": "10",
+        "timestamp_utc": "2026-06-15T14:48:30.698765+00:00"
+      },
+      {
+        "command": "10",
+        "timestamp_utc": "2026-06-15T14:48:30.778135+00:00"
+      },
+      {
+        "command": "09",
+        "timestamp_utc": "2026-06-15T14:48:31.087721+00:00",
+        "response": "4b 49 4e 56 45 4e 54 20 46 57 20 32 2e 33 34 56",
+        "response_delay": 0.042303
+      },
+      {
+        "command": "76",
+        "timestamp_utc": "2026-06-15T14:48:31.142572+00:00"
+      },
+      {
+        "command": "11",
+        "timestamp_utc": "2026-06-15T14:48:31.448324+00:00"
+      },
+      {
+        "command": "10",
+        "timestamp_utc": "2026-06-15T14:48:31.625541+00:00"
+      },
+      {
+        "command": "10",
+        "timestamp_utc": "2026-06-15T14:48:31.631757+00:00"
+      },
+      {
+        "command": "60 00 19 00 4b 0d 0a",
+        "timestamp_utc": "2026-06-15T14:48:32.017475+00:00"
+      },
+      {
+        "command": "66",
+        "timestamp_utc": "2026-06-15T14:48:32.026072+00:00",
+        "response": "46 3d 32 35 48 7a 00 00",
+        "response_delay": 1.654078
+      },
+      {
+        "command": "56",
+        "timestamp_utc": "2026-06-15T14:48:33.694964+00:00",
+        "response": "46 3d 32 35 48 7a 00 00",
+        "response_delay": 0.045216
+      },
+      {
+        "command": "ac 00 54 f8",
+        "timestamp_utc": "2026-06-15T14:48:33.753723+00:00",
+        "response": "ac 00 54 aa 52",
+        "response_delay": 0.046755
+      },
+      {
+        "command": "ac 01 04 a9",
+        "timestamp_utc": "2026-06-15T14:48:33.815711+00:00",
+        "response": "ac 01 04 cc 65",
+        "response_delay": 0.044372
+      },
+      {
+        "command": "11",
+        "timestamp_utc": "2026-06-15T14:48:33.876772+00:00"
+      }
+    ]
+  }
+}

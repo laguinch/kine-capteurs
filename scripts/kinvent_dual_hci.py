@@ -27,6 +27,7 @@ from ble.kinvent.kplates.protocol import (  # noqa: E402
     parse_frame,
 )
 from ble.kinvent.kplates.cmj_analysis import analyze_cmj_csv  # noqa: E402
+from ble.kinvent.kplates.initialization import PlateInitialization  # noqa: E402
 from scripts.kinvent_raw_hci import (  # noqa: E402
     AF_BLUETOOTH,
     ATT_CID,
@@ -72,22 +73,6 @@ OGF_LINK_CTL = 0x01
 OCF_DISCONNECT = 0x0006
 OCF_LE_CONN_UPDATE = 0x0013
 
-# Séquence strictement observée dans les captures HCI de l'application Kinvent
-# avec deux K-Force Plates. Les commandes sont envoyées une seule fois, dans
-# cet ordre, sans relance conditionnelle non présente dans les captures.
-KPLATE_INIT_STEPS = [
-    (b"\x09", 0.05),
-    (b"\x76", 0.30),
-    (b"\x11", 0.16),
-    (b"\x10", 0.01),
-    (b"\x10", 0.38),
-    (bytes.fromhex("60 00 19 00 4b 0d 0a"), 0.01),
-    (b"\x66", 1.67),
-    (b"\x56", 0.06),
-    (bytes.fromhex("ac 00 54 f8"), 0.06),
-    (bytes.fromhex("ac 01 04 a9"), 0.06),
-    (b"\x11", 0.20),
-]
 KPLATE_PARK_DELAY = 0.05
 KPLATE_REST_SANITY_KG = 20.0
 CSV_FIELDS = [
@@ -349,6 +334,7 @@ class DualKinventClient:
         self.sock = None
         self.fragments = {}
         self.pending_att = {}
+        self._plate_initializations = {}
         self.last_print = 0.0
         self.print_interval = print_interval
         self.sync_tolerance = sync_tolerance_ms / 1000.0
@@ -761,13 +747,47 @@ class DualKinventClient:
         for plate in connected:
             self.update_connection_interval(plate)
 
-        for command, delay in KPLATE_INIT_STEPS:
-            for plate in connected:
-                self.send_write_command(plate, command)
-            self.pump(delay)
+        self._initialize_plate_protocols(connected)
 
         for plate in connected:
             print(f"Flux {plate.side} démarré.")
+
+    def _initialize_plate_protocols(self, plates):
+        self._plate_initializations = {
+            plate.handle: PlateInitialization(plate.side) for plate in plates
+        }
+        original_timeout = self.sock.gettimeout() if self.sock else None
+        try:
+            while True:
+                for plate in plates:
+                    state = self._plate_initializations[plate.handle]
+                    state.advance(
+                        time.monotonic(),
+                        lambda command, plate=plate: self.send_write_command(
+                            plate, command
+                        ),
+                    )
+                pending = [
+                    state for state in self._plate_initializations.values()
+                    if not state.done
+                ]
+                if not pending:
+                    return
+                # Réagir à chaque paquet ; ne pas bloquer l'autre plate pendant
+                # une attente de réponse. Respecter aussi les courts délais
+                # déjà observés pour les étapes sans réponse identifiée.
+                remaining = min(s.deadline for s in pending) - time.monotonic()
+                if remaining <= 0:
+                    continue
+                if self.sock:
+                    self.sock.settimeout(remaining)
+                packet = self.receive()
+                if packet:
+                    self.process(packet)
+        finally:
+            self._plate_initializations.clear()
+            if self.sock:
+                self.sock.settimeout(original_timeout)
 
     def start_stream(self, plate, write_delay):
         self.start_streams([plate], write_delay)
@@ -869,6 +889,9 @@ class DualKinventClient:
             self.pending_att.setdefault(handle, []).append(att)
             return
         if opcode == ATT_OP_NOTIFICATION and len(att) >= 3:
+            state = self._plate_initializations.get(handle)
+            if state is not None and struct.unpack_from("<H", att, 1)[0] == UART_VALUE_HANDLE:
+                state.feed(att[3:])
             plate.notifications += 1
             plate.last_notification_at = time.monotonic()
             value = att[3:]

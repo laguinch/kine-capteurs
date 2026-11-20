@@ -1121,58 +1121,6 @@ class KPlateDualTest(unittest.TestCase):
             ["droite", "gauche"],
         )
 
-    def test_uses_plate_specific_stream_initialization_for_both_plates(self):
-        client = self.module.DualKinventClient(
-            1,
-            "E8:EB:1B:6F:A7:5F",
-            "E8:EB:1B:79:B1:AB",
-            None,
-            0,
-            1,
-        )
-        writes = []
-        cccd = []
-        updates = []
-        for index, plate in enumerate(client.plates, start=0x10):
-            plate.handle = index
-        client.send_write_command = (
-            lambda plate, value: writes.append((plate.side, value))
-        )
-        client.send_att = (
-            lambda plate, value: cccd.append((plate.side, value))
-        )
-        client.wait_write_response = lambda plate: None
-        client.update_connection_interval = (
-            lambda plate: updates.append(plate.side)
-        )
-        client.pump = lambda duration: None
-
-        client.start_streams(client.plates)
-
-        left_values = [
-            value for side, value in writes if side == "gauche"
-        ]
-        self.assertEqual(
-            left_values,
-            [
-                b"\x10",
-                b"\x10",
-                b"\x09",
-                b"\x76",
-                b"\x11",
-                b"\x10",
-                b"\x10",
-                bytes.fromhex("60 00 19 00 4b 0d 0a"),
-                b"\x66",
-                b"\x56",
-                bytes.fromhex("ac 00 54 f8"),
-                bytes.fromhex("ac 01 04 a9"),
-                b"\x11",
-            ],
-        )
-        self.assertEqual(updates, ["gauche", "droite"])
-        self.assertEqual(len(cccd), 2)
-
     def test_connection_update_matches_official_final_radio_window(self):
         client = self.module.DualKinventClient(
             1,
