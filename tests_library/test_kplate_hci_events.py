@@ -93,6 +93,15 @@ class HciEventsTest(unittest.TestCase):
         self.plate.decode.assert_called_once()
         self.assertEqual(self.plate.notifications, 1)
 
+    def test_session_failure_preserves_controller_error_for_interface(self):
+        self.client.reset = Mock(side_effect=TimeoutError('Pas de réponse HCI 0x0c03'))
+        self.client.disconnect_all = Mock()
+        with patch.object(driver.time, 'sleep'):
+            with self.assertRaisesRegex(RuntimeError, 'Dernière erreur : Pas de réponse HCI 0x0c03') as caught:
+                self.client.initialize_session(1, 1, 0, attempts=1)
+        self.assertIsInstance(caught.exception.__cause__, TimeoutError)
+        self.client.reset.assert_called_once()
+
     def test_session_clear_discards_old_events(self):
         self.client.process((driver.HCI_EVENT_PKT, bytes.fromhex(
             '3e 0a 03 00 0c 00 06 00 00 00 f4 01')))

@@ -1598,7 +1598,8 @@ class DualKinventClient:
                 self.clear_connection_state()
                 time.sleep(0.8)
         raise RuntimeError(
-            "Impossible d'activer simultanément les deux plateformes."
+            "Impossible d'activer simultanément les deux plateformes. "
+            f"Dernière erreur : {last_error}"
         ) from last_error
 
     def run(self, scan_timeout, connect_timeout, duration, write_delay):
