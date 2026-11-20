@@ -1759,6 +1759,21 @@ class DualKinventClient:
         )
         temporary.replace(target)
 
+    @classmethod
+    def refresh_idle_worker_state(cls, path):
+        """Signale que la boucle fonctionne, sans changer l'état des mesures."""
+        try:
+            state = json.loads(Path(path).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return
+        if not isinstance(state, dict) or state.get("pid") != os.getpid():
+            return
+        if state.get("phase") not in {"idle", "degraded"}:
+            return
+        state.pop("updated_at", None)
+        state.pop("pid", None)
+        cls.write_worker_state(path, **state)
+
     @staticmethod
     def consume_control_command(path, generation):
         target = Path(path)
@@ -2232,6 +2247,7 @@ class DualKinventClient:
                     # reformulée en « test arrêté », ni entraîner la
                     # déconnexion logicielle de l'autre plateforme.
                     self.pump(1.0, progress=False, show_progress=False)
+                    self.refresh_idle_worker_state(state_file)
                     if (
                         self.sock is not None
                         and time.monotonic() >= next_idle_keepalive

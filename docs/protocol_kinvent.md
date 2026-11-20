@@ -316,3 +316,15 @@ plusieurs trames dans une notification et propagation des erreurs indépendantes
 
 Cette correction traite l'arrêt logiciel. Elle ne démontre pas que la cause des
 retards et des horodatages désordonnés dans le flux reçu est résolue.
+
+
+### Présence du pilote au repos
+
+L'API considère les états `idle` / `degraded` périmés après 30 secondes.
+La boucle de réception au repos rafraîchit désormais `updated_at` après chaque
+passage réussi. Elle conserve la phase, les côtés connectés, les erreurs et les
+résultats : ce signal indique seulement que le processus travaille, pas que les
+mesures sont fraîches. Aucun état terminal ou fichier appartenant à un autre
+processus n'est rafraîchi. Aucune commande Bluetooth n'est ajoutée.
+Cette correction évite un faux affichage hors ligne après un jeu ; elle ne
+corrige pas les retards du flux de mesures.

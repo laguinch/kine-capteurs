@@ -20,7 +20,8 @@ class GameSessionTest(unittest.TestCase):
                 plate.handle = handle
                 client.by_handle[handle] = plate
             for name in ('validate_live_streams', 'open_csv', 'close_csv',
-                         'disconnect_all', 'close', 'consume_control_command'):
+                         'disconnect_all', 'close', 'consume_control_command',
+                         'refresh_idle_worker_state'):
                 setattr(client, name, Mock())
             client.finish_acquisition_streams = Mock(return_value=False)
             states = []
@@ -37,6 +38,7 @@ class GameSessionTest(unittest.TestCase):
                 return True
             client.pump = pump
             client.run_persistent(1, 1, 0, control, Path(directory) / 'state.json', managed=True)
+            client.refresh_idle_worker_state.assert_called_once_with(Path(directory) / 'state.json')
             self.assertEqual(len(calls), 1)
             self.assertIn('active', [s['phase'] for s in states])
             self.assertIn('idle', [s['phase'] for s in states])
