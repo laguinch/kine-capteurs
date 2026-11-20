@@ -334,6 +334,7 @@ class DualKinventClient:
         self.sock = None
         self.fragments = {}
         self.pending_att = {}
+        self.pending_le_events = deque(maxlen=64)
         self._plate_initializations = {}
         self.last_print = 0.0
         self.print_interval = print_interval
@@ -606,35 +607,43 @@ class DualKinventClient:
             0,
             0,
         )
+        # Seule une création de liaison est en cours dans ce client. Conserver
+        # ses événements, même s'ils arrivent pendant l'attente Command Status.
+        connection_events = (EVT_LE_CONN_COMPLETE, EVT_LE_ENHANCED_CONN_COMPLETE)
+        self.pending_le_events = deque(
+            (p for p in self.pending_le_events if p[2] not in connection_events),
+            maxlen=64,
+        )
         opcode = self.send_command(OGF_LE_CTL, OCF_LE_CREATE_CONN, params)
         self.wait_for_command(opcode)
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
-            packet = self.receive()
-            if packet is None:
-                continue
-            packet_type, payload = packet
-            if (
-                packet_type == HCI_EVENT_PKT
-                and len(payload) >= 15
-                and payload[0] == EVT_LE_META_EVENT
-                and payload[2]
-                in (EVT_LE_CONN_COMPLETE, EVT_LE_ENHANCED_CONN_COMPLETE)
-            ):
-                peer = le_bytes_to_address(payload[8:14])
-                if peer == plate.address:
-                    if payload[3]:
-                        raise RuntimeError(
-                            f"Connexion {plate.side}: statut 0x{payload[3]:02x}"
-                        )
-                    plate.handle = struct.unpack_from("<H", payload, 4)[0] & 0x0FFF
-                    self.by_handle[plate.handle] = plate
-                    print(
-                        f"Plateforme {plate.side} connectée, "
-                        f"handle 0x{plate.handle:04x}."
+            for payload in list(self.pending_le_events):
+                if payload[2] not in connection_events:
+                    continue
+                # En cas d'échec, l'adresse n'est pas nécessairement renseignée.
+                if payload[3]:
+                    self.pending_le_events.remove(payload)
+                    raise RuntimeError(
+                        f"Connexion {plate.side}: statut 0x{payload[3]:02x}"
                     )
-                    return
-            self.process(packet)
+                required = 33 if payload[2] == EVT_LE_ENHANCED_CONN_COMPLETE else 21
+                if len(payload) < required:
+                    self.pending_le_events.remove(payload)
+                    continue
+                if le_bytes_to_address(payload[8:14]) != plate.address:
+                    continue
+                self.pending_le_events.remove(payload)
+                plate.handle = struct.unpack_from("<H", payload, 4)[0] & 0x0FFF
+                self.by_handle[plate.handle] = plate
+                print(
+                    f"Plateforme {plate.side} connectée, "
+                    f"handle 0x{plate.handle:04x}."
+                )
+                return
+            packet = self.receive()
+            if packet:
+                self.process(packet)
         raise TimeoutError(f"Connexion {plate.side}: délai dépassé")
 
     def send_att(self, plate, payload):
@@ -687,36 +696,40 @@ class DualKinventClient:
             0,
             0,
         )
+        self.pending_le_events = deque(
+            (p for p in self.pending_le_events
+             if not (p[2] == 0x03 and len(p) >= 6
+                     and struct.unpack_from("<H", p, 4)[0] == plate.handle)),
+            maxlen=64,
+        )
         opcode = self.send_command(OGF_LE_CTL, OCF_LE_CONN_UPDATE, parameters)
         self.wait_for_command(opcode)
 
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
-            packet = self.receive()
-            if packet is None:
-                continue
-            packet_type, payload = packet
-            if (
-                packet_type == HCI_EVENT_PKT
-                and len(payload) >= 12
-                and payload[0] == EVT_LE_META_EVENT
-                and payload[2] == 0x03
-                and (struct.unpack_from("<H", payload, 4)[0] & 0x0FFF)
-                == plate.handle
-            ):
+            for payload in list(self.pending_le_events):
+                if (payload[2] != 0x03 or len(payload) < 12
+                        or struct.unpack_from("<H", payload, 4)[0] != plate.handle):
+                    continue
+                self.pending_le_events.remove(payload)
                 if payload[3]:
                     raise RuntimeError(
-                        f"Réglage radio {plate.side}: statut "
-                        f"0x{payload[3]:02x}"
+                        f"Réglage radio {plate.side}: statut 0x{payload[3]:02x}"
                     )
-                interval = struct.unpack_from("<H", payload, 6)[0]
-                print(
-                    f"Intervalle radio {plate.side}: "
-                    f"{interval * 1.25:.1f} ms."
-                )
+                interval, latency, supervision = struct.unpack_from("<HHH", payload, 6)
+                # La capture contient un événement succès avec des paramètres
+                # nuls, suivi du vrai résultat. Il ne valide pas le réglage.
+                if not (interval_min <= interval <= interval_max
+                        and latency == 0 and supervision == supervision_timeout):
+                    print(f"Réglage radio {plate.side}: résultat intermédiaire ignoré "
+                          f"({interval}, {latency}, {supervision}).")
+                    continue
+                print(f"Intervalle radio {plate.side}: {interval * 1.25:.1f} ms.")
                 return
-            self.process(packet)
-        raise TimeoutError(f"Réglage radio sans réponse pour {plate.side}")
+            packet = self.receive()
+            if packet:
+                self.process(packet)
+        raise TimeoutError(f"Réglage radio sans réponse valide pour {plate.side}")
 
     def start_streams(self, plates, write_delay=0.1):
         """Initialise un ou plusieurs flux selon la séquence Kinvent."""
@@ -831,6 +844,10 @@ class DualKinventClient:
             return
         if packet_type != HCI_EVENT_PKT or len(payload) < 2:
             return
+        if (payload[0] == EVT_LE_META_EVENT and len(payload) >= 4
+                and payload[2] in (EVT_LE_CONN_COMPLETE, EVT_LE_ENHANCED_CONN_COMPLETE, 0x03)):
+            self.pending_le_events.append(payload)
+            return
         if payload[0] == EVT_DISCONN_COMPLETE and len(payload) >= 6:
             handle = struct.unpack_from("<H", payload, 3)[0] & 0x0FFF
             plate = self.by_handle.get(handle)
@@ -892,6 +909,9 @@ class DualKinventClient:
             state = self._plate_initializations.get(handle)
             if state is not None and struct.unpack_from("<H", att, 1)[0] == UART_VALUE_HANDLE:
                 state.feed(att[3:])
+                # Réponses de contrôle et échantillons batterie appartiennent
+                # à l’initialisation, pas au flux de mesures du test.
+                return
             plate.notifications += 1
             plate.last_notification_at = time.monotonic()
             value = att[3:]
@@ -1471,6 +1491,7 @@ class DualKinventClient:
         self.by_handle.clear()
         self.fragments.clear()
         self.pending_att.clear()
+        self.pending_le_events.clear()
         for plate in self.plates:
             plate.handle = None
             plate.samples.clear()

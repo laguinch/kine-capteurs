@@ -100,3 +100,32 @@ python3 -m unittest tests_library.test_kplate_initialization tests_library.test_
 
 Une validation sur les plates du serveur reste nécessaire. Aucune nouvelle
 capture Bluetooth n'est requise pour exécuter ces tests hors ligne.
+
+### Conservation des événements de connexion et de réglage radio
+
+Le pilote conserve désormais les événements LE Connection Complete (classique
+et étendu) et Connection Update Complete reçus pendant une autre attente HCI.
+Auparavant, `wait_for_command` les transmettait à `process`, qui les ignorait :
+une réponse déjà reçue pouvait donc aboutir à « Réglage radio sans réponse ».
+Les résultats sont consommés par la liaison concernée et effacés entre sessions.
+Un échec de connexion est également reconnu lorsque son adresse distante n'est
+pas renseignée. Le handle zéro reste un identifiant de connexion valide.
+
+Dans la capture double du 15 juin, à 14:48:29.739334 UTC, le handle `0x000c`
+reçoit `3e 0a 03 00 0c 00 00 00 00 00 00 00`, puis un résultat valide à
+14:48:30.052428. Le premier résultat ne doit pas valider le réglage : le pilote
+vérifie désormais l'intervalle demandé, la latence et le délai de supervision.
+Aucune commande, temporisation ou tentative supplémentaire n'est ajoutée.
+
+Pendant l'initialisation, les notifications UART sont traitées par son automate
+et ne sont plus décodées comme des mesures du test. Cela évite de compter les
+réponses de firmware et de fréquence comme des trames de mesure rejetées.
+Le décodage des mesures reprend une fois l'initialisation terminée.
+
+`tests_library/test_kplate_hci_events.py` couvre le résultat nul capturé,
+les réponses arrivant avant Command Status (entrelacement simulé), la séparation
+des deux liaisons, les erreurs, le handle zéro et l'isolation des mesures.
+Ces tests ne démontrent pas la cause de toutes les coupures physiques signalées
+par `0x08` ou `0x3e`, ni de l'absence de réponse au reset `0x0c03`.
+La découverte GATT complète et la nouvelle logique de collecte batterie ne
+font pas partie de ce correctif ; leur analyse reste à valider séparément.
