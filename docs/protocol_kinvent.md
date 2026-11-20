@@ -183,3 +183,33 @@ d'échec n'est pas reproduit sans capture correspondante. Le vidage n'a pas de
 nouvelle limite arbitraire : si les données continuent indéfiniment, il attend
 et ne prétend pas que la plate est prête. Ce correctif ne garantit pas la
 résolution des déconnexions radio antérieures à l'initialisation.
+
+### Silence temporaire pendant une acquisition de répartition / un jeu
+
+Vérification du bundle KINVENT 2.26.1 : `subscribeToDataStream` (#34227,
+#34372) conserve un abonnement aux notifications, sans délai d'arrêt d'une
+seconde dans ces fonctions. Le callback BLE `onDisconnected` (#75197) signale
+une déconnexion anormale et appelle `reconnect`. `ConnectionThrottleMonitor`
+(#34988–34995) exige un firmware V3 via `isSupported` : ce mécanisme ne concerne
+pas le chemin V2 2.34. L'abonnement d'interface #93605 examiné journalise la
+déconnexion anormale ; il ne démontre pas le comportement visuel de tous les
+écrans de jeu. On ne peut pas affirmer que Kinvent suspend son chronomètre.
+
+Notre règle terminale « une seconde sans notification → abandon du test » n'est
+pas établie par ces fonctions officielles. Elle est retirée pour le mode
+`balance` : les paires réellement reçues continuent d'être enregistrées jusqu'à
+la fin prévue ou l'arrêt utilisateur. Une déconnexion BLE explicite reste une
+erreur. La règle du mode CMJ n'est pas changée.
+
+Choix explicite de notre interface (et non reproduction revendiquée de l'écran
+Kinvent) : après une seconde sans nouvelle paire, les trois jeux suspendent les
+mouvements et le score, affichent l'attente et reprennent à la nouvelle mesure.
+Les réponses HTTP répétant le même horodatage ne réactivent pas le jeu. La durée
+de session continue de s'écouler, sans remise à zéro à la reprise et sans
+prolongation automatique. Aucune mesure manquante n'est interpolée ni écrite au
+CSV. Cette tolérance ne corrige pas la cause des pertes de flux ou des défauts
+USB. Aucune nouvelle commande Bluetooth ou relance n'est ajoutée.
+
+Tests : `test_kplate_game_session.py` vérifie la politique du worker et
+`node tests_library/test_kplate_game_freshness.cjs` vérifie les trois jeux
+(doublons, interruption, reprise, conservation du score et fin de session).

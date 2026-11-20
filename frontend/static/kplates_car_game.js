@@ -22,6 +22,7 @@ const game = {
   direction: "center",
   latestMeasurement: null,
   lastMeasurementTimestamp: null,
+  lastFreshMeasurementAt: null,
   saved: false,
   csvPath: null,
   connecting: false,
@@ -176,6 +177,9 @@ function updateStatus(data) {
 }
 
 function updateControls(measurement) {
+  // Une réponse HTTP répétée ne constitue pas une nouvelle mesure.
+  if (!measurement.timestamp_utc || measurement.timestamp_utc === game.lastMeasurementTimestamp) return;
+  game.lastFreshMeasurementAt = performance.now();
   if (
     game.running
     && !game.playing
@@ -183,7 +187,7 @@ function updateControls(measurement) {
     && measurement.timestamp_utc !== game.lastMeasurementTimestamp
   ) {
     game.playing = true;
-    game.startedAt = performance.now();
+    if (game.startedAt === null) game.startedAt = performance.now();
     game.lastObstacleAt = performance.now();
     message("Jeu lancé : évitez les obstacles.", false, true);
   }
@@ -271,6 +275,7 @@ async function startGame() {
   game.targetLane = (laneCount - 1) / 2;
   game.playing = false;
   game.lastMeasurementTimestamp = null;
+  game.lastFreshMeasurementAt = null;
   game.saved = false;
   game.csvPath = null;
   game.interrupted = false;
@@ -373,7 +378,7 @@ function drawRoad(width, height) {
 }
 
 function drawCar(width, height) {
-  game.lane += (game.targetLane - game.lane) * levels[game.level].steeringEase;
+  if (game.playing) game.lane += (game.targetLane - game.lane) * levels[game.level].steeringEase;
   const laneIndex = Math.max(0, Math.min(laneCount - 1, game.lane));
   const x = width * lanes[0] + (width * (lanes[laneCount - 1] - lanes[0]) / (laneCount - 1)) * laneIndex;
   const y = height * carYRatio;
@@ -423,8 +428,18 @@ function drawObstacles(width, height, dt) {
   game.obstacles = game.obstacles.filter((obstacle) => obstacle.y < height + 90);
 }
 
+function checkMeasurementFreshness(now) {
+  if (game.running && game.playing && game.lastFreshMeasurementAt !== null
+      && now - game.lastFreshMeasurementAt > 1000) {
+    game.playing = false;
+    $("gameStatusText").textContent = "Attente des mesures des plateformes";
+    message("Mesures momentanément absentes : reprise automatique à leur retour.");
+  }
+}
+
 function draw() {
   const now = performance.now();
+  checkMeasurementFreshness(now);
   const dt = Math.min(0.05, (now - game.lastFrameAt) / 1000);
   game.lastFrameAt = now;
   const rect = canvas.getBoundingClientRect();

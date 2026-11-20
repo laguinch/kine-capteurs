@@ -22,6 +22,7 @@ const game = {
   direction: "center",
   latestMeasurement: null,
   lastMeasurementTimestamp: null,
+  lastFreshMeasurementAt: null,
   saved: false,
   csvPath: null,
   connecting: false,
@@ -176,6 +177,9 @@ function updateStatus(data) {
 }
 
 function updateControls(measurement) {
+  // Une réponse HTTP répétée ne constitue pas une nouvelle mesure.
+  if (!measurement.timestamp_utc || measurement.timestamp_utc === game.lastMeasurementTimestamp) return;
+  game.lastFreshMeasurementAt = performance.now();
   if (
     game.running
     && !game.playing
@@ -183,7 +187,7 @@ function updateControls(measurement) {
     && measurement.timestamp_utc !== game.lastMeasurementTimestamp
   ) {
     game.playing = true;
-    game.startedAt = performance.now();
+    if (game.startedAt === null) game.startedAt = performance.now();
     game.lastGateAt = performance.now();
     message("Slalom lancé : passez entre les portes.", false, true);
   }
@@ -271,6 +275,7 @@ async function startGame() {
   game.targetPosition = 0.5;
   game.playing = false;
   game.lastMeasurementTimestamp = null;
+  game.lastFreshMeasurementAt = null;
   game.saved = false;
   game.csvPath = null;
   game.interrupted = false;
@@ -379,7 +384,7 @@ function gateCenterFor(index) {
 }
 
 function drawPlayer(width, height) {
-  game.position += (game.targetPosition - game.position) * levels[game.level].steeringEase;
+  if (game.playing) game.position += (game.targetPosition - game.position) * levels[game.level].steeringEase;
   game.position = Math.max(0.16, Math.min(0.84, game.position));
   const x = width * game.position;
   const y = height * playerYRatio;
@@ -441,8 +446,18 @@ function drawGates(width, height, dt) {
   game.gates = game.gates.filter((gate) => gate.y < height + 90);
 }
 
+function checkMeasurementFreshness(now) {
+  if (game.running && game.playing && game.lastFreshMeasurementAt !== null
+      && now - game.lastFreshMeasurementAt > 1000) {
+    game.playing = false;
+    $("gameStatusText").textContent = "Attente des mesures des plateformes";
+    message("Mesures momentanément absentes : reprise automatique à leur retour.");
+  }
+}
+
 function draw() {
   const now = performance.now();
+  checkMeasurementFreshness(now);
   const dt = Math.min(0.05, (now - game.lastFrameAt) / 1000);
   game.lastFrameAt = now;
   const rect = canvas.getBoundingClientRect();

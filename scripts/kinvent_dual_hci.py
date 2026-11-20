@@ -1979,7 +1979,7 @@ class DualKinventClient:
                             duration,
                             progress=True,
                             stream_silence_timeout=(
-                                1.0
+                                None if acquisition_mode == "balance" else 1.0
                             ),
                             stop_requested=lambda: (
                                 read_command().get("action") == "stop"

@@ -20,6 +20,7 @@ const game = {
   direction: "center",
   latestMeasurement: null,
   lastMeasurementTimestamp: null,
+  lastFreshMeasurementAt: null,
   saved: false,
   csvPath: null,
   completed: false,
@@ -173,6 +174,9 @@ function updateStatus(data) {
 }
 
 function updateControls(measurement) {
+  // Une réponse HTTP répétée ne constitue pas une nouvelle mesure.
+  if (!measurement.timestamp_utc || measurement.timestamp_utc === game.lastMeasurementTimestamp) return;
+  game.lastFreshMeasurementAt = performance.now();
   const totalKg = Number.isFinite(measurement.total_kg) ? measurement.total_kg : 0;
   const leftKg = Number.isFinite(measurement.left_kg) ? measurement.left_kg : 0;
   const rightKg = Number.isFinite(measurement.right_kg) ? measurement.right_kg : 0;
@@ -189,7 +193,7 @@ function updateControls(measurement) {
     && measurement.timestamp_utc !== game.lastMeasurementTimestamp
   ) {
     game.playing = true;
-    game.startedAt = performance.now();
+    if (game.startedAt === null) game.startedAt = performance.now();
     $("gameStatusText").textContent = "Casse-brique en cours";
   } else if (game.running && !game.playing) {
     $("gameStatusText").textContent = "Attente des mesures des plateformes";
@@ -318,6 +322,7 @@ async function startGame() {
   game.targetPaddleX = 0.5;
   game.playing = false;
   game.lastMeasurementTimestamp = null;
+  game.lastFreshMeasurementAt = null;
   game.saved = false;
   game.completed = false;
   game.interrupted = false;
@@ -446,7 +451,7 @@ function drawBricks(width, height) {
 
 function drawPaddle(width, height) {
   const level = levels[game.level];
-  game.paddleX += (game.targetPaddleX - game.paddleX) * level.steeringEase;
+  if (game.playing) game.paddleX += (game.targetPaddleX - game.paddleX) * level.steeringEase;
   game.paddleX = Math.max(0.14, Math.min(0.86, game.paddleX));
   const paddleWidth = width * level.paddleWidth;
   const paddleHeight = 18;
@@ -460,6 +465,7 @@ function drawPaddle(width, height) {
 }
 
 function updateBall(width, height, dt, paddle) {
+  if (!game.playing) return;
   const level = levels[game.level];
   const ball = game.ball;
   if (game.playing) {
@@ -521,8 +527,18 @@ function drawBall(width, height) {
   ctx.fill();
 }
 
+function checkMeasurementFreshness(now) {
+  if (game.running && game.playing && game.lastFreshMeasurementAt !== null
+      && now - game.lastFreshMeasurementAt > 1000) {
+    game.playing = false;
+    $("gameStatusText").textContent = "Attente des mesures des plateformes";
+    message("Mesures momentanément absentes : reprise automatique à leur retour.");
+  }
+}
+
 function draw() {
   const now = performance.now();
+  checkMeasurementFreshness(now);
   const dt = Math.min(0.05, (now - game.lastFrameAt) / 1000);
   game.lastFrameAt = now;
   const rect = canvas.getBoundingClientRect();
