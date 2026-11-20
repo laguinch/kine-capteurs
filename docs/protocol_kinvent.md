@@ -233,3 +233,22 @@ nulle affichée sur le serveur mérite vérification directe, mais ne prouve pas
 type 3 sans les prérequis du contrôleur ne constituerait pas une reproduction
 valide. La découverte GATT Android reste également plus complète. Cette
 correction de fenêtre de recherche ne garantit pas la disparition de 0x3e.
+
+### Compteurs de diagnostic du flux
+
+Les acquisitions produisent une ligne JSON `DIAG_FLUX` toutes les cinq secondes,
+puis un bilan final (également en cas d'arrêt ou d'exception). Les intervalles
+comptent les deltas depuis le bilan précédent ; le bilan final couvre toute
+l'acquisition. Les compteurs par plate distinguent notifications UART, octets,
+mesures décodées, rejets du décodeur, écartements par synchronisation et pertes
+par débordement de la file. Une notification peut contenir plusieurs mesures.
+Le bilan inclut la taille des files, le fragment en attente, l'âge de la dernière
+notification et le nombre de paires produites par seconde.
+
+`retard_chronologie_ms` compare l'horloge hôte actuelle à la chronologie locale
+reconstruite du capteur. Il peut révéler du retard ou une dérive de synchronisation,
+mais ne mesure pas directement la latence radio et peut être négatif. Les rejets
+du décodeur ne comptabilisent pas tous les octets abandonnés par le reconstitueur.
+Aucune force, donnée patient ou commande Bluetooth supplémentaire n'est ajoutée
+par ces diagnostics. Les règles d'appariement et les temporisations radio restent
+inchangées. Ces compteurs servent à identifier la cause ; ils ne la corrigent pas.

@@ -209,6 +209,8 @@ class PlateState:
         self.latest = None
         self.distribution = None
         self.notifications = 0
+        self.uart_bytes = 0
+        self.queue_overflows = 0
         self.measurement_framer = MeasurementFramer()
         self.measurements = 0
         self.rejected_frames = 0
@@ -298,6 +300,8 @@ class PlateState:
             else None
         )
         received_monotonic = time.monotonic()
+        if len(self.samples) == self.samples.maxlen:
+            self.queue_overflows += 1
         self.samples.append(
             {
                 "received_monotonic": received_monotonic,
@@ -919,6 +923,7 @@ class DualKinventClient:
             if struct.unpack_from("<H", att, 1)[0] != UART_VALUE_HANDLE:
                 return
             plate.notifications += 1
+            plate.uart_bytes += len(att) - 3
             plate.last_notification_at = time.monotonic()
             for frame in plate.measurement_framer.feed(att[3:]):
                 sample = plate.decode(frame)
@@ -1151,7 +1156,57 @@ class DualKinventClient:
                 self.send_write_command(plate, b"\xff")
         self.last_keepalive_at = time.monotonic()
 
-    def pump(
+    def stream_counters(self):
+        return {
+            "pairs": self.paired_samples,
+            "plates": {
+                p.side: {
+                    "notifications": p.notifications, "octets": p.uart_bytes,
+                    "mesures": p.measurements, "rejets_decodeur": p.rejected_frames,
+                    "ecartees_sync": self.dropped_samples[p.side],
+                    "debordements_file": p.queue_overflows,
+                } for p in self.plates
+            },
+        }
+
+    def log_stream_diagnostics(self, baseline, started, now, final=False):
+        elapsed = max(0.0, now - started)
+        current = self.stream_counters()
+        report = {"timestamp_utc": now_iso(), "bilan": "final" if final else "intervalle",
+                  "duree_s": round(elapsed, 3),
+                  "paires": current["pairs"] - baseline["pairs"], "plates": {}}
+        for plate in self.plates:
+            side = plate.side
+            values = {key: value - baseline["plates"][side][key]
+                      for key, value in current["plates"][side].items()}
+            values["mesures_par_s"] = round(values["mesures"] / elapsed, 2) if elapsed else None
+            values["file_attente"] = len(plate.samples)
+            values["fragment_octets"] = len(plate.measurement_framer.buffer)
+            values["age_notification_ms"] = (
+                round(1000 * (now - plate.last_notification_at), 1)
+                if plate.last_notification_at is not None else None)
+            values["retard_chronologie_ms"] = (
+                round(1000 * (now - (plate.timeline_host_origin +
+                      (plate.sensor_time_unwrapped - plate.timeline_sensor_origin) / 1000)), 1)
+                if plate.timeline_host_origin is not None else None)
+            report["plates"][side] = values
+        report["paires_par_s"] = round(report["paires"] / elapsed, 2) if elapsed else None
+        self.latest_stream_diagnostics = report
+        print("DIAG_FLUX " + json.dumps(report, ensure_ascii=False), flush=True)
+        return current
+
+    def pump(self, duration, progress=False, show_progress=True,
+             stop_requested=None, stream_silence_timeout=None):
+        if not progress:
+            return self._pump(duration, progress, show_progress, stop_requested, stream_silence_timeout)
+        baseline = self.stream_counters()
+        started = time.monotonic()
+        try:
+            return self._pump(duration, progress, show_progress, stop_requested, stream_silence_timeout)
+        finally:
+            self.log_stream_diagnostics(baseline, started, time.monotonic(), final=True)
+
+    def _pump(
         self,
         duration,
         progress=False,
@@ -1162,6 +1217,9 @@ class DualKinventClient:
         deadline = time.monotonic() + duration
         started_at = time.monotonic()
         next_progress = time.monotonic()
+        diagnostic_started = started_at
+        diagnostic_baseline = self.stream_counters() if progress else None
+        next_diagnostic = started_at + 5.0
         if progress:
             now = time.monotonic()
             self.next_keepalive = (
@@ -1203,6 +1261,12 @@ class DualKinventClient:
                 self.next_keepalive = (
                     self.last_keepalive_at + self.keepalive_interval
                 )
+            if progress and time.monotonic() >= next_diagnostic:
+                diagnostic_now = time.monotonic()
+                diagnostic_baseline = self.log_stream_diagnostics(
+                    diagnostic_baseline, diagnostic_started, diagnostic_now)
+                diagnostic_started = diagnostic_now
+                next_diagnostic = diagnostic_now + 5.0
             if progress and show_progress and time.monotonic() >= next_progress:
                 print(f"Temps restant: {max(0, deadline-time.monotonic()):.1f} s")
                 next_progress = time.monotonic() + 5
