@@ -75,3 +75,39 @@ def compute_distribution(sample: dict):
         "cop_x": cop_x,
         "cop_y": cop_y,
     }
+
+
+class MeasurementFramer:
+    """Flux V2 : le marqueur suivant ferme le paquet précédent (Hermes #34382).
+
+    Les frontières des notifications ATT ne sont pas celles des mesures.
+    Un paquet n'est remis au décodeur que si sa taille est exactement 17.
+    """
+    marker = b"\xff\xff\xfe"
+    frame_size = 17
+
+    def __init__(self):
+        self.buffer = bytearray()
+
+    def clear(self):
+        self.buffer.clear()
+
+    def feed(self, value):
+        self.buffer.extend(value)
+        frames = []
+        while True:
+            start = self.buffer.find(self.marker)
+            if start < 0:
+                # Garder un éventuel préfixe de marqueur entre notifications.
+                self.buffer[:] = self.buffer[-2:]
+                break
+            del self.buffer[:start]
+            end = self.buffer.find(self.marker, len(self.marker))
+            if end < 0:
+                if len(self.buffer) > self.frame_size + len(self.marker) - 1:
+                    self.buffer[:] = self.buffer[-2:]
+                break
+            if end == self.frame_size:
+                frames.append(bytes(self.buffer[:end]))
+            del self.buffer[:end]
+        return frames

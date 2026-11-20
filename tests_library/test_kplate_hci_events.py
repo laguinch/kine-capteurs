@@ -89,7 +89,7 @@ class HciEventsTest(unittest.TestCase):
         self.assertEqual(self.plate.notifications, 0)
         self.client._plate_initializations.clear()
         self.plate.decode.return_value = None
-        self.client.handle_att(12, bytes.fromhex('1b 52 00 ff ff fe fa 13 fa 1f 80 80 05 6e'))
+        self.client.handle_att(12, bytes.fromhex('1b 52 00 ff ff fe 00 28 00 00 00 00 00 00 00 00 00 00 00 00 ff ff fe'))
         self.plate.decode.assert_called_once()
         self.assertEqual(self.plate.notifications, 1)
 

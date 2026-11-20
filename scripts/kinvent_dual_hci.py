@@ -23,6 +23,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from ble.common.devices import KPLATE_LEFT, KPLATE_RIGHT  # noqa: E402
 from ble.kinvent.kplates.protocol import (  # noqa: E402
     MIN_VALID_KG,
+    MeasurementFramer,
     compute_distribution,
     parse_frame,
 )
@@ -208,6 +209,7 @@ class PlateState:
         self.latest = None
         self.distribution = None
         self.notifications = 0
+        self.measurement_framer = MeasurementFramer()
         self.measurements = 0
         self.rejected_frames = 0
         self.protocol_messages = deque(maxlen=32)
@@ -614,6 +616,7 @@ class DualKinventClient:
             (p for p in self.pending_le_events if p[2] not in connection_events),
             maxlen=64,
         )
+        plate.measurement_framer.clear()
         opcode = self.send_command(OGF_LE_CTL, OCF_LE_CREATE_CONN, params)
         self.wait_for_command(opcode)
         deadline = time.monotonic() + timeout
@@ -855,6 +858,7 @@ class DualKinventClient:
                 self.by_handle.pop(handle, None)
                 plate.handle = None
                 plate.samples.clear()
+                plate.measurement_framer.clear()
                 plate.last_sensor_time = None
                 plate.sensor_time_unwrapped = None
                 plate.timeline_sensor_origin = None
@@ -912,15 +916,17 @@ class DualKinventClient:
                 # Réponses de contrôle et échantillons batterie appartiennent
                 # à l’initialisation, pas au flux de mesures du test.
                 return
+            if struct.unpack_from("<H", att, 1)[0] != UART_VALUE_HANDLE:
+                return
             plate.notifications += 1
             plate.last_notification_at = time.monotonic()
-            value = att[3:]
-            sample = plate.decode(value)
-            if sample:
-                if self.acquisition_mode == "cmj":
-                    self.write_cmj_event(plate)
-                else:
-                    self.pair_samples()
+            for frame in plate.measurement_framer.feed(att[3:]):
+                sample = plate.decode(frame)
+                if sample:
+                    if self.acquisition_mode == "cmj":
+                        self.write_cmj_event(plate)
+                    else:
+                        self.pair_samples()
 
     def combined_values(self, left_entry=None, right_entry=None):
         left, right = self.plates
@@ -1493,6 +1499,7 @@ class DualKinventClient:
         self.pending_att.clear()
         self.pending_le_events.clear()
         for plate in self.plates:
+            plate.measurement_framer.clear()
             plate.handle = None
             plate.samples.clear()
             plate.last_notification_at = None

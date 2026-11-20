@@ -129,3 +129,29 @@ Ces tests ne démontrent pas la cause de toutes les coupures physiques signalée
 par `0x08` ou `0x3e`, ni de l'absence de réponse au reset `0x0c03`.
 La découverte GATT complète et la nouvelle logique de collecte batterie ne
 font pas partie de ce correctif ; leur analyse reste à valider séparément.
+
+### Mesures groupées et fragmentées dans les notifications
+
+Une notification UART n'est pas nécessairement une mesure. Le pilote traitait
+chaque valeur ATT comme un paquet unique de 17 octets, rejetant les notifications
+contenant plusieurs mesures ou seulement une partie de mesure. Il reconstitue
+maintenant un flux indépendant pour chaque plate avant le décodage et remet
+chaque mesure complète à la synchronisation gauche/droite.
+
+Le cadrage suit `ForceDataBuffer` du bundle Hermes (#34382/#34383) : le marqueur
+`ff ff fe` suivant ferme le paquet précédent, dont la taille doit être 17 pour
+ce format de mesure. Un paquet incomplet reste en attente ; une taille incorrecte
+est abandonnée au prochain marqueur. Le tampon est borné et vidé à la connexion,
+à la déconnexion et au nettoyage de session. Les horodatages du capteur restent
+utilisés pour espacer les mesures, même lorsque leur réception est groupée.
+Cela implique l'attente du marqueur suivant (normalement une période de mesure),
+comme dans le parseur officiel, sans ajout de commande ni de temporisation radio.
+
+Vérification hors ligne sur la capture double du 15 juin : 6 697 mesures à droite
+et 6 696 à gauche selon ce cadrage. Les résultats sont identiques avec les
+notifications originales et avec le même flux redécoupé par blocs de 1, 17, 34
+ou 85 octets. Les paquets bordant une réponse de contrôle et le dernier paquet
+sans marqueur suivant ne constituent pas des paquets complets selon ce cadrage.
+Les tests automatisés utilisent des valeurs synthétiques et couvrent tous les
+blocs de 1 à 85 octets, la séparation des plates et la remise à zéro du tampon.
+Ce changement ne résout pas à lui seul les pertes de liaison radio.
