@@ -196,6 +196,10 @@ def resolve_hci_adapter(requested, timeout=8.0):
         time.sleep(0.25)
 
 
+class PlateTimestampError(RuntimeError):
+    """Paquet à écarter, sans interrompre la souscription (Kinvent #34217)."""
+
+
 class PlateState:
     def __init__(self, side, address, tare_duration, buffer_size=64):
         self.side = side
@@ -214,6 +218,7 @@ class PlateState:
         self.measurement_framer = MeasurementFramer()
         self.measurements = 0
         self.rejected_frames = 0
+        self.rejected_timestamps = 0
         self.protocol_messages = deque(maxlen=32)
         self.last_notification_at = None
         self.stream_restarts = 0
@@ -247,7 +252,7 @@ class PlateState:
             if delta < 0 and -delta > 64500:
                 delta += 65535  # Constante de l'application, pas un masque 16 bits.
             elif delta < 0 or delta > 10000:
-                raise RuntimeError(
+                raise PlateTimestampError(
                     f"Chronologie {self.side} invalide: "
                     f"{self.last_sensor_time} -> {sensor_time} ms."
                 )
@@ -268,6 +273,18 @@ class PlateState:
                     f"Trame rejetée {self.side}: longueur={len(value)}, "
                     f"données={value.hex(' ')}"
                 )
+            return None
+
+        received_monotonic = time.monotonic()
+        try:
+            sample_monotonic = self.sample_monotonic(raw_sample["t"], received_monotonic)
+        except PlateTimestampError as exc:
+            # rawDataPackageToForceSamples (#34217) intercepte précisément
+            # cette erreur et renvoie zéro mesure. Les paquets suivants du
+            # même lot restent traités ; ni tare, ni dernière force ne changent.
+            self.rejected_timestamps += 1
+            if self.rejected_timestamps <= 3:
+                print(f"Mesure écartée: {exc} Acquisition conservée.")
             return None
 
         if self.offsets is None:
@@ -308,15 +325,12 @@ class PlateState:
             if self.latest["force_kg"] >= MIN_VALID_KG
             else None
         )
-        received_monotonic = time.monotonic()
         if len(self.samples) == self.samples.maxlen:
             self.queue_overflows += 1
         self.samples.append(
             {
                 "received_monotonic": received_monotonic,
-                "sample_monotonic": self.sample_monotonic(
-                    self.latest["t"], received_monotonic
-                ),
+                "sample_monotonic": sample_monotonic,
                 "received_utc": now_iso(),
                 "sample": self.latest,
                 "distribution": self.distribution,
@@ -1175,6 +1189,7 @@ class DualKinventClient:
                 p.side: {
                     "notifications": p.notifications, "octets": p.uart_bytes,
                     "mesures": p.measurements, "rejets_decodeur": p.rejected_frames,
+                    "rejets_chronologie": p.rejected_timestamps,
                     "ecartees_sync": self.dropped_samples[p.side],
                     "debordements_file": p.queue_overflows,
                 } for p in self.plates

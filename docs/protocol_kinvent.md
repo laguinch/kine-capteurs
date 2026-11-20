@@ -293,3 +293,26 @@ possède également une interpolation des échantillons manquants. Elle n'est pa
 reproduite ici : l'appariement actuel reste distinct et aucune mesure interpolée
 n'est ajoutée aux exports. La fluidité réelle et la stabilité radio doivent être
 vérifiées sur le serveur ; une relecture de capture ne les démontre pas.
+
+
+### Erreur d'horodatage : exclusion du paquet, maintien de l'acquisition
+
+La vérification de `processMilliseconds` seule était incomplète dans `f6094ff` :
+son exception remontait jusqu'au gestionnaire et arrêtait le jeu. Le bytecode de
+`rawDataPackageToForceSamples` (34217, branche de traitement à l'offset 0x17d)
+intercepte cette exception précise, journalise le message et renvoie une liste
+vide. Le module d'exception est bien le même (1940) : dépendance 10 du module
+3953 pour `PlateKforceDevice`, dépendance 7 du module 3867 pour le convertisseur.
+Les autres exceptions sont propagées.
+
+Le pilote applique désormais cette distinction avec `PlateTimestampError` :
+le paquet rejeté ne modifie ni dernière mesure, ni tare, ni file, ni origine de
+l'horloge. Les trames valides suivantes d'une même notification restent traitées.
+Les contrôles chronologiques précédents sont conservés, sans nouvelle commande,
+reconnexion ou recalage temporel. `DIAG_FLUX.rejets_chronologie`, par plateforme,
+compte séparément ces exclusions ; `mesures` ne compte que les mesures acceptées.
+Les tests couvrent recul, grand saut avant, reprise à l'horodatage suivant,
+plusieurs trames dans une notification et propagation des erreurs indépendantes.
+
+Cette correction traite l'arrêt logiciel. Elle ne démontre pas que la cause des
+retards et des horodatages désordonnés dans le flux reçu est résolue.
