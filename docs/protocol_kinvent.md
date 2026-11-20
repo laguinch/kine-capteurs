@@ -213,3 +213,23 @@ USB. Aucune nouvelle commande Bluetooth ou relance n'est ajoutée.
 Tests : `test_kplate_game_session.py` vérifie la politique du worker et
 `node tests_library/test_kplate_game_freshness.cjs` vérifie les trois jeux
 (doublons, interruption, reprise, conservation du score et fin de session).
+
+### Fenêtre de recherche lors de la création de la seconde liaison
+
+La capture double contient trois commandes LE Create Connection à
+14:48:28.474288, 14:48:29.187828 et 14:48:29.545512 UTC. Elles commencent toutes
+par les paramètres `60 00 30 00` : intervalle de recherche 0x0060 (60 ms),
+fenêtre 0x0030 (30 ms). Le pilote envoyait `10 00 10 00` (10/10 ms).
+Les deux paramètres de création de liaison sont désormais alignés sur la
+capture, pour les deux plates ; le test de la commande HCI les vérifie.
+Il ne s'agit pas de l'intervalle entre événements d'une liaison déjà établie.
+Aucune nouvelle commande ni tentative supplémentaire n'est introduite.
+
+Écarts encore ouverts : Android utilise une liste d'acceptation et le type
+d'adresse locale 3 avec une configuration de confidentialité. Le pilote utilise
+une adresse distante explicite et le type local public 0. L'adresse publique
+nulle affichée sur le serveur mérite vérification directe, mais ne prouve pas
+à elle seule la cause des échecs. Copier une adresse privée du téléphone ou le
+type 3 sans les prérequis du contrôleur ne constituerait pas une reproduction
+valide. La découverte GATT Android reste également plus complète. Cette
+correction de fenêtre de recherche ne garantit pas la disparition de 0x3e.

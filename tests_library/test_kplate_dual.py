@@ -1324,6 +1324,7 @@ class KPlateDualTest(unittest.TestCase):
             client.connect(plate, timeout=0)
 
         values = struct.unpack("<HHBB6sBHHHHHH", sent[0])
+        self.assertEqual(values[:2], (0x0060, 0x0030))
         self.assertEqual(values[6], 0x0018)
         self.assertEqual(values[7], 0x0028)
         self.assertEqual(values[9], 0x01F4)

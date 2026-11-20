@@ -596,8 +596,8 @@ class DualKinventClient:
     def connect(self, plate, timeout):
         params = struct.pack(
             "<HHBB6sBHHHHHH",
-            0x0010,
-            0x0010,
+            0x0060,  # intervalle de recherche 60 ms, capture Android
+            0x0030,  # fenêtre de recherche 30 ms, capture Android
             0,
             0,
             plate.address_le,
