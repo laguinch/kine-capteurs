@@ -155,3 +155,31 @@ sans marqueur suivant ne constituent pas des paquets complets selon ce cadrage.
 Les tests automatisés utilisent des valeurs synthétiques et couvrent tous les
 blocs de 1 à 85 octets, la séparation des plates et la remise à zéro du tampon.
 Ce changement ne résout pas à lui seul les pertes de liaison radio.
+
+### Initialisation batterie et vidage conditionnels (correctif suivant)
+
+Les temporisations fixes de 0,30 / 0,16 / 0,38 seconde sont remplacées par les
+conditions retrouvées dans `BatteryLevelInstruction` (#34581–34587) et
+`EmptyBufferInstruction` (#34353–34355, callback #75130) du même bundle :
+
+- Après `76`, attendre la confirmation `F=<nombre>Hz`, puis 200 ms avant `11`.
+- Fermer chaque paquet batterie de 11 octets au marqueur suivant et collecter
+  cinq paquets complets avant le premier `10`.
+- Envoyer le second `10` de l'instruction de vidage, puis vérifier toutes les
+  80 ms que plus de 300 ms se sont écoulées depuis la dernière donnée UART.
+- Envoyer seulement ensuite `60 00 19 00 4b 0d 0a`, puis poursuivre les réponses
+  de contrôle déjà vérifiées. Aucune nouvelle commande ni relance n'est ajoutée.
+
+La capture double confirme ces jalons : réponse de format → démarrage à
+223/228 ms, et dernières données → changement de fréquence à 371/347 ms.
+La fixture inclut maintenant les réponses et notifications batterie de cette
+fenêtre. Les tests vérifient aussi la fragmentation, les confirmations 25/75 Hz,
+le seuil de cinq paquets et l'interdiction de changer de fréquence tant que des
+données continuent d'arriver. Les étapes restent indépendantes par plate.
+
+La borne locale d'échec de la lecture batterie reste deux secondes, mesurées
+à partir de `76`. Le repli de l'application vers une valeur batterie zéro en cas
+d'échec n'est pas reproduit sans capture correspondante. Le vidage n'a pas de
+nouvelle limite arbitraire : si les données continuent indéfiniment, il attend
+et ne prétend pas que la plate est prête. Ce correctif ne garantit pas la
+résolution des déconnexions radio antérieures à l'initialisation.

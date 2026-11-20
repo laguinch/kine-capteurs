@@ -53,6 +53,9 @@ class Replay:
             raise AssertionError(f"Commande hors capture : {plate.side} {command.hex()}")
         self.indices[plate.side] += 1
         self.writes.append((self.now, plate.side, command))
+        for notification in row.get("notifications", []):
+            heapq.heappush(self.events, (self.now + notification["delay"], plate.handle,
+                                         bytes.fromhex(notification["value"])))
         if "response" not in row:
             return
         response = bytes.fromhex(row["response"])
@@ -172,6 +175,63 @@ class KPlateInitializationTest(unittest.TestCase):
         self.assertFalse(state.acknowledged)
         replay.client.handle_att(plate.handle, b"\x1b\x52\x00" + response)
         self.assertTrue(state.acknowledged)
+
+    def test_battery_start_waits_200ms_after_fragmented_format_reply(self):
+        state = PlateInitialization("gauche")
+        sent = []
+        state.advance(0, sent.append)
+        state.feed(b"KINVENT FW 2.34V", 0.1)
+        state.advance(0.1, sent.append)
+        state.feed(b"F=75", 0.4)
+        state.advance(0.5, sent.append)
+        self.assertEqual(sent[-1], b"\x76")
+        state.feed(b"Hz\x00\x00", 0.6)
+        state.advance(0.79, sent.append)
+        self.assertEqual(sent[-1], b"\x76")
+        state.advance(0.81, sent.append)
+        self.assertEqual(sent[-1], b"\x11")
+        self.assertAlmostEqual(state.deadline, 2.1)
+
+    def test_battery_accepts_current_frequency_25_or_75(self):
+        for frequency in (25, 75):
+            state = PlateInitialization("gauche")
+            state.index = 1
+            state.deadline = 2
+            state.feed(f"F={frequency}Hz".encode(), 0.2)
+            self.assertTrue(state.acknowledged)
+            self.assertAlmostEqual(state.ready_at, 0.4)
+
+    def test_battery_requires_five_complete_samples_not_five_notifications(self):
+        state = PlateInitialization("gauche")
+        state.index = 2
+        state.deadline = 2
+        frame = bytes.fromhex("ff ff fe 00 00 00 00 00 00 00 00")
+        sent = []
+        for i in range(5):
+            state.feed(frame[:4], 0.1 + i * 0.02)
+            state.feed(frame[4:], 0.11 + i * 0.02)
+        state.advance(0.3, sent.append)
+        self.assertEqual(sent, [])
+        self.assertEqual(state.sample_count, 4)
+        state.feed(frame[:3], 0.31)
+        state.advance(0.31, sent.append)
+        self.assertEqual(sent, [b"\x10"])
+
+    def test_continuing_battery_stream_prevents_frequency_change(self):
+        state = PlateInitialization("gauche")
+        state.index = 4
+        state.last_received = 0
+        state.deadline = 0.08
+        sent = []
+        for i in range(1, 51):
+            now = i * 0.1
+            state.feed(bytes.fromhex("ff ff fe 00 00 00 00 00 00 00 00"), now)
+            state.advance(now, sent.append)
+        self.assertEqual(sent, [])
+        state.advance(5.29, sent.append)
+        self.assertEqual(sent, [])
+        state.advance(5.38, sent.append)
+        self.assertEqual(sent, [bytes.fromhex("60 00 19 00 4b 0d 0a")])
 
     def test_protocol_failure_is_not_retried_by_session_initializer(self):
         client = Replay().client

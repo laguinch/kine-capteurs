@@ -912,7 +912,7 @@ class DualKinventClient:
         if opcode == ATT_OP_NOTIFICATION and len(att) >= 3:
             state = self._plate_initializations.get(handle)
             if state is not None and struct.unpack_from("<H", att, 1)[0] == UART_VALUE_HANDLE:
-                state.feed(att[3:])
+                state.feed(att[3:], time.monotonic())
                 # Réponses de contrôle et échantillons batterie appartiennent
                 # à l’initialisation, pas au flux de mesures du test.
                 return

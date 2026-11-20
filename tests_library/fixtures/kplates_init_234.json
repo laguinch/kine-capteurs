@@ -19,19 +19,70 @@
       },
       {
         "command": "76",
-        "timestamp_utc": "2026-06-15T14:48:31.148246+00:00"
+        "timestamp_utc": "2026-06-15T14:48:31.148246+00:00",
+        "response": "46 3d 37 35 48 7a 00 00",
+        "response_delay": 0.045768
       },
       {
         "command": "11",
-        "timestamp_utc": "2026-06-15T14:48:31.417465+00:00"
+        "timestamp_utc": "2026-06-15T14:48:31.417465+00:00",
+        "notifications": [
+          {
+            "value": "ff ff fe f9 36 f9 2e 80 80 06 6e",
+            "delay": 0.046568
+          },
+          {
+            "value": "ff ff fe f9 34 f9 30 80 80 06 6f",
+            "delay": 0.076535
+          },
+          {
+            "value": "ff ff fe f9 32 f9 30 80 80 06 71",
+            "delay": 0.077594
+          },
+          {
+            "value": "ff ff fe f9 34 f9 32 80 80 06 71",
+            "delay": 0.106326
+          },
+          {
+            "value": "ff ff fe f9 2f f9 2c 80 80 06 72",
+            "delay": 0.107154
+          },
+          {
+            "value": "ff ff fe f9 34 f9 32 80 80 06 73",
+            "delay": 0.136609
+          },
+          {
+            "value": "ff ff fe f9 26 f9 2e 80 80 06 74",
+            "delay": 0.13833
+          },
+          {
+            "value": "ff ff fe f9 34 f9 2c 80 80 06 74",
+            "delay": 0.139569
+          }
+        ]
       },
       {
         "command": "10",
-        "timestamp_utc": "2026-06-15T14:48:31.572035+00:00"
+        "timestamp_utc": "2026-06-15T14:48:31.572035+00:00",
+        "notifications": []
       },
       {
         "command": "10",
-        "timestamp_utc": "2026-06-15T14:48:31.579704+00:00"
+        "timestamp_utc": "2026-06-15T14:48:31.579704+00:00",
+        "notifications": [
+          {
+            "value": "ff ff fe f9 33 f9 2b 80 80 06 74",
+            "delay": 0.004166
+          },
+          {
+            "value": "ff ff fe f9 32 f9 30 80 80 06 75",
+            "delay": 0.005009
+          },
+          {
+            "value": "ff ff fe f9 34 f9 2d 80 80 06 75",
+            "delay": 0.034241
+          }
+        ]
       },
       {
         "command": "60 00 19 00 4b 0d 0a",
@@ -83,19 +134,78 @@
       },
       {
         "command": "76",
-        "timestamp_utc": "2026-06-15T14:48:31.142572+00:00"
+        "timestamp_utc": "2026-06-15T14:48:31.142572+00:00",
+        "response": "46 3d 37 35 48 7a 00 00",
+        "response_delay": 0.077739
       },
       {
         "command": "11",
-        "timestamp_utc": "2026-06-15T14:48:31.448324+00:00"
+        "timestamp_utc": "2026-06-15T14:48:31.448324+00:00",
+        "notifications": [
+          {
+            "value": "ff ff fe f9 15 f9 37 80 80 06 70",
+            "delay": 0.041903
+          },
+          {
+            "value": "ff ff fe f9 16 f9 34 80 80 06 71",
+            "delay": 0.072167
+          },
+          {
+            "value": "ff ff fe f9 13 f9 36 80 80 06 72",
+            "delay": 0.073118
+          },
+          {
+            "value": "ff ff fe f9 14 f9 36 80 80 06 73",
+            "delay": 0.102017
+          },
+          {
+            "value": "ff ff fe f9 11 f9 37 80 80 06 74",
+            "delay": 0.102953
+          },
+          {
+            "value": "ff ff fe f9 15 f9 37 80 80 06 74",
+            "delay": 0.131858
+          },
+          {
+            "value": "ff ff fe f9 0f f9 36 80 80 06 75",
+            "delay": 0.132876
+          },
+          {
+            "value": "ff ff fe f9 12 f9 38 80 80 06 75",
+            "delay": 0.133574
+          },
+          {
+            "value": "ff ff fe f9 0c f9 32 80 80 06 76",
+            "delay": 0.161934
+          },
+          {
+            "value": "ff ff fe f9 14 f9 34 80 80 06 76",
+            "delay": 0.162771
+          }
+        ]
       },
       {
         "command": "10",
-        "timestamp_utc": "2026-06-15T14:48:31.625541+00:00"
+        "timestamp_utc": "2026-06-15T14:48:31.625541+00:00",
+        "notifications": []
       },
       {
         "command": "10",
-        "timestamp_utc": "2026-06-15T14:48:31.631757+00:00"
+        "timestamp_utc": "2026-06-15T14:48:31.631757+00:00",
+        "notifications": [
+          {
+            "value": "ff ff fe f9 18 f9 36 80 80 06 76",
+            "delay": 0.008608
+          },
+          {
+            "value": "ff ff fe f9 16 f9 33 80 80 06 76",
+            "delay": 0.009222
+          },
+          {
+            "value": "ff ff fe f9 14 f9 34 80 80 06 77",
+            "delay": 0.038426
+          }
+        ]
       },
       {
         "command": "60 00 19 00 4b 0d 0a",
