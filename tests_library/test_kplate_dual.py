@@ -333,19 +333,70 @@ class KPlateDualTest(unittest.TestCase):
         self.assertAlmostEqual(second, 50.013, places=6)
         self.assertAlmostEqual(third, 50.027, places=6)
 
-    def test_sensor_clock_recovers_when_stream_clock_resets(self):
-        plate = self.module.PlateState(
-            "gauche",
-            "E8:EB:1B:6F:A7:5F",
-            tare_duration=0,
-        )
+    def test_sensor_clock_preserves_long_gap_without_reanchoring_to_burst(self):
+        plate = self.module.PlateState("gauche", "E8:EB:1B:6F:A7:5F", 0)
+        plate.sample_monotonic(1000, 50.0)
+        self.assertAlmostEqual(plate.sample_monotonic(3000, 55.0), 52.0)
+        self.assertAlmostEqual(plate.sample_monotonic(3040, 55.001), 52.04)
+        self.assertEqual(plate.timeline_host_origin, 50.0)
 
-        plate.sample_monotonic(9000, 50.000)
-        reset = plate.sample_monotonic(100, 51.000)
-        following = plate.sample_monotonic(113, 51.020)
+    def test_sensor_clock_rollover_matches_official_constant(self):
+        plate = self.module.PlateState("gauche", "E8:EB:1B:6F:A7:5F", 0)
+        plate.sample_monotonic(65529, 50.0)
+        self.assertAlmostEqual(plate.sample_monotonic(33, 50.1), 50.039)
 
-        self.assertAlmostEqual(reset, 51.000, places=6)
-        self.assertAlmostEqual(following, 51.013, places=6)
+    def test_sensor_clock_rejects_unannounced_reset_without_changing_origin(self):
+        plate = self.module.PlateState("gauche", "E8:EB:1B:6F:A7:5F", 0)
+        plate.sample_monotonic(9000, 50.0)
+        for invalid in (100, 19001):
+            with self.assertRaisesRegex(RuntimeError, "Chronologie gauche invalide"):
+                plate.sample_monotonic(invalid, 60.0)
+            self.assertEqual(plate.last_sensor_time, 9000)
+            self.assertEqual(plate.timeline_host_origin, 50.0)
+        self.assertAlmostEqual(plate.sample_monotonic(19000, 65.0), 60.0)
+
+    def test_new_sampling_clears_old_frame_and_aligns_delayed_first_packets(self):
+        client = self.module.DualKinventClient(
+            1, "E8:EB:1B:6F:A7:5F", "E8:EB:1B:79:B1:AB", None, 0, 1)
+        for index, plate in enumerate(client.plates):
+            plate.handle = index
+            plate.sample_monotonic(54000, 40.0)
+            plate.samples.append({"old": True})
+            plate.measurement_framer.feed(b"\xff\xff\xfe" + bytes(14))
+        client.send_write_command = mock.Mock()
+        client.pump = mock.Mock()
+        with mock.patch.object(self.module.time, "monotonic", return_value=60.0):
+            client.wake_measurement_streams()
+        left, right = client.plates
+        for plate in client.plates:
+            self.assertFalse(plate.samples)
+            self.assertFalse(plate.measurement_framer.buffer)
+        self.assertEqual(left.sample_monotonic(704, 60.08), 60.0)
+        self.assertEqual(right.sample_monotonic(704, 60.45), 60.0)
+        self.assertAlmostEqual(left.sample_monotonic(744, 60.12), 60.04)
+        self.assertAlmostEqual(right.sample_monotonic(744, 60.451), 60.04)
+
+    def test_sampling_transition_does_not_decode_old_notifications(self):
+        client = self.module.DualKinventClient(
+            1, "E8:EB:1B:6F:A7:5F", "E8:EB:1B:79:B1:AB", None, 0, 1)
+        for index, plate in enumerate(client.plates):
+            plate.handle = index
+            client.by_handle[index] = plate
+            plate.decode = mock.Mock()
+        frame = b"\xff\xff\xfe" + bytes(14)
+        att = b"\x1b" + struct.pack("<H", self.module.UART_VALUE_HANDLE) + frame * 2
+        def pump(duration):
+            if duration == 0.70:
+                client.handle_att(0, att)
+                client.plates[0].decode.assert_not_called()
+        client.pump = pump
+        client.send_write_command = mock.Mock()
+        client.wake_measurement_streams()
+        self.assertFalse(client._sampling_suspended)
+        self.assertFalse(client.plates[0].measurement_framer.buffer)
+        client.plates[0].decode.return_value = None
+        client.handle_att(0, att)
+        client.plates[0].decode.assert_called_once_with(frame)
 
     def test_keepalive_matches_official_ten_second_interval(self):
         client = self.module.DualKinventClient(

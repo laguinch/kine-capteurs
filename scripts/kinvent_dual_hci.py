@@ -224,24 +224,33 @@ class PlateState:
         self.timeline_sensor_origin = None
         self.timeline_host_origin = None
 
+    def reset_sampling(self, host_origin=None):
+        """Nouvelle souscription : tampon et horloge remis à zéro (Kinvent #34227)."""
+        self.samples.clear()
+        self.measurement_framer.clear()
+        self.last_sensor_time = None
+        self.sensor_time_unwrapped = None
+        self.timeline_sensor_origin = None
+        self.timeline_host_origin = host_origin
+
     def sample_monotonic(self, sensor_time, received_monotonic):
+        # PlateKforceDevice.processMilliseconds (#35052), firmware 2.34 :
+        # le temps écoulé vient du capteur, jamais du retard de réception.
         if self.last_sensor_time is None:
             self.last_sensor_time = sensor_time
             self.sensor_time_unwrapped = sensor_time
             self.timeline_sensor_origin = sensor_time
-            self.timeline_host_origin = received_monotonic
-        else:
-            delta = (sensor_time - self.last_sensor_time) & 0xFFFF
-            if delta > 1000:
-                # Certaines commandes de redémarrage du flux remettent
-                # l'horloge 16 bits du capteur à zéro. Ce n'est pas un tour
-                # complet de compteur: on recale alors la chronologie sur la
-                # réception courante.
-                self.last_sensor_time = sensor_time
-                self.sensor_time_unwrapped = sensor_time
-                self.timeline_sensor_origin = sensor_time
+            if self.timeline_host_origin is None:
                 self.timeline_host_origin = received_monotonic
-                return received_monotonic
+        else:
+            delta = sensor_time - self.last_sensor_time
+            if delta < 0 and -delta > 64500:
+                delta += 65535  # Constante de l'application, pas un masque 16 bits.
+            elif delta < 0 or delta > 10000:
+                raise RuntimeError(
+                    f"Chronologie {self.side} invalide: "
+                    f"{self.last_sensor_time} -> {sensor_time} ms."
+                )
             self.sensor_time_unwrapped += delta
             self.last_sensor_time = sensor_time
 
@@ -342,6 +351,7 @@ class DualKinventClient:
         self.pending_att = {}
         self.pending_le_events = deque(maxlen=64)
         self._plate_initializations = {}
+        self._sampling_suspended = False
         self.last_print = 0.0
         self.print_interval = print_interval
         self.sync_tolerance = sync_tolerance_ms / 1000.0
@@ -925,6 +935,8 @@ class DualKinventClient:
             plate.notifications += 1
             plate.uart_bytes += len(att) - 3
             plate.last_notification_at = time.monotonic()
+            if self._sampling_suspended:
+                return
             for frame in plate.measurement_framer.feed(att[3:]):
                 sample = plate.decode(frame)
                 if sample:
@@ -1390,9 +1402,20 @@ class DualKinventClient:
             raise RuntimeError("Une plateforme est déconnectée.")
         # Au démarrage d'un test, Kinvent envoie 0x90 aux deux plateformes,
         # attend environ 700 ms, puis envoie 0x11.
-        for plate in self.connection_order():
-            self.send_write_command(plate, b"\x90")
-        self.pump(0.70)
+        # Ne pas interpréter des résidus de l'ancienne souscription pendant
+        # la remise à zéro ; la nouvelle commence avec 0x11 (#34227).
+        self._sampling_suspended = True
+        try:
+            for plate in self.connection_order():
+                self.send_write_command(plate, b"\x90")
+            self.pump(0.70)
+            # Chaque temps relatif repart de zéro, indépendamment du délai
+            # de réception du premier paquet de chaque plateforme.
+            sampling_origin = time.monotonic()
+            for plate in self.plates:
+                plate.reset_sampling(sampling_origin)
+        finally:
+            self._sampling_suspended = False
         for plate in self.connection_order():
             self.send_write_command(plate, b"\x11")
         self.pump(0.25)

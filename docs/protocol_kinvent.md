@@ -252,3 +252,44 @@ du décodeur ne comptabilisent pas tous les octets abandonnés par le reconstitu
 Aucune force, donnée patient ou commande Bluetooth supplémentaire n'est ajoutée
 par ces diagnostics. Les règles d'appariement et les temporisations radio restent
 inchangées. Ces compteurs servent à identifier la cause ; ils ne la corrigent pas.
+
+
+### Chronologie des jeux V2 — comparaison avec Kinvent 2.26.1
+
+Le pilote ne doit pas confondre une interruption de réception et une remise à
+zéro du compteur. L'ancien seuil de 1 000 ms recalait la chronologie sur la
+réception Bluetooth : une rafale tardive pouvait alors décaler durablement une
+plateforme et provoquer des exclusions dans l'appariement.
+
+Vérification du bytecode Hermes du XAPK (SHA-256
+`a8d96bf27b34a8ee6e03a25c801b8cc99b046f55807c349f3a30192639c4a371`) :
+
+- `PlateKforceDevice.getTimestampType`, fonction 35050 : le firmware 2.34
+  utilise les millisecondes.
+- `processMilliseconds`, 35052, et `shouldRolloverTimestamp`, 35053 : accumulation
+  des écarts capteur ; pas de recalage sur la réception. Un recul est accepté
+  comme débordement seulement si précédent − courant > 64 500, avec la constante
+  officielle 65 535. Un recul différent ou un saut avant > 10 000 ms est une
+  erreur, pas une nouvelle origine implicite.
+- `subscribeToDataStream`, 34227, et `onSamplingStart`, 35054 : vidage du tampon,
+  réinitialisation du précédent et du temps relatif à la nouvelle souscription.
+  Le pilote vide donc les anciennes mesures et le fragment UART avant `11`,
+  après la séquence existante `90` / attente de 700 ms. Les deux temps relatifs
+  utilisent une origine locale commune ; l'arrivée tardive du premier paquet ne
+  crée plus un décalage permanent. Les notifications pendant cette transition
+  ne sont pas décodées comme des mesures de la nouvelle acquisition.
+
+La capture double déjà disponible (`bugreport-plate-kinvent-D-G`, SHA-256 du
+btsnoop `badaf4c7eb8496b52235b8cce01da811fc552c06fe3cde8be7adfd34a2ff2130`)
+confirme les remises à zéro après `90` aux deux débuts d'acquisition et six
+passages de compteur. Relecture locale : 6 697 trames droite et 6 696 gauche,
+aucune erreur de chronologie. Les tests synthétiques couvrent aussi une arrivée
+par rafales après un trou de deux secondes et des premiers paquets décalés.
+Aucune commande radio, attente ou reconnexion n'est ajoutée.
+
+Limites : ce correctif n'explique pas à lui seul une baisse des octets reçus.
+Le coordinateur officiel des jeux (`DoubleDeviceRealTimeCoordinator`, 49012–49013)
+possède également une interpolation des échantillons manquants. Elle n'est pas
+reproduite ici : l'appariement actuel reste distinct et aucune mesure interpolée
+n'est ajoutée aux exports. La fluidité réelle et la stabilité radio doivent être
+vérifiées sur le serveur ; une relecture de capture ne les démontre pas.
