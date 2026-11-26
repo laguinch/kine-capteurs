@@ -1,0 +1,8 @@
+{
+  "version": "v4.4.0",
+  "source": "subsys/usb/device_next/class/bt_hci.c",
+  "original_sha256": "a75310235d6e9c1ab66095e754605ad1c23ab33f8b2c07ce1e1816813eb02b7d",
+  "patched_sha256": "65b9aee3513c7fe90ff790aa6801c969fabf46a0b823b916fbea1e0b6422aba2",
+  "upstream": "https://github.com/zephyrproject-rtos/zephyr/commit/e554b42dfb0d402950a08f147aee670c244ba4ae",
+  "status": "source patch only; firmware build and hardware validation pending"
+}
