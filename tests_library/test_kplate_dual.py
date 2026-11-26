@@ -1004,6 +1004,30 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(updates[0]["interval_max"], 0x0006)
         self.assertEqual(updates[0]["supervision_timeout"], 0x01F4)
 
+    def test_other_plate_disconnect_aborts_connection_without_losing_target_handle(self):
+        for stage in ("scan_for", "pump"):
+            with self.subTest(stage=stage):
+                client = self.module.DualKinventClient(
+                    1, "E8:EB:1B:6F:A7:5F", "E8:EB:1B:79:B1:AB", None, 0, 1)
+                target, other = client.plates
+                client.scan_for = mock.Mock()
+                def connect(plate, timeout):
+                    plate.handle = 0x10
+                    client.by_handle[0x10] = plate
+                client.connect = mock.Mock(side_effect=connect)
+                client.pump = mock.Mock()
+                failure = self.module.PlateDisconnected(other, 0x08)
+                getattr(client, stage).side_effect = failure
+                with mock.patch.object(self.module.time, "sleep") as sleep:
+                    with self.assertRaises(self.module.PlateDisconnected) as caught:
+                        client.connect_plate_only(target, 1, 1)
+                self.assertIs(caught.exception, failure)
+                client.scan_for.assert_called_once()
+                sleep.assert_not_called()
+                if stage == "pump":
+                    self.assertEqual(target.handle, 0x10)
+                    self.assertIs(client.by_handle[0x10], target)
+
     def test_initial_streams_can_settle_before_first_park(self):
         client = self.module.DualKinventClient(
             1,

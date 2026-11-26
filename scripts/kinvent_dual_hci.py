@@ -1376,6 +1376,10 @@ class DualKinventClient:
                 )
                 return
             except (PlateDisconnected, TimeoutError, RuntimeError) as exc:
+                # Une perte de l'autre liaison invalide la session entière.
+                # Conserver le handle cible pour le nettoyage de la session.
+                if isinstance(exc, PlateDisconnected) and exc.plate is not plate:
+                    raise
                 last_error = exc
                 print(f"Connexion {plate.side} interrompue: {exc}")
                 if plate.handle is not None:
