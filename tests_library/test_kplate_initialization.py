@@ -217,6 +217,22 @@ class KPlateInitializationTest(unittest.TestCase):
         state.advance(0.31, sent.append)
         self.assertEqual(sent, [b"\x10"])
 
+    def test_battery_timeout_reports_received_data_even_when_parser_discards_it(self):
+        for payload, count in ((b"", 0), (b"\x01" * 120, 0),
+                               (bytes.fromhex("ff ff fe 00 00 00 00 00 00 00 00") * 3, 2)):
+            with self.subTest(payload=payload):
+                state = PlateInitialization("droite")
+                state.index = 2
+                state.deadline = 2
+                state.feed(payload, 0.1)
+                with self.assertRaises(PlateInitializationError) as caught:
+                    state.advance(2, lambda command: self.fail("Unexpected command"))
+                message = str(caught.exception)
+                self.assertIn(f"Octets reçus à cette étape: {len(payload)}", message)
+                self.assertIn(f"échantillons batterie complets: {count}/5", message)
+                self.assertEqual("aucun octet" in message, not payload)
+                self.assertLessEqual(len(state.received_tail), 100)
+
     def test_continuing_battery_stream_prevents_frequency_change(self):
         state = PlateInitialization("gauche")
         state.index = 4

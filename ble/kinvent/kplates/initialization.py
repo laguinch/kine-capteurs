@@ -54,6 +54,8 @@ class PlateInitialization:
         self.sample_buffer = bytearray()
         self.sample_count = 0
         self.battery_deadline = None
+        self.received_bytes = 0
+        self.received_tail = bytearray()
 
     @property
     def done(self):
@@ -64,6 +66,9 @@ class PlateInitialization:
             return
         now = time.monotonic() if now is None else now
         step = INITIALIZATION_STEPS[self.index]
+        self.received_bytes += len(value)
+        self.received_tail.extend(value)
+        del self.received_tail[:-100]
         if step.condition == "drain":
             self.last_received = now
             return
@@ -119,7 +124,9 @@ class PlateInitialization:
                         f"Initialisation {self.side}: réponse attendue "
                         f"{step.response.hex(' ') if step.response else '5 échantillons batterie'} après {step.command.hex(' ')} "
                         f"absente ou non prise en charge; reçu "
-                        f"{bytes(self.buffer).hex(' ') or 'aucun octet'}. "
+                        f"{bytes(self.received_tail).hex(' ') or 'aucun octet'}. "
+                        f"Octets reçus à cette étape: {self.received_bytes}; "
+                        f"échantillons batterie complets: {self.sample_count}/5. "
                         "Séquence arrêtée sans relance automatique."
                     )
                 return
@@ -132,6 +139,8 @@ class PlateInitialization:
             if not step.condition and step.response is None and now < self.deadline:
                 return
         self.index += 1
+        self.received_bytes = 0
+        self.received_tail.clear()
         self.buffer.clear()
         self.acknowledged = False
         self.ready_at = None
