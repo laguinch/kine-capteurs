@@ -1028,6 +1028,28 @@ class KPlateDualTest(unittest.TestCase):
                     self.assertEqual(target.handle, 0x10)
                     self.assertIs(client.by_handle[0x10], target)
 
+    def test_radio_failure_preserves_open_connection_for_cleanup(self):
+        for failure in (TimeoutError("radio timeout"), RuntimeError("radio refused")):
+            with self.subTest(failure=failure):
+                client = self.module.DualKinventClient(
+                    1, "E8:EB:1B:6F:A7:5F", "E8:EB:1B:79:B1:AB", None, 0, 1)
+                target = client.plates[0]
+                client.scan_for = mock.Mock()
+                def connect(plate, timeout):
+                    plate.handle = 0x10
+                    client.by_handle[0x10] = plate
+                client.connect = mock.Mock(side_effect=connect)
+                client.pump = mock.Mock()
+                client.update_connection_interval = mock.Mock(side_effect=failure)
+                with mock.patch.object(self.module.time, "sleep") as sleep:
+                    with self.assertRaises(type(failure)) as caught:
+                        client.connect_plate_only(target, 1, 1)
+                self.assertIs(caught.exception, failure)
+                self.assertEqual(target.handle, 0x10)
+                self.assertIs(client.by_handle[0x10], target)
+                client.scan_for.assert_called_once()
+                sleep.assert_not_called()
+
     def test_initial_streams_can_settle_before_first_park(self):
         client = self.module.DualKinventClient(
             1,

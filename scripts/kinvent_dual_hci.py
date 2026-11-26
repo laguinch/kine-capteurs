@@ -1380,11 +1380,12 @@ class DualKinventClient:
                 # Conserver le handle cible pour le nettoyage de la session.
                 if isinstance(exc, PlateDisconnected) and exc.plate is not plate:
                     raise
+                # Une liaison ouverte doit être fermée par le nettoyage global,
+                # jamais oubliée puis recherchée comme un périphérique libre.
+                if plate.handle is not None:
+                    raise
                 last_error = exc
                 print(f"Connexion {plate.side} interrompue: {exc}")
-                if plate.handle is not None:
-                    self.by_handle.pop(plate.handle, None)
-                    plate.handle = None
                 plate.samples.clear()
                 time.sleep(0.5)
         raise RuntimeError(
