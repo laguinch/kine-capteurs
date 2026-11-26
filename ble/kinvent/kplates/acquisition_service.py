@@ -311,10 +311,20 @@ class DualPlateAcquisitionService:
         if not self._worker_log_path.exists():
             return []
         try:
-            return self._worker_log_path.read_text(
-                encoding="utf-8",
-                errors="replace",
-            ).splitlines()[-max_lines:]
+            # /latest est interrogé plusieurs fois par seconde : ne jamais
+            # relire tout le journal accumulé par le service permanent.
+            if max_lines <= 0:
+                return []
+            with self._worker_log_path.open("rb") as source:
+                source.seek(0, os.SEEK_END)
+                start = max(0, source.tell() - 65536)
+                source.seek(start)
+                chunk = source.read(65536)
+            if start:
+                _, separator, chunk = chunk.partition(b"\n")
+                if not separator:
+                    return []
+            return chunk.decode("utf-8", errors="replace").splitlines()[-max_lines:]
         except OSError:
             return []
 

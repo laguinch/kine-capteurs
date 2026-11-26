@@ -21,6 +21,8 @@ const game = {
   obstacles: [],
   direction: "center",
   latestMeasurement: null,
+  pollRevision: 0,
+  polling: false,
   lastMeasurementTimestamp: null,
   lastFreshMeasurementAt: null,
   saved: false,
@@ -222,16 +224,37 @@ function updateControls(measurement) {
 }
 
 async function poll() {
+  if (game.starting || game.polling) return;
+  const revision = game.pollRevision;
+  game.polling = true;
   try {
     const response = await fetch("/api/kplates/dual/latest", { cache: "no-store" });
     const data = await response.json();
+    // Une réponse partie avant le nouveau jeu ne lui appartient pas.
+    if (revision !== game.pollRevision || game.starting) return;
     if (!response.ok) throw new Error(data.detail || "Lecture impossible");
     updateStatus(data);
   } catch (error) {
+    if (revision !== game.pollRevision || game.starting) return;
     $("gameStatusDot").className = "status-dot error";
     $("gameStatusText").textContent = "Serveur indisponible";
     message(error.message, true);
+  } finally {
+    game.polling = false;
   }
+}
+
+function resetMeasurementDisplay() {
+  game.pollRevision += 1;
+  game.latestMeasurement = null;
+  game.lastMeasurementTimestamp = null;
+  game.lastFreshMeasurementAt = null;
+  game.direction = "center";
+  for (const side of ["left", "right"]) {
+    $(side + "ForceBar").style.width = "0%";
+    $(side + "ForceText").textContent = "—";
+  }
+  $("directionValue").textContent = "En attente";
 }
 
 async function connect() {
@@ -263,6 +286,7 @@ async function connect() {
 async function startGame() {
   if (game.starting || game.running) return;
   game.starting = true;
+  resetMeasurementDisplay();
   $("startGameButton").disabled = true;
   document.querySelectorAll(".start-action").forEach((button) => {
     button.disabled = true;

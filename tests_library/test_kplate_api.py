@@ -12,6 +12,17 @@ from ble.kinvent.kplates.acquisition_service import DualPlateAcquisitionService
 
 
 class KPlateApiTest(unittest.TestCase):
+    def test_latest_log_reads_only_bounded_tail(self):
+        service = DualPlateAcquisitionService()
+        with tempfile.TemporaryDirectory() as directory:
+            service._worker_log_path = Path(directory) / "worker.log"
+            service._worker_log_path.write_text("old line\n" * 20000 + "récent 1\nrécent 2\n")
+            with mock.patch.object(Path, "read_text", side_effect=AssertionError("lecture intégrale")):
+                self.assertEqual(service._read_log_tail(2), ["récent 1", "récent 2"])
+                self.assertEqual(service._read_log_tail(0), [])
+            service._worker_log_path.write_text("x" * 70000)
+            self.assertEqual(service._read_log_tail(), [])
+
     def no_manager_state(self):
         return mock.patch.object(acquisition_module, "manager_state", return_value={})
 
