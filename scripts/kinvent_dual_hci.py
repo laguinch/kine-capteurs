@@ -28,7 +28,9 @@ from ble.kinvent.kplates.protocol import (  # noqa: E402
     parse_frame,
 )
 from ble.kinvent.kplates.cmj_analysis import analyze_cmj_csv  # noqa: E402
-from ble.kinvent.kplates.initialization import PlateInitialization  # noqa: E402
+from ble.kinvent.kplates.initialization import (  # noqa: E402
+    PlateInitialization, PlateInitializationError,
+)
 from scripts.kinvent_raw_hci import (  # noqa: E402
     AF_BLUETOOTH,
     ATT_CID,
@@ -1856,6 +1858,7 @@ class DualKinventClient:
                         except (
                             OSError,
                             PlateDisconnected,
+                            PlateInitializationError,
                             TimeoutError,
                             RuntimeError,
                             SystemExit,
@@ -1970,6 +1973,7 @@ class DualKinventClient:
                     except (
                         OSError,
                         PlateDisconnected,
+                        PlateInitializationError,
                         TimeoutError,
                         RuntimeError,
                         SystemExit,

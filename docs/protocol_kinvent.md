@@ -328,3 +328,20 @@ mesures sont fraîches. Aucun état terminal ou fichier appartenant à un autre
 processus n'est rafraîchi. Aucune commande Bluetooth n'est ajoutée.
 Cette correction évite un faux affichage hors ligne après un jeu ; elle ne
 corrige pas les retards du flux de mesures.
+
+
+### Échec d'initialisation dans le service permanent
+
+`PlateInitializationError` reste distinct des erreurs entraînant les tentatives
+internes de `initialize_session`. Le service permanent l'intercepte maintenant
+aux deux points d'entrée (connexion initiale et reconnexion demandée) pour
+exécuter le nettoyage existant et enregistrer l'échec de cette génération.
+Le processus reste disponible pour une nouvelle demande explicite. La même
+commande ne redémarre pas l'initialisation et ne provoque plus de traceback suivi
+d'une relance du processus par le gestionnaire.
+
+Les réponses attendues, les commandes et les délais d'initialisation restent
+inchangés. Recevoir des paquets batterie après `66` ne valide pas la fréquence ;
+la cause d'une telle réponse reste à diagnostiquer. Le test de régression couvre
+les deux points d'entrée, le nettoyage et l'absence de nouvelle tentative pour
+la même génération.
