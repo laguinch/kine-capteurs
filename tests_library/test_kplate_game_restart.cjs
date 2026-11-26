@@ -35,6 +35,36 @@ const path = require('node:path');
     await fresh;
     assert.equal(seen[1].measurement.left_pct, 70);
     assert.equal(game.polling, false);
+
+    // Le serveur conserve la dernière ligne CSV après le jeu. Une lecture
+    // au repos ou pendant la préparation suivante ne doit pas la réafficher.
+    let controlUpdates = 0;
+    Object.assign(context, {
+      platformsReady: () => true, waitingForInitialMeasurements: () => false,
+      serverStoppedAbnormally: () => false, setLevelControlsDisabled: () => {},
+      syncAvailabilityMessage: () => {}, saveTrainingSummary: () => {},
+      interruptGame: () => { throw new Error('Unexpected interruption'); },
+      updateControls: measurement => {
+        controlUpdates++;
+        elements.leftForceText.textContent = String(measurement.left_pct);
+        elements.rightForceText.textContent = String(measurement.right_pct);
+      },
+    });
+    vm.runInContext(extract('updateStatus') + '\n' + extract('finishGame'), context);
+    const active = {running: true, bluetooth_connected: true,
+      worker_phase: 'active', measurement: {left_pct: 51, right_pct: 49}};
+    context.updateStatus(active);
+    assert.equal(controlUpdates, 1);
+    context.updateStatus({...active, running: false, worker_phase: 'idle'});
+    assert.equal(elements.leftForceText.textContent, '—');
+    context.updateStatus({...active, running: false, worker_phase: 'idle'});
+    assert.equal(controlUpdates, 1, 'idle CSV must not restore old controls');
+    game.running = true;
+    context.updateStatus({...active, validating_streams: true});
+    assert.equal(controlUpdates, 1, 'preparation must not reuse an old CSV row');
+    context.updateStatus({...active, measurement: {left_pct: 70, right_pct: 30}});
+    assert.equal(controlUpdates, 2, 'new acquisition must accept its live measures');
+
   }
   console.log('3 jeux : redémarrage, ancienne réponse retardée et nouvelle mesure vérifiés.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

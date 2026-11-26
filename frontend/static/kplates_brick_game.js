@@ -161,7 +161,7 @@ function updateStatus(data) {
   });
   setLevelControlsDisabled(running);
   if (data.csv_path) game.csvPath = data.csv_path;
-  if (data.measurement) {
+  if (game.running && running && !data.validating_streams && data.measurement) {
     game.latestMeasurement = data.measurement;
     updateControls(data.measurement);
   }
@@ -400,6 +400,7 @@ function finishGame() {
   if (!game.running) return;
   game.running = false;
   game.playing = false;
+  resetMeasurementDisplay();
   $("gameStatusDot").className = "status-dot running";
   $("gameStatusText").textContent = game.completed ? "Casse-brique terminé" : "Jeu arrêté";
   saveTrainingSummary();
@@ -409,6 +410,7 @@ function interruptGame(data) {
   game.starting = false;
   game.running = false;
   game.playing = false;
+  resetMeasurementDisplay();
   game.completed = false;
   game.interrupted = true;
   $("gameStatusDot").className = "status-dot error";

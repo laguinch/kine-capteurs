@@ -164,7 +164,7 @@ function updateStatus(data) {
   });
   setLevelControlsDisabled(running);
   if (data.csv_path) game.csvPath = data.csv_path;
-  if (data.measurement) {
+  if (game.running && running && !data.validating_streams && data.measurement) {
     game.latestMeasurement = data.measurement;
     updateControls(data.measurement);
   }
@@ -343,6 +343,7 @@ function finishGame() {
   if (!game.running) return;
   game.running = false;
   game.playing = false;
+  resetMeasurementDisplay();
   game.gates = [];
   message(`Slalom terminé. Score : ${game.score}.`, false, true);
   saveTrainingSummary();
@@ -352,6 +353,7 @@ function interruptGame(data) {
   game.starting = false;
   game.running = false;
   game.playing = false;
+  resetMeasurementDisplay();
   game.interrupted = true;
   game.gates = [];
   $("gameStatusDot").className = "status-dot error";
