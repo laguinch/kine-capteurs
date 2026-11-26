@@ -377,6 +377,7 @@ class DualKinventClient:
         self.next_keepalive = None
         self.last_keepalive_at = None
         self.paired_samples = 0
+        self.last_paired_sensor_at = None
         self.dropped_samples = {"gauche": 0, "droite": 0}
         self.csv_file = None
         self.writer = None
@@ -1022,6 +1023,9 @@ class DualKinventClient:
                 right.samples.popleft()
                 self.write_combined(left_entry, right_entry, abs(delta) * 1000)
                 self.paired_samples += 1
+                self.last_paired_sensor_at = min(
+                    left_entry["sample_monotonic"], right_entry["sample_monotonic"]
+                )
             elif delta < 0:
                 left.samples.popleft()
                 self.dropped_samples["gauche"] += 1
@@ -1567,7 +1571,7 @@ class DualKinventClient:
             if plate.handle is not None and plate.side not in missing
         ]
 
-    def validate_live_streams(self, timeout=3.0, attempts=1):
+    def validate_live_streams(self, timeout=3.0, attempts=1, require_pair=True):
         """Exige une nouvelle trame de mesure valide de chaque plateforme."""
         if any(plate.handle is None for plate in self.plates):
             raise RuntimeError("Une plateforme est déconnectée.")
@@ -1575,6 +1579,7 @@ class DualKinventClient:
         before_measurements = {
             plate.side: plate.measurements for plate in self.plates
         }
+        self.last_paired_sensor_at = None
         self.wake_measurement_streams()
         self.pump(timeout)
         silent = [
@@ -1582,11 +1587,21 @@ class DualKinventClient:
             for plate in self.plates
             if plate.measurements <= before_measurements[plate.side]
         ]
-        if not silent:
-            return
-        raise RuntimeError(
-            "Flux de mesure absent: " + ", ".join(silent) + "."
-        )
+        if silent:
+            raise RuntimeError(
+                "Flux de mesure absent: " + ", ".join(silent) + "."
+            )
+        # Garde d'entrée du jeu, avec la même borne que son affichage figé.
+        # Ce contrôle local ne modifie pas la séquence Bluetooth Kinvent.
+        if require_pair:
+            age = (time.monotonic() - self.last_paired_sensor_at
+                   if self.last_paired_sensor_at is not None else None)
+            if age is None or age > 1.0:
+                detail = "aucune paire" if age is None else f"retard {age:.2f} s"
+                raise RuntimeError(
+                    "Flux non synchronisés ou trop anciens avant le jeu "
+                    f"({detail}). Le jeu n'a pas démarré."
+                )
 
     def ensure_recent_notifications(self, max_age=2.0):
         now = time.monotonic()
@@ -2086,7 +2101,9 @@ class DualKinventClient:
                     try:
                         # Ne jamais annoncer une acquisition tant que les deux
                         # flux n'ont pas produit une paire fraîche.
-                        self.validate_live_streams()
+                        self.validate_live_streams(
+                            require_pair=(acquisition_mode == "balance")
+                        )
                         self.paired_samples = 0
                         self.dropped_samples = {"gauche": 0, "droite": 0}
                         for plate in self.plates:

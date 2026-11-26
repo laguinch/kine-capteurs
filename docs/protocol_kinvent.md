@@ -345,3 +345,16 @@ inchangés. Recevoir des paquets batterie après `66` ne valide pas la fréquenc
 la cause d'une telle réponse reste à diagnostiquer. Le test de régression couvre
 les deux points d'entrée, le nettoyage et l'absence de nouvelle tentative pour
 la même génération.
+
+### Validation locale avant un jeu de répartition
+
+Le contrôle de départ exige maintenant une paire nouvellement synchronisée,
+dont le temps reconstruit ne date pas de plus d'une seconde à la fin de la
+validation existante. La référence de la paire est effacée avant chaque réveil
+des flux : une paire d'un ancien jeu ne peut pas valider le suivant.
+C'est une garde de notre interface, cohérente avec sa suspension sur données
+anciennes, et non un comportement attribué à l'application officielle.
+Aucune commande, temporisation ou relance Bluetooth supplémentaire n'est ajoutée.
+Le contrôle CMJ reste celui des mesures individuelles. Cette garde ne répare
+pas une déconnexion radio et ne garantit pas que le flux restera régulier
+après le démarrage.

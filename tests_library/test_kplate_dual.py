@@ -697,6 +697,7 @@ class KPlateDualTest(unittest.TestCase):
             plate.handle = index
 
         def pump(duration):
+            client.last_paired_sensor_at = time.monotonic()
             for plate in client.plates:
                 plate.notifications += 1
                 plate.measurements += 1
@@ -706,6 +707,25 @@ class KPlateDualTest(unittest.TestCase):
         client.validate_live_streams()
 
         self.assertEqual(client.paired_samples, 0)
+
+    def test_validation_rejects_missing_or_delayed_pairs_despite_measurements(self):
+        for age in (None, 3.0):
+            with self.subTest(age=age):
+                client = self.module.DualKinventClient(
+                    1, "E8:EB:1B:6F:A7:5F", "E8:EB:1B:79:B1:AB", None, 0, 1)
+                for i, plate in enumerate(client.plates):
+                    plate.handle = i
+                client.last_paired_sensor_at = time.monotonic()
+                client.wake_measurement_streams = mock.Mock()
+                def pump(duration):
+                    for plate in client.plates:
+                        plate.measurements += 1
+                    if age is not None:
+                        client.last_paired_sensor_at = time.monotonic() - age
+                client.pump = pump
+                with self.assertRaisesRegex(RuntimeError, "Le jeu n'a pas démarré"):
+                    client.validate_live_streams()
+                client.wake_measurement_streams.assert_called_once()
 
     def test_rejects_connected_but_silent_stream_before_test(self):
         client = self.module.DualKinventClient(
