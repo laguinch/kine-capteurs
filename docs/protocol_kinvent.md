@@ -358,3 +358,22 @@ Aucune commande, temporisation ou relance Bluetooth supplémentaire n'est ajout�
 Le contrôle CMJ reste celui des mesures individuelles. Cette garde ne répare
 pas une déconnexion radio et ne garantit pas que le flux restera régulier
 après le démarrage.
+
+### Comparaison hors ligne des notifications de mesure (27 novembre 2026)
+
+Capture double existante, après 14:48:29 UTC, handles 0x000a et 0x000c :
+6 700 notifications de mesure de 17 octets à droite, 6 699 à gauche.
+Deux interruptions communes séparent les phases (environ 12 s et 449,5 s) ;
+elles ne constituent pas des retards pendant un test. Hors ces interruptions,
+l'écart maximal entre notifications de mesure vaut 150,325 ms à droite et
+120,226 ms à gauche. Les notifications batterie de 11 octets sont exclues.
+Ces chiffres décrivent cette capture, pas une garantie du protocole.
+
+Les diagnostics serveur disponibles ne permettent pas de localiser le retard
+entre radio, firmware du dongle, USB et traitement hôte. L'absence de gestion
+des crédits ACL sortants n'est pas une preuve de saturation : les commandes
+de mesure sont courtes et leur fréquence est faible. Aucun acquittement ou
+réglage supplémentaire n'est introduit sans preuve. Les événements HCI
+Hardware Error (0x10) et Data Buffer Overflow (0x1a), déjà autorisés par le
+masque existant, sont maintenant journalisés lorsqu'ils sont reçus. Leur
+absence ne prouve pas l'absence de problème de transport.

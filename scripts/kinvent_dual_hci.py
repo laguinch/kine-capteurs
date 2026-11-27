@@ -898,6 +898,14 @@ class DualKinventClient:
             return
         if packet_type != HCI_EVENT_PKT or len(payload) < 2:
             return
+        # Événements déjà autorisés par le masque HCI existant.
+        # Journaliser seulement leurs paramètres définis, jamais de données clés.
+        if payload[0] in (0x10, 0x1A) and len(payload) >= 3:
+            self.log_connection_diagnostic(
+                "erreur_controleur" if payload[0] == 0x10 else "debordement_controleur",
+                code_evenement=payload[0], parametre=payload[2],
+            )
+            return
         if (payload[0] == EVT_LE_META_EVENT and len(payload) >= 4
                 and payload[2] in (EVT_LE_CONN_COMPLETE, EVT_LE_ENHANCED_CONN_COMPLETE, 0x03)):
             self.pending_le_events.append(payload)

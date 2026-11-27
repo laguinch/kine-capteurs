@@ -1316,6 +1316,16 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(sent[0][0], self.module.OGF_LINK_CTL)
         self.assertEqual(sent[0][1], self.module.OCF_DISCONNECT)
 
+    def test_controller_error_events_are_logged_without_bluetooth_commands(self):
+        client = self.module.DualKinventClient(
+            1, "E8:EB:1B:6F:A7:5F", "E8:EB:1B:79:B1:AB", None, 0, 1)
+        client.send_command = mock.Mock()
+        client.log_connection_diagnostic = mock.Mock()
+        for code, event in ((0x10, "erreur_controleur"), (0x1A, "debordement_controleur")):
+            client.process((self.module.HCI_EVENT_PKT, bytes([code, 1, 1])))
+            client.log_connection_diagnostic.assert_called_with(event, code_evenement=code, parametre=1)
+        client.send_command.assert_not_called()
+
     def test_disconnect_event_is_logged_during_command_wait(self):
         client = self.module.DualKinventClient(
             1, "E8:EB:1B:6F:A7:5F", "E8:EB:1B:79:B1:AB", None, 0, 1)
