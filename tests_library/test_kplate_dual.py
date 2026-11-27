@@ -1316,6 +1316,46 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(sent[0][0], self.module.OGF_LINK_CTL)
         self.assertEqual(sent[0][1], self.module.OCF_DISCONNECT)
 
+    def test_disconnect_event_is_logged_during_command_wait(self):
+        client = self.module.DualKinventClient(
+            1, "E8:EB:1B:6F:A7:5F", "E8:EB:1B:79:B1:AB", None, 0, 1)
+        plate = client.plates[0]
+        plate.handle = 0x10
+        client.by_handle[0x10] = plate
+        client.receive = mock.Mock(return_value=(self.module.HCI_EVENT_PKT,
+            bytes([self.module.EVT_DISCONN_COMPLETE, 4, 0, 0x10, 0, 0x16])))
+        with mock.patch("builtins.print") as output:
+            with self.assertRaises(self.module.PlateDisconnected):
+                client.wait_for_command(0x0406)
+        reports = [json.loads(call.args[0].split(" ", 1)[1])
+                   for call in output.call_args_list
+                   if call.args[0].startswith("DIAG_CONNEXION ")]
+        self.assertEqual(len(reports), 1)
+        self.assertEqual(reports[0]["event"], "evenement_deconnexion")
+        self.assertEqual(reports[0]["cote"], plate.side)
+        self.assertEqual(reports[0]["raison"], 0x16)
+        self.assertIsNone(plate.handle)
+
+    def test_missing_disconnect_confirmation_is_logged_before_local_clear(self):
+        client = self.module.DualKinventClient(
+            1, "E8:EB:1B:6F:A7:5F", "E8:EB:1B:79:B1:AB", None, 0, 1)
+        plate = client.plates[0]
+        plate.handle = 0x10
+        client.by_handle[0x10] = plate
+        client.sock = object()
+        client.send_command = mock.Mock(return_value=0x0406)
+        client.wait_for_command = mock.Mock(side_effect=TimeoutError("test timeout"))
+        with mock.patch("builtins.print") as output, mock.patch.object(self.module.time, "sleep"):
+            client.disconnect_all(timeout=0)
+        reports = [json.loads(call.args[0].split(" ", 1)[1])
+                   for call in output.call_args_list
+                   if call.args[0].startswith("DIAG_CONNEXION ")]
+        self.assertTrue(any(r["event"] == "disconnect_commande_erreur" for r in reports))
+        summary = next(r for r in reports if r["event"] == "bilan_fermeture_session")
+        self.assertEqual(summary["sans_confirmation"], {plate.side: 0x10})
+        self.assertIsNone(plate.handle)
+        client.send_command.assert_called_once()
+
     def test_shutdown_session_never_leaves_one_plate_connected(self):
         client = self.module.DualKinventClient(
             1,

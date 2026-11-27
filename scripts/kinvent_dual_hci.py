@@ -491,9 +491,23 @@ class DualKinventClient:
         self.sock.settimeout(0.1)
         print(f"Canal HCI double ouvert sur hci{self.adapter}.")
 
+    def log_connection_diagnostic(self, event, **details):
+        print("DIAG_CONNEXION " + json.dumps({
+            "timestamp_utc": now_iso(), "pid": os.getpid(),
+            "event": event,
+            "handles_locaux": {p.side: p.handle for p in self.plates},
+            **details,
+        }, ensure_ascii=False), flush=True)
+
     def close(self):
         if self.sock:
-            self.sock.close()
+            self.log_connection_diagnostic("fermeture_canal")
+            try:
+                self.sock.close()
+            except OSError as exc:
+                self.log_connection_diagnostic("erreur_fermeture_canal", erreur=str(exc))
+                raise
+            self.log_connection_diagnostic("canal_ferme")
             self.sock = None
         self.close_csv()
 
@@ -540,8 +554,14 @@ class DualKinventClient:
 
     def reset(self):
         print("Réinitialisation du contrôleur...")
+        self.log_connection_diagnostic("reset_demande")
         opcode = self.send_command(OGF_HOST_CTL, OCF_RESET)
-        self.wait_for_command(opcode, timeout=5.0)
+        try:
+            self.wait_for_command(opcode, timeout=5.0)
+        except (OSError, RuntimeError, TimeoutError, PlateDisconnected) as exc:
+            self.log_connection_diagnostic("reset_echec", erreur=str(exc))
+            raise
+        self.log_connection_diagnostic("reset_confirme")
 
         # Les contrôleurs Realtek peuvent ignorer la première commande envoyée
         # immédiatement après HCI Reset, le temps que le firmware se stabilise.
@@ -885,6 +905,11 @@ class DualKinventClient:
         if payload[0] == EVT_DISCONN_COMPLETE and len(payload) >= 6:
             handle = struct.unpack_from("<H", payload, 3)[0] & 0x0FFF
             plate = self.by_handle.get(handle)
+            self.log_connection_diagnostic(
+                "evenement_deconnexion", handle=handle,
+                cote=plate.side if plate else None,
+                statut=payload[2], raison=payload[5],
+            )
             if plate:
                 self.by_handle.pop(handle, None)
                 plate.handle = None
@@ -1637,17 +1662,26 @@ class DualKinventClient:
         if not connected or self.sock is None:
             return
         print("Déconnexion propre des plateformes...")
+        self.log_connection_diagnostic("fermeture_session_demandee")
         for plate in connected:
             handle = plate.handle
             try:
+                self.log_connection_diagnostic("disconnect_demande", cote=plate.side, handle=handle)
                 opcode = self.send_command(
                     OGF_LINK_CTL,
                     OCF_DISCONNECT,
                     struct.pack("<HB", handle, 0x13),
                 )
                 self.wait_for_command(opcode, timeout=1.5)
-            except (OSError, RuntimeError, TimeoutError, PlateDisconnected):
-                pass
+                self.log_connection_diagnostic("disconnect_commande_acceptee", cote=plate.side, handle=handle)
+            except PlateDisconnected as exc:
+                self.log_connection_diagnostic(
+                    "attente_commande_interrompue_par_deconnexion",
+                    commande_cote=plate.side, deconnexion_cote=exc.plate.side,
+                    raison=exc.reason,
+                )
+            except (OSError, RuntimeError, TimeoutError) as exc:
+                self.log_connection_diagnostic("disconnect_commande_erreur", cote=plate.side, handle=handle, erreur=str(exc))
 
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline and any(
@@ -1661,6 +1695,10 @@ class DualKinventClient:
             except PlateDisconnected as exc:
                 print(f"Plateforme {exc.plate.side} déconnectée proprement.")
 
+        self.log_connection_diagnostic(
+            "bilan_fermeture_session",
+            sans_confirmation={p.side: p.handle for p in connected if p.handle is not None},
+        )
         for plate in connected:
             if plate.handle is not None:
                 self.by_handle.pop(plate.handle, None)
@@ -1672,8 +1710,8 @@ class DualKinventClient:
         if self.sock is not None:
             try:
                 self.disconnect_all()
-            except (OSError, RuntimeError, TimeoutError, PlateDisconnected):
-                pass
+            except (OSError, RuntimeError, TimeoutError, PlateDisconnected) as exc:
+                self.log_connection_diagnostic("erreur_fermeture_session", erreur=str(exc))
         self.clear_connection_state()
         self.close()
 
