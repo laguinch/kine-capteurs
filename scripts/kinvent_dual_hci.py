@@ -1488,7 +1488,9 @@ class DualKinventClient:
                 self.send_write_command(plate, b"\x10")
             self.pump(delay)
         self.streams_parked_at = time.monotonic()
-        print("Flux de mesure au repos; connexions Bluetooth conservées.")
+        remaining = self.connected_sides()
+        print("Flux de mesure au repos; plateformes encore connectées: "
+              + (", ".join(remaining) if remaining else "aucune") + ".")
 
     def settle_initial_streams(self, duration=2.0):
         """Vérifie les données initiales avant toute commande de repos."""

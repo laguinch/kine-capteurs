@@ -3,6 +3,8 @@ const $ = (id) => document.getElementById(id);
 const state = {
   history: [],
   polling: null,
+  pollInFlight: false,
+  pollRevision: 0,
   startedAt: null,
   awaitingTare: false,
   awaitingReady: false,
@@ -370,22 +372,32 @@ function drawHistory() {
 }
 
 async function poll() {
+  if (state.pollInFlight || state.starting || state.bluetoothChanging) return;
+  state.pollInFlight = true;
+  const revision = state.pollRevision;
   try {
     const response = await fetch("/api/kplates/dual/latest", { cache: "no-store" });
     if (!response.ok) throw new Error("API indisponible");
     const data = await response.json();
+    if (revision !== state.pollRevision) return;
     updateStatus(data);
-    updateMeasurement(data.measurement);
+    if (data.running && !data.validating_streams && !data.last_error) {
+      updateMeasurement(data.measurement);
+    }
   } catch (error) {
+    if (revision !== state.pollRevision) return;
     $("statusDot").className = "status-dot error";
     $("statusText").textContent = "Serveur indisponible";
     setMessage(error.message, true);
+  } finally {
+    state.pollInFlight = false;
   }
 }
 
 async function start() {
   if (state.starting) return;
   state.starting = true;
+  state.pollRevision++;
   $("startButton").disabled = true;
   setMessage("");
   resetMeasurement();
@@ -435,6 +447,7 @@ async function start() {
 }
 
 async function stop() {
+  state.pollRevision++;
   state.awaitingTare = false;
   state.awaitingReady = false;
   try {
@@ -447,6 +460,9 @@ async function stop() {
 }
 
 async function setBluetoothConnection(action) {
+  if (state.bluetoothChanging) return;
+  state.pollRevision++;
+  resetMeasurement();
   state.bluetoothChanging = true;
   setMessage(
     action === "connect"
