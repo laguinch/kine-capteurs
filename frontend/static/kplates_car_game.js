@@ -150,11 +150,11 @@ function updateStatus(data) {
       : connected
         ? "Connexion partielle"
         : "Déconnecté";
-  $("connectButton").disabled = connecting || running;
+  $("connectButton").disabled = connecting || serverConnecting || starting || running || bothPlatformsConnected(data);
   $("startGameButton").disabled = starting || connecting || running || !ready;
   $("stopGameButton").disabled = !running;
   document.querySelectorAll(".connect-action").forEach((button) => {
-    button.disabled = connecting || running;
+    button.disabled = connecting || serverConnecting || starting || running || bothPlatformsConnected(data);
   });
   document.querySelectorAll(".start-action").forEach((button) => {
     button.disabled = starting || connecting || running || !ready;
@@ -258,6 +258,7 @@ function resetMeasurementDisplay() {
 }
 
 async function connect() {
+  if (game.connecting || game.starting || game.running || $("connectButton").disabled) return;
   game.connecting = true;
   message("Connexion aux plateformes…");
   $("gameStatusText").textContent = "Connexion des plateformes";

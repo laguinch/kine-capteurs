@@ -50,7 +50,27 @@ const path = require('node:path');
         elements.rightForceText.textContent = String(measurement.right_pct);
       },
     });
-    vm.runInContext(extract('updateStatus') + '\n' + extract('finishGame'), context);
+    vm.runInContext(extract('bothPlatformsConnected') + '\n' + extract('updateStatus') + '\n' + extract('finishGame'), context);
+    const connectButtons = [{disabled: false}, {disabled: false}];
+    context.document.querySelectorAll = selector => selector === '.connect-action' ? connectButtons : [];
+    game.running = false;
+    for (const [status, disabled] of [
+      [{worker_phase: 'idle', connected_sides: ['gauche', 'droite']}, true],
+      [{worker_phase: 'degraded', connected_sides: ['gauche', 'droite']}, true],
+      [{worker_phase: 'connecting', connected_sides: []}, true],
+      [{worker_phase: 'idle', connected_sides: ['gauche']}, false],
+      [{worker_phase: 'disconnected', connected_sides: []}, false],
+    ]) {
+      context.updateStatus(status);
+      assert.equal(elements.connectButton.disabled, disabled, kind + ' connection state');
+      assert.ok(connectButtons.every(button => button.disabled === disabled));
+    }
+    vm.runInContext(extract('connect'), context);
+    context.updateStatus({worker_phase: 'idle', connected_sides: ['gauche', 'droite']});
+    const requestCount = requests.length;
+    await context.connect();
+    assert.equal(requests.length, requestCount, 'connected platforms must not receive another connect');
+    game.running = true;
     const active = {running: true, bluetooth_connected: true,
       worker_phase: 'active', measurement: {left_pct: 51, right_pct: 49}};
     context.updateStatus(active);
