@@ -1316,6 +1316,30 @@ class KPlateDualTest(unittest.TestCase):
         self.assertEqual(sent[0][0], self.module.OGF_LINK_CTL)
         self.assertEqual(sent[0][1], self.module.OCF_DISCONNECT)
 
+    def test_host_timing_records_duration_and_preserves_result_and_exception(self):
+        client = self.module.DualKinventClient(
+            1, "E8:EB:1B:6F:A7:5F", "E8:EB:1B:79:B1:AB", None, 0, 1)
+        baseline = client.stream_counters()
+        with mock.patch.object(self.module.time, "perf_counter", side_effect=[1.0, 1.25, 2.0, 2.5]):
+            self.assertEqual(client.timed_call("reception_hci", lambda: 42), 42)
+            with self.assertRaisesRegex(ValueError, "failed"):
+                client.timed_call("reception_hci", mock.Mock(side_effect=ValueError("failed")))
+        with mock.patch("builtins.print"):
+            current = client.log_stream_diagnostics(baseline, 0, 5)
+        report = client.latest_stream_diagnostics["temps_hote"]["reception_hci"]
+        self.assertEqual(report["appels"], 2)
+        self.assertEqual(report["total_ms"], 750)
+        self.assertEqual(report["moyenne_ms"], 375)
+        self.assertEqual(report["maximum_depuis_debut_ms"], 500)
+        with mock.patch.object(self.module.time, "perf_counter", side_effect=[3.0, 3.125]):
+            client.timed_call("reception_hci", lambda: None)
+        with mock.patch("builtins.print"):
+            client.log_stream_diagnostics(current, 5, 10)
+        report = client.latest_stream_diagnostics["temps_hote"]["reception_hci"]
+        self.assertEqual(report["appels"], 1)
+        self.assertEqual(report["total_ms"], 125)
+        self.assertEqual(report["maximum_depuis_debut_ms"], 500)
+
     def test_controller_error_events_are_logged_without_bluetooth_commands(self):
         client = self.module.DualKinventClient(
             1, "E8:EB:1B:6F:A7:5F", "E8:EB:1B:79:B1:AB", None, 0, 1)

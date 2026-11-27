@@ -376,6 +376,7 @@ class DualKinventClient:
         self.keepalive_interval = 10.0
         self.next_keepalive = None
         self.last_keepalive_at = None
+        self.host_timings = {}
         self.paired_samples = 0
         self.last_paired_sensor_at = None
         self.dropped_samples = {"gauche": 0, "droite": 0}
@@ -402,8 +403,8 @@ class DualKinventClient:
         self.acquisition_mode = mode
         self.cmj_started_monotonic = None
         self.cmj_samples = 0
-        self.writer.writerow(CMJ_FIELDS if mode == "cmj" else CSV_FIELDS)
-        self.csv_file.flush()
+        self.timed_call("csv_ecriture", self.writer.writerow,CMJ_FIELDS if mode == "cmj" else CSV_FIELDS)
+        self.timed_call("csv_flush", self.csv_file.flush)
 
     def close_csv(self):
         if self.csv_file:
@@ -1076,7 +1077,7 @@ class DualKinventClient:
         right_sample = right_entry["sample"]
         sync_quality = "excellent" if sync_delta_ms <= 10 else "acceptable"
         if self.writer:
-            self.writer.writerow(
+            self.timed_call("csv_ecriture", self.writer.writerow,
                 [
                     max(left_entry["received_utc"], right_entry["received_utc"]),
                     round(sync_delta_ms, 3),
@@ -1110,7 +1111,7 @@ class DualKinventClient:
                     else "",
                 ]
             )
-            self.csv_file.flush()
+            self.timed_call("csv_flush", self.csv_file.flush)
         if time.monotonic() - self.last_print >= self.print_interval:
             if values["total_kg"] >= MIN_VALID_KG:
                 print(
@@ -1160,7 +1161,7 @@ class DualKinventClient:
         source_sample = source_plate.latest
         source_distribution = source_plate.distribution or {}
         source_kg = max(0.0, source_sample["force_kg"])
-        self.writer.writerow(
+        self.timed_call("csv_ecriture", self.writer.writerow,
             [
                 source_entry["received_utc"],
                 round(event_time - self.cmj_started_monotonic, 6),
@@ -1190,7 +1191,7 @@ class DualKinventClient:
                 round(total_current * 9.81, 6) if total_current != "" else "",
             ]
         )
-        self.csv_file.flush()
+        self.timed_call("csv_flush", self.csv_file.flush)
         self.cmj_samples += 1
         if time.monotonic() - self.last_print >= self.print_interval:
             if left_current == "" or right_current == "":
@@ -1221,8 +1222,20 @@ class DualKinventClient:
                 self.send_write_command(plate, b"\xff")
         self.last_keepalive_at = time.monotonic()
 
+    def timed_call(self, stage, function, *args, **kwargs):
+        started = time.perf_counter()
+        try:
+            return function(*args, **kwargs)
+        finally:
+            elapsed = time.perf_counter() - started
+            stats = self.host_timings.setdefault(stage, {"calls": 0, "seconds": 0.0, "max_seconds": 0.0})
+            stats["calls"] += 1
+            stats["seconds"] += elapsed
+            stats["max_seconds"] = max(stats["max_seconds"], elapsed)
+
     def stream_counters(self):
         return {
+            "host_timings": {name: dict(stats) for name, stats in self.host_timings.items()},
             "pairs": self.paired_samples,
             "plates": {
                 p.side: {
@@ -1257,6 +1270,16 @@ class DualKinventClient:
                 if plate.timeline_host_origin is not None else None)
             report["plates"][side] = values
         report["paires_par_s"] = round(report["paires"] / elapsed, 2) if elapsed else None
+        report["temps_hote"] = {}
+        for name, stats in current["host_timings"].items():
+            previous = baseline.get("host_timings", {}).get(name, {})
+            calls = stats["calls"] - previous.get("calls", 0)
+            total = stats["seconds"] - previous.get("seconds", 0.0)
+            report["temps_hote"][name] = {
+                "appels": calls, "total_ms": round(total * 1000, 3),
+                "moyenne_ms": round(total * 1000 / calls, 3) if calls else None,
+                "maximum_depuis_debut_ms": round(stats["max_seconds"] * 1000, 3),
+            }
         self.latest_stream_diagnostics = report
         print("DIAG_FLUX " + json.dumps(report, ensure_ascii=False), flush=True)
         return current
@@ -1265,6 +1288,7 @@ class DualKinventClient:
              stop_requested=None, stream_silence_timeout=None):
         if not progress:
             return self._pump(duration, progress, show_progress, stop_requested, stream_silence_timeout)
+        self.host_timings = {}
         baseline = self.stream_counters()
         started = time.monotonic()
         try:
@@ -1294,12 +1318,12 @@ class DualKinventClient:
                 else self.last_keepalive_at + self.keepalive_interval
             )
         while time.monotonic() < deadline:
-            if stop_requested is not None and stop_requested():
+            if stop_requested is not None and self.timed_call("lecture_commande", stop_requested):
                 return False
-            packet = self.receive()
+            packet = self.timed_call("reception_hci", self.receive)
             if packet:
                 try:
-                    self.process(packet)
+                    self.timed_call("traitement_paquet", self.process, packet)
                 except PlateDisconnected as exc:
                     if not progress:
                         raise
@@ -1307,7 +1331,7 @@ class DualKinventClient:
                         f"{exc}. Le test est arrêté pour protéger la session "
                         "Bluetooth."
                     ) from exc
-            if stop_requested is not None and stop_requested():
+            if stop_requested is not None and self.timed_call("lecture_commande", stop_requested):
                 return False
             if (
                 stream_silence_timeout is not None

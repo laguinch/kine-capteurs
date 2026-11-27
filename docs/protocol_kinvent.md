@@ -377,3 +377,15 @@ réglage supplémentaire n'est introduit sans preuve. Les événements HCI
 Hardware Error (0x10) et Data Buffer Overflow (0x1a), déjà autorisés par le
 masque existant, sont maintenant journalisés lorsqu'ils sont reçus. Leur
 absence ne prouve pas l'absence de problème de transport.
+
+### Temps de traitement du serveur
+
+`DIAG_FLUX.temps_hote` mesure avec une horloge monotone haute résolution la
+réception HCI (attente socket comprise), le traitement du paquet, les callbacks
+de lecture de commande et les écritures/flush CSV. Les appels, sommes et moyennes
+portent sur l'intervalle du bilan ; le maximum est cumulatif depuis le démarrage
+de l'acquisition. Les compteurs repartent à zéro à chaque acquisition.
+Le traitement paquet inclut les écritures CSV : ne pas additionner ces catégories.
+Une attente HCI longue ne prouve pas une lenteur du code Python ; elle peut
+correspondre à l'absence de paquets disponibles. Ces mesures n'identifient pas
+à elles seules une cause radio ou USB et n'ajoutent aucune capture Bluetooth.
