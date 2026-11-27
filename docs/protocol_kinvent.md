@@ -389,3 +389,20 @@ Le traitement paquet inclut les écritures CSV : ne pas additionner ces catégor
 Une attente HCI longue ne prouve pas une lenteur du code Python ; elle peut
 correspondre à l'absence de paquets disponibles. Ces mesures n'identifient pas
 à elles seules une cause radio ou USB et n'ajoutent aucune capture Bluetooth.
+
+### Vérification de l'ordre des fragments (27 novembre 2026)
+
+Rejeu de la capture double existante après 14:48:29 UTC : le défragmenteur HCI
+actuel reconstitue exactement les mêmes notifications UART que l'analyseur
+hors ligne (6 721 à droite, 6 718 à gauche, réponses de contrôle incluses).
+Le cadrage fournit 6 697 trames à droite et 6 696 à gauche. Ces 13 393 trames
+restent identiques, dans le même ordre, en redécoupant chaque flux UART en
+blocs de 1, 2, 3, 7, 17, 20, 27, 64 et 251 octets.
+
+Le test synthétique `test_kplate_fragment_order.py` vérifie tous les points de
+coupure UART et L2CAP pour une séquence contenant un retour de 13 905 à
+11 585 ms, avec fragments des deux handles entrelacés. Le pilote conserve
+l'ordre fourni : il ne trie pas et ne réordonne pas ce retour en arrière.
+Cela ne prouve pas l'origine des rejets sur le serveur : la capture officielle
+ne contient pas les octets du dernier incident serveur. Aucune modification
+du protocole n'est déduite de cette seule vérification.
