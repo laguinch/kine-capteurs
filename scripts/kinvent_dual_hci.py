@@ -376,6 +376,9 @@ class DualKinventClient:
         self.keepalive_interval = 10.0
         self.next_keepalive = None
         self.last_keepalive_at = None
+        self.kernel_timestamp_enabled = False
+        self.kernel_clock_offset = None
+        self.kernel_missing_reported = False
         self.host_timings = {}
         self.paired_samples = 0
         self.last_paired_sensor_at = None
@@ -490,6 +493,7 @@ class DualKinventClient:
                 "Arrête bluetooth.service et place le contrôleur DOWN."
             ) from exc
         self.sock.settimeout(0.1)
+        self.enable_kernel_timestamps()
         print(f"Canal HCI double ouvert sur hci{self.adapter}.")
 
     def log_connection_diagnostic(self, event, **details):
@@ -515,6 +519,7 @@ class DualKinventClient:
     def attach_hci_fd(self, descriptor):
         self.sock = socket.socket(fileno=descriptor)
         self.sock.settimeout(0.2)
+        self.enable_kernel_timestamps()
         print(f"Canal HCI partagé reçu sur hci{self.adapter}.")
 
     def send_command(self, ogf, ocf, parameters=b""):
@@ -598,9 +603,62 @@ class DualKinventClient:
             opcode = self.send_command(ogf, ocf, params)
             self.wait_for_command(opcode)
 
+    def enable_kernel_timestamps(self):
+        self.kernel_timestamp_enabled = False
+        self.kernel_clock_offset = None
+        self.kernel_missing_reported = False
+        if sys.platform != "linux":
+            return
+        # Linux SO_TIMESTAMPNS_NEW : timespec à deux entiers signés de 64 bits.
+        try:
+            self.sock.setsockopt(socket.SOL_SOCKET, 64, 1)
+        except OSError as exc:
+            self.log_connection_diagnostic("horodatage_noyau_indisponible", erreur=str(exc))
+            return
+        self.kernel_timestamp_enabled = True
+        self.log_connection_diagnostic("horodatage_noyau_active")
+
+    def record_kernel_timestamp(self, data, ancillary, flags, received_ns, monotonic_ns):
+        if not data:
+            return
+        timestamp = None
+        for level, kind, value in ancillary:
+            if level == socket.SOL_SOCKET and kind == 64 and len(value) >= 16:
+                seconds, nanos = struct.unpack_from("=qq", value)
+                if seconds > 0 and 0 <= nanos < 1_000_000_000:
+                    timestamp = seconds * 1_000_000_000 + nanos
+                break
+        if flags & getattr(socket, "MSG_CTRUNC", 8) or timestamp is None:
+            if not self.kernel_missing_reported:
+                self.log_connection_diagnostic("horodatage_noyau_absent_ou_tronque")
+                self.kernel_missing_reported = True
+            return
+        offset = received_ns - monotonic_ns
+        previous = self.kernel_clock_offset
+        self.kernel_clock_offset = offset
+        if previous is not None and abs(offset - previous) > 50_000_000:
+            self.log_connection_diagnostic("horodatage_noyau_saut_horloge")
+            return
+        age = received_ns - timestamp
+        if age < 0:
+            return
+        stage = "attente_noyau_autres"
+        if data[0] == HCI_ACLDATA_PKT and len(data) >= 5:
+            handle = struct.unpack_from("<H", data, 1)[0] & 0x0FFF
+            plate = self.by_handle.get(handle)
+            if plate:
+                stage = "attente_noyau_" + plate.side
+        self.record_host_timing(stage, age / 1_000_000_000)
+
     def receive(self):
         try:
-            data = self.sock.recv(4096)
+            if self.kernel_timestamp_enabled:
+                data, ancillary, flags, _ = self.sock.recvmsg(4096, socket.CMSG_SPACE(16))
+                received_ns = time.time_ns()
+                monotonic_ns = time.monotonic_ns()
+                self.record_kernel_timestamp(data, ancillary, flags, received_ns, monotonic_ns)
+            else:
+                data = self.sock.recv(4096)
         except socket.timeout:
             return None
         return (data[0], data[1:]) if data else None
@@ -1228,10 +1286,13 @@ class DualKinventClient:
             return function(*args, **kwargs)
         finally:
             elapsed = time.perf_counter() - started
-            stats = self.host_timings.setdefault(stage, {"calls": 0, "seconds": 0.0, "max_seconds": 0.0})
-            stats["calls"] += 1
-            stats["seconds"] += elapsed
-            stats["max_seconds"] = max(stats["max_seconds"], elapsed)
+            self.record_host_timing(stage, elapsed)
+
+    def record_host_timing(self, stage, elapsed):
+        stats = self.host_timings.setdefault(stage, {"calls": 0, "seconds": 0.0, "max_seconds": 0.0})
+        stats["calls"] += 1
+        stats["seconds"] += elapsed
+        stats["max_seconds"] = max(stats["max_seconds"], elapsed)
 
     def stream_counters(self):
         return {

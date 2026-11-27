@@ -406,3 +406,29 @@ l'ordre fourni : il ne trie pas et ne réordonne pas ce retour en arrière.
 Cela ne prouve pas l'origine des rejets sur le serveur : la capture officielle
 ne contient pas les octets du dernier incident serveur. Aucune modification
 du protocole n'est déduite de cette seule vérification.
+
+### Horodatage de réception Linux
+
+Sources Linux v6.8 vérifiées : `net/bluetooth/hci_core.c`, `hci_recv_frame`
+pose `__net_timestamp` avant la file de réception ; `net/bluetooth/hci_sock.c`,
+`hci_sock_recvmsg`, transmet ce timestamp par `sock_recv_timestamp` sur
+HCI_CHANNEL_USER. L'ABI `SO_TIMESTAMPNS_NEW=64` est définie dans
+`include/uapi/asm-generic/socket.h` (serveur x86-64).
+
+Le pilote active cette option à l'ouverture, y compris sur un descripteur
+partagé, et utilise recvmsg. En cas d'option indisponible, il conserve recv.
+Les catégories `temps_hote.attente_noyau_gauche`, `attente_noyau_droite` et
+`attente_noyau_autres` mesurent réception noyau → lecture utilisateur. Ce sont
+les délais des paquets HCI, pas ceux des mesures capteur et pas la durée USB.
+Leurs sommes ne doivent pas être additionnées aux temps de traitement.
+Un timestamp absent/tronqué n'est pas compté comme un délai nul. Les valeurs
+négatives et les échantillons coïncidant avec un saut d'horloge civile détecté
+(écart civil-monotone modifié de plus de 50 ms) sont exclus. Une correction
+progressive de l'horloge peut encore affecter la mesure. Les tests sont simulés ;
+la présence effective des timestamps HCI reste à vérifier sur le serveur.
+
+Relecture du firmware patché : les données HCI passent par une FIFO unique
+et le thread TX attend un tampon IN disponible avant de soumettre le transfert.
+Un engorgement USB peut donc retarder ce thread. Cela ne démontre ni un
+engorgement dans les essais fournis ni un réordonnancement des notifications.
+Aucune nouvelle modification du firmware n'est faite sur cette hypothèse.
