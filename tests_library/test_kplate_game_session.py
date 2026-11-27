@@ -8,6 +8,33 @@ from scripts.kinvent_dual_hci import DualKinventClient
 
 
 class GameSessionTest(unittest.TestCase):
+    def test_repeated_connect_on_parked_streams_keeps_both_connections(self):
+        with tempfile.TemporaryDirectory() as directory:
+            control = Path(directory) / 'control.json'
+            control.write_text(json.dumps({'action': 'connect', 'generation': 'repeat'}))
+            client = DualKinventClient(1, 'E8:EB:1B:6F:A7:5F', 'E8:EB:1B:79:B1:AB', None, 0, 1)
+            client.sock = Mock()
+            client.streams_parked_at = 123.0
+            for handle, plate in enumerate(client.plates):
+                plate.handle = handle
+                client.by_handle[handle] = plate
+            client.settle_initial_streams = Mock(side_effect=AssertionError('Parked streams must not be read'))
+            client.send_command = Mock()
+            client.close = Mock()
+            states = []
+            def write_state(path, **state):
+                states.append(state)
+                if state['phase'] == 'idle':
+                    raise KeyboardInterrupt
+            client.write_worker_state = write_state
+            with self.assertRaises(KeyboardInterrupt):
+                client.run_persistent(1, 1, 0, control, Path(directory) / 'state.json')
+            self.assertEqual(states[-1]['connected_sides'], ['gauche', 'droite'])
+            self.assertEqual(states[-1]['generation'], 'repeat')
+            self.assertEqual(states[-1]['phase'], 'idle')
+            client.settle_initial_streams.assert_not_called()
+            client.send_command.assert_not_called()
+
     def test_balance_session_uses_no_terminal_silence_deadline(self):
         with tempfile.TemporaryDirectory() as directory:
             control = Path(directory) / 'control.json'
